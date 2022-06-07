@@ -8,3 +8,6 @@ examples/saved_model/
 examples/seedwandb/
 examples/start_predict.sh
 examples/wandb/
+dist/
+*.egg-info/
+*.pyc
