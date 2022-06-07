@@ -1,0 +1,78 @@
+{
+    "train_config": {
+        "batch_size": 256,
+        "num_epochs": 200,
+        "optimizer": "adam",
+        "seq_len": 200
+    },
+    "dkt": {
+        "learning_rate": 1e-3,
+        "emb_size": 200,
+        "dropout": 0.1
+    },
+    "dkt+": {
+        "learning_rate": 1e-3,
+        "emb_size": 200,
+        "lambda_r": 0.2,
+        "lambda_w1": 1.0,
+        "lambda_w2": 10.0
+    },
+    "dkvmn": {
+        "learning_rate": 1e-3,
+        "dim_s": 200,
+        "size_m": 50,
+        "dropout": 0.2
+    },
+    "sakt": {
+        "learning_rate": 1e-3,
+        "emb_size": 256,
+        "num_attn_heads": 8,
+        "dropout": 0.2,
+        "num_en": 1
+    },
+    "saint": {
+        "learning_rate": 1e-3,
+        "emb_size": 256,
+        "num_attn_heads": 8,
+        "dropout": 0.2,
+        "n_blocks": 2
+    },
+    "akt": {
+        "learning_rate": 1e-5,
+        "d_model":256,
+        "n_blocks":1,
+        "dropout":0.05,
+        "d_ff":256
+    },
+    "kqn": {
+        "learning_rate": 1e-3,
+        "n_hidden": 128,
+        "n_rnn_hidden": 128,
+        "n_mlp_hidden": 128,
+        "n_rnn_layers": 1,
+        "dropout":0.4
+    },
+    "atkt": {
+        "learning_rate": 1e-3,
+        "skill_dim": 80,
+        "answer_dim": 80,
+        "hidden_dim": 80
+    },
+    "atktfix": {
+        "learning_rate": 1e-3,
+        "skill_dim": 80,
+        "answer_dim": 80,
+        "hidden_dim": 80
+    },
+    "dkt_forget": {
+        "learning_rate": 1e-3,
+        "emb_size": 200,
+        "dropout": 0.1
+    },
+    "gkt": {
+        "learning_rate": 1e-3,
+        "hidden_dim": 32,
+        "emb_size": 32,
+        "dropout": 0.5
+    }
+}

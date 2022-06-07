@@ -1,0 +1,13 @@
+{
+    "assist2015": {
+        "gkt": {
+            "model_path_fold_first": [
+                "/data/liuqiongqiong/kt/kaiyuan/pykt-toolkit/runs/all_bestmodel/assist2015/gkt/assist2015_gkt_qid_gkt_tiaocan_assist2015_42_4_0.001_0.6_32_transition_32_58682db3-8b3f-4c48-b2c9-c05d7a09b660",
+                "/data/liuqiongqiong/kt/kaiyuan/pykt-toolkit/runs/all_bestmodel/assist2015/gkt/assist2015_gkt_qid_gkt_tiaocan_assist2015_224_3_0.001_0.6_32_transition_32_5d37a4ba-eab5-4642-8dcc-58d7dabcadb3",
+                "/data/liuqiongqiong/kt/kaiyuan/pykt-toolkit/runs/all_bestmodel/assist2015/gkt/assist2015_gkt_qid_gkt_tiaocan_assist2015_42_2_0.001_0.6_64_transition_64_b45e30e4-c7fd-466f-8650-82c4d0699117",
+                "/data/liuqiongqiong/kt/kaiyuan/pykt-toolkit/runs/all_bestmodel/assist2015/gkt/assist2015_gkt_qid_gkt_tiaocan_assist2015_3407_1_0.001_0.6_16_transition_16_08f9edc8-fb28-4f80-86dc-971bf3df1702",
+                "/data/liuqiongqiong/kt/kaiyuan/pykt-toolkit/runs/all_bestmodel/assist2015/gkt/assist2015_gkt_qid_gkt_tiaocan_assist2015_3407_0_0.001_0.6_16_transition_16_46799e60-6df5-46e2-8625-4c1645c88963"
+            ]
+        }
+    }
+}
