@@ -35,6 +35,7 @@ def save_config(train_config, model_config, data_config, params, save_dir):
         json.dump(d, fout)
 
 def main(params):
+    set_seed(params["seed"])
     model_name, dataset_name, fold, emb_type, save_dir = params["model_name"], params["dataset_name"], \
         params["fold"], params["emb_type"], params["save_dir"]
         

@@ -1,9 +1,4 @@
 import argparse
-
-import sys
-sys.path.append("../")
-
-from utils.utils import set_seed
 from wandb_train import main
 
 if __name__ == "__main__":
@@ -22,7 +17,6 @@ if __name__ == "__main__":
     # parser.add_argument("--emb_size", type=int, default=64)
     parser.add_argument("--graph_type", type=str, default='transition',help='dense or transition')
     args = parser.parse_args()
-    set_seed(args.seed)
     args.emb_size = args.hidden_dim
     params = vars(args)
     main(params)
