@@ -5,7 +5,6 @@ import json, copy
 
 ALL_KEYS = ["fold", "uid", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
 ONE_KEYS = ["fold", "uid"]
-CONFIG_FILE = "../configs/data_config.json"
 
 def read_data(fname, min_seq_len=3, response_set=[0,1]):
     effective_keys = set()
@@ -435,7 +434,7 @@ def save_id2idx(dkeyid2idx, save_path):
     with open(save_path, "w+") as fout:
         fout.write(json.dumps(dkeyid2idx))
     
-def write_config(dataset_name, dkeyid2idx, effective_keys, k=5, flag=False):
+def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5, flag=False):
     input_type, num_q, num_c = [], 0, 0
     if "questions" in effective_keys:
         input_type.append("questions")
@@ -445,7 +444,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, k=5, flag=False):
         num_c = len(dkeyid2idx["concepts"])
     folds = list(range(0, k))
     dconfig = {
-        "dpath": "../data/" + dataset_name,
+        "dpath": dpath,
         "num_q": num_q,
         "num_c": num_c,
         "input_type": input_type,
@@ -459,14 +458,14 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, k=5, flag=False):
         dconfig["test_question_file"] = "test_question_sequences.csv"
         dconfig["test_question_window_file"] = "test_question_window_sequences.csv"
     data_config = dict()
-    with open(CONFIG_FILE) as fin:
+    with open(configf) as fin:
         if fin.read().strip() == "":
             data_config[dataset_name] = dconfig
     if len(data_config.keys()) == 0:
-        with open(CONFIG_FILE) as fin:
+        with open(configf) as fin:
             data_config = json.load(fin)
             data_config[dataset_name] = dconfig
-    with open(CONFIG_FILE, "w") as fout:
+    with open(configf, "w") as fout:
         data = json.dumps(data_config, ensure_ascii=False, indent=4)
         fout.write(data)
       
@@ -496,7 +495,7 @@ def calStatistics(df, stares, key):
     stares.append(",".join([str(s) for s in [key, allin, df.shape[0], allselect]]))
     return allin, allselect, len(allqs), len(allcs), df.shape[0]
 
-def main(dname, fname, dataset_name, min_seq_len = 3, maxlen = 200, kfold = 5):
+def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfold = 5):
     stares = []
 
     total_df, effective_keys = read_data(fname)
@@ -563,7 +562,7 @@ def main(dname, fname, dataset_name, min_seq_len = 3, maxlen = 200, kfold = 5):
         ins, ss, qs, cs, seqnum = calStatistics(test_question_window_seqs, stares, "test question window")
         print(f"test question window interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
     
-    write_config(dataset_name, dkeyid2idx, effective_keys, kfold, flag)
+    write_config(dataset_name, dkeyid2idx, effective_keys, configf, dname, kfold, flag)
 
     print("="*20)
     print("\n".join(stares))

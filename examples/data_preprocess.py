@@ -11,6 +11,7 @@ dname2paths = {
     "nips_task34": "../data/nips_task34/train_task_3_4.csv",
     "poj": "../data/poj/poj_log.csv"
 }
+configf = "../configs/data_config.json"
 
 def main(args):
     dataset_name = args.dataset_name
@@ -47,8 +48,8 @@ def main(args):
         print("-"*50)
         
         # split
-        os.system("rm ../data/" + dataset_name + "/*.pkl")
-        split(dname, writef, dataset_name, args.min_seq_len, args.maxlen, args.kfold)
+        os.system("rm " + dname + "/*.pkl")
+        split(dname, writef, dataset_name, configf, args.min_seq_len, args.maxlen, args.kfold)
         print("="*100)
 
 if __name__ == "__main__":
