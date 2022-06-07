@@ -1,8 +1,0 @@
-program: ../wandb_predict.py
-method: grid
-metric:
-    goal: maximize
-    name: testauc
-parameters:
-    save_dir:
-        values: []
