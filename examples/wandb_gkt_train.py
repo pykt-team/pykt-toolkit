@@ -14,8 +14,9 @@ if __name__ == "__main__":
     # model params
     parser.add_argument("--dropout", type=float, default=0.5)
     parser.add_argument("--hidden_dim", type=int, default=64)
-    # parser.add_argument("--emb_size", type=int, default=64)
     parser.add_argument("--graph_type", type=str, default='transition',help='dense or transition')
+
+    parser.add_argument("--use_wandb", type=int, default=1)
     args = parser.parse_args()
     args.emb_size = args.hidden_dim
     params = vars(args)

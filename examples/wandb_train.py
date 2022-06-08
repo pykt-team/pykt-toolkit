@@ -18,9 +18,6 @@ os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 with open("../configs/wandb.json") as fin:
     wandb_config = json.load(fin)
 
-import wandb
-os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
-wandb.init(project="wandb_train")
 
 def save_config(train_config, model_config, data_config, params, save_dir):
     d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
@@ -29,6 +26,14 @@ def save_config(train_config, model_config, data_config, params, save_dir):
         json.dump(d, fout)
 
 def main(params):
+    if "use_wandb" not in params:
+        params['use_wandb'] = 1
+
+    if params['use_wandb']==1:
+        import wandb
+        os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
+        wandb.init()
+
     set_seed(params["seed"])
     model_name, dataset_name, fold, emb_type, save_dir = params["model_name"], params["dataset_name"], \
         params["fold"], params["emb_type"], params["save_dir"]
@@ -72,7 +77,9 @@ def main(params):
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    del model_config["learning_rate"]
+    for remove_item in ['use_wandb','learning_rate']:
+        if remove_item in model_config:
+            del model_config[remove_item]
     if model_name in ["saint", "sakt"]:
         model_config["seq_len"] = seq_len
         
@@ -113,5 +120,7 @@ def main(params):
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
     print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(testauc) + "\t" + str(testacc) + "\t" + str(window_testauc) + "\t" + str(window_testacc) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
     model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
-    wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
-                "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
+    
+    if params['use_wandb']==1:
+        wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
+                    "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})

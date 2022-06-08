@@ -4,11 +4,8 @@ import json
 import copy
 import torch
 
-import sys
-sys.path.append("../")
-
-from models.evaluate_model import evaluate, evaluate_question
-from utils.utils import load_model, init_test_datasets
+from pykt.models import evaluate,evaluate_question,load_model
+from pykt.datasets import init_test_datasets
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
@@ -16,18 +13,20 @@ os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 with open("../configs/wandb.json") as fin:
     wandb_config = json.load(fin)
 
-import wandb
-os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
-wandb.init(project="wandb_predict")
-
 def main(params):
+    if params['use_wandb'] ==1:
+        import wandb
+        os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
+        wandb.init(project="wandb_predict")
+
     save_dir, batch_size, fusion_type = params["save_dir"], params["bz"], params["fusion_type"].split(",")
 
     with open(os.path.join(save_dir, "config.json")) as fin:
         config = json.load(fin)
         model_config = copy.deepcopy(config["model_config"])
-        if "learning_rate" in model_config:
-            del model_config["learning_rate"]     
+        for remove_item in ['use_wandb','learning_rate']:
+            if remove_item in model_config:
+                del model_config[remove_item]    
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
         if model_name in ["saint", "sakt"]:
@@ -87,13 +86,16 @@ def main(params):
             dres["windowacc"+key] = qw_testaccs[key]
     raw_config = json.load(open(os.path.join(save_dir,"config.json")))
     dres.update(raw_config['params'])
-    wandb.log(dres)
+
+    if params['use_wandb'] ==1:
+        wandb.log(dres)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--bz", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--fusion_type", type=str, default="early_fusion,late_fusion")
+    parser.add_argument("--use_wandb", type=int, default=1)
 
     args = parser.parse_args()
     print(args)
