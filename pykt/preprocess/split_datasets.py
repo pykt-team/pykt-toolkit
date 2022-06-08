@@ -503,7 +503,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     Args:
         dname (str): data folder path
         fname (str): the data file used to split, needs 6 columns, format is: (NA indicates the dataset has no corresponding info)
-            uid, seqlen: 50121,4
+            uid,seqlen: 50121,4
             quetion ids: NA
             concept ids: 7014,7014,7014,7014
             responses: 0,1,1,1
