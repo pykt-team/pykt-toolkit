@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import time
 from datetime import datetime
-from utils import sta_infos, write_txt, replace_text
+from .utils import sta_infos, write_txt, replace_text
 
 def change2timestamp(t):
     datetime_obj = datetime.strptime(t, "%Y/%m/%d %H:%M")

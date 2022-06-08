@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import sta_infos, write_txt
+from .utils import sta_infos, write_txt
 
 KEYS = ["user_id", "sequence_id"]
 

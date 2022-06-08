@@ -1,5 +1,3 @@
-import pandas as pd
-
 def sta_infos(df, keys, stares, split_str="_"):
     # keys: 0: uid , 1: concept, 2: question
     uids = df[keys[0]].unique()

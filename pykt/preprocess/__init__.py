@@ -1,9 +1,1 @@
-# import algebra2005_preprocess
-# import assist2009_preprocess
-# import assist2015_preprocess
-# import bridge2algebra2006_preprocess
-# import nips_task34_preprocess
-# import poj_preprocess
-# import split_datasets
-# import statics2011_preprocess
-# import utils
+from .data_proprocess import data_proprocess

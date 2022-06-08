@@ -2,7 +2,7 @@
 # coding=utf-8
 
 import pandas as pd
-from utils import sta_infos, write_txt, change2timestamp, replace_text
+from .utils import sta_infos, write_txt, change2timestamp, replace_text
 
 KEYS = ["Anon Student Id", "KC(Default)", "Questions"]
 

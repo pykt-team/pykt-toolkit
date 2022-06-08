@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from utils import sta_infos, write_txt, change2timestamp
+from .utils import sta_infos, write_txt, change2timestamp
 
 def format_list2str(input_list):
     return [str(x) for x in input_list]

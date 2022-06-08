@@ -1,7 +1,7 @@
 # _*_ coding:utf-8 _*_
 
 import pandas as pd
-from utils import sta_infos, write_txt
+from .utils import sta_infos, write_txt
 
 KEYS = ["user_id", "skill_id", "problem_id"]
 
