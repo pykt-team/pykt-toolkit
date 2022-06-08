@@ -8,21 +8,29 @@ from torch.utils.data import Dataset
 from torch.cuda import FloatTensor, LongTensor
 import numpy as np
 
+
+
 class KTDataset(Dataset):
     """Dataset for KT
         can use to init dataset for: (for models except dkt_forget)
             train data, valid data
             common test data(concept level evaluation), real educational scenario test data(question level evaluation).
+
+    Args:
+        file_path (str): train_valid/test file path
+        input_type (list[str]): the input type of the dataset, values are in ["questions", "concepts"]
+        folds (set(int)): the folds used to generate dataset, -1 for test data
+        qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
     def __init__(self, file_path, input_type, folds, qtest=False):
-        """init KTDataset
+        # """init KTDataset
 
-        Args:
-            file_path (str): train_valid/test file path
-            input_type (list[str]): the input type of the dataset, values are in ["questions", "concepts"]
-            folds (set(int)): the folds used to generate dataset, -1 for test data
-            qtest (bool, optional): is question evaluation or not. Defaults to False.
-        """
+        # Args:
+        #     file_path (str): train_valid/test file path
+        #     input_type (list[str]): the input type of the dataset, values are in ["questions", "concepts"]
+        #     folds (set(int)): the folds used to generate dataset, -1 for test data
+        #     qtest (bool, optional): is question evaluation or not. Defaults to False.
+        # """
         super(KTDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
@@ -65,6 +73,7 @@ class KTDataset(Dataset):
             index (int): the index of the data want to get
 
         Returns:
+        (tuple): tuple containing:
             q_seqs (torch.tensor): question id sequence of the 0~seqlen-2 interactions
             c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-2 interactions
             r_seqs (torch.tensor): response id sequence of the 0~seqlen-2 interactions
@@ -95,6 +104,8 @@ class KTDataset(Dataset):
                 dcur[key] = self.dqtest[key][index]
             return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, dcur
 
+
+
     def load_data(self, sequence_path, folds, pad_val=-1):
         """load data
 
@@ -103,14 +114,19 @@ class KTDataset(Dataset):
             folds (list[int]): 
             pad_val (int, optional): pad value. Defaults to -1.
 
-        Returns:
-            q_seqs (torch.tensor): question id sequence of the 0~seqlen-1 interactions
-            c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-1 interactions
-            r_seqs (torch.tensor): response id sequence of the 0~seqlen-1 interactions
-            mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
-            select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
-            dqtest (dict): not null only self.qtest is True, for question level evaluation
+        Returns: 
+            (tuple): tuple containing
+
+            - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-1 interactions
+            - c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-1 interactions
+            - r_seqs (torch.tensor): response id sequence of the 0~seqlen-1 interactions
+            - mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
+            - select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
+            - dqtest (dict): not null only self.qtest is True, for question level evaluation
+
+
         """
+
         seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         df = pd.read_csv(sequence_path)
         df = df[df["fold"].isin(folds)]
