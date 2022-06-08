@@ -498,6 +498,23 @@ def calStatistics(df, stares, key):
     return allin, allselect, len(allqs), len(allcs), df.shape[0]
 
 def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfold = 5):
+    """split main function
+
+    Args:
+        dname (str): data folder path
+        fname (str): the data file used to split, needs 6 columns, format is: (NA indicates the dataset has no corresponding info)
+            uid, seqlen: 50121,4
+            quetion ids: NA
+            concept ids: 7014,7014,7014,7014
+            responses: 0,1,1,1
+            timestamps: NA
+            cost times: NA
+        dataset_name (str): dataset name
+        configf (str): the dataconfig file path
+        min_seq_len (int, optional): the min seqlen, sequences less than this value will be filtered out. Defaults to 3.
+        maxlen (int, optional): the max seqlen. Defaults to 200.
+        kfold (int, optional): the folds num needs to split. Defaults to 5.
+    """
     stares = []
 
     total_df, effective_keys = read_data(fname)

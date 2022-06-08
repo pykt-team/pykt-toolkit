@@ -23,14 +23,6 @@ class KTDataset(Dataset):
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
     def __init__(self, file_path, input_type, folds, qtest=False):
-        # """init KTDataset
-
-        # Args:
-        #     file_path (str): train_valid/test file path
-        #     input_type (list[str]): the input type of the dataset, values are in ["questions", "concepts"]
-        #     folds (set(int)): the folds used to generate dataset, -1 for test data
-        #     qtest (bool, optional): is question evaluation or not. Defaults to False.
-        # """
         super(KTDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
@@ -45,10 +37,10 @@ class KTDataset(Dataset):
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
             if self.qtest:
-                self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks, self.dqtest = self.load_data(sequence_path, folds)
+                self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks, self.dqtest = self.__load_data__(sequence_path, folds)
                 save_data = [self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks, self.dqtest]
             else:
-                self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks = self.load_data(sequence_path, folds)
+                self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks = self.__load_data__(sequence_path, folds)
                 save_data = [self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks]
             pd.to_pickle(save_data, processed_data)
         else:
@@ -73,16 +65,17 @@ class KTDataset(Dataset):
             index (int): the index of the data want to get
 
         Returns:
-        (tuple): tuple containing:
-            q_seqs (torch.tensor): question id sequence of the 0~seqlen-2 interactions
-            c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-2 interactions
-            r_seqs (torch.tensor): response id sequence of the 0~seqlen-2 interactions
-            qshft_seqs (torch.tensor): question id sequence of the 1~seqlen-1 interactions
-            cshft_seqs (torch.tensor): knowledge concept id sequence of the 1~seqlen-1 interactions
-            rshft_seqs (torch.tensor): response id sequence of the 1~seqlen-1 interactions
-            mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
-            select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
-            dcur (dict): used only self.qtest is True, for question level evaluation
+            (tuple): tuple containing:
+            
+            - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-2 interactions
+            - **c_seqs (torch.tensor)**: knowledge concept id sequence of the 0~seqlen-2 interactions
+            - **r_seqs (torch.tensor)**: response id sequence of the 0~seqlen-2 interactions
+            - **qshft_seqs (torch.tensor)**: question id sequence of the 1~seqlen-1 interactions
+            - **cshft_seqs (torch.tensor)**: knowledge concept id sequence of the 1~seqlen-1 interactions
+            - **rshft_seqs (torch.tensor)**: response id sequence of the 1~seqlen-1 interactions
+            - **mask_seqs (torch.tensor)**: masked value sequence, shape is seqlen-1
+            - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
+            - **dcur (dict)**: used only self.qtest is True, for question level evaluation
         """
         q_seqs, qshft_seqs, c_seqs, cshft_seqs = torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
         if "questions" in self.input_type:
@@ -106,9 +99,8 @@ class KTDataset(Dataset):
 
 
 
-    def load_data(self, sequence_path, folds, pad_val=-1):
-        """load data
-
+    def __load_data__(self, sequence_path, folds, pad_val=-1):
+        """
         Args:
             sequence_path (str): file path of the sequences
             folds (list[int]): 
@@ -118,13 +110,11 @@ class KTDataset(Dataset):
             (tuple): tuple containing
 
             - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-1 interactions
-            - c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-1 interactions
-            - r_seqs (torch.tensor): response id sequence of the 0~seqlen-1 interactions
-            - mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
-            - select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
-            - dqtest (dict): not null only self.qtest is True, for question level evaluation
-
-
+            - **c_seqs (torch.tensor)**: knowledge concept id sequence of the 0~seqlen-1 interactions
+            - **r_seqs (torch.tensor)**: response id sequence of the 0~seqlen-1 interactions
+            - **mask_seqs (torch.tensor)**: masked value sequence, shape is seqlen-1
+            - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
+            - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
 
         seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
