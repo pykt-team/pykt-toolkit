@@ -12,7 +12,20 @@ ModelConf = {
 }
 
 class DktForgetDataset(Dataset):
+    """Dataset for dkt_forget
+        can use to init dataset for: dkt_forget
+            train data, valid data
+            common test data(concept level evaluation), real educational scenario test data(question level evaluation).
+    """
     def __init__(self, file_path, input_type, folds, qtest=False):
+        """init DktForgetDataset
+
+        Args:
+            file_path (str): train_valid/test file path
+            input_type (list[str]): the input type of the dataset, values are in ["questions", "concepts"]
+            folds (set(int)): the folds used to generate dataset, -1 for test data
+            qtest (bool, optional): is question evaluation or not. Defaults to False.
+        """
         super(DktForgetDataset, self).__init__()
         self.sequence_path = file_path
         self.input_type = input_type
@@ -45,11 +58,30 @@ class DktForgetDataset(Dataset):
                 max_rgap: {self.max_rgap}, max_sgap: {self.max_sgap}, max_pcount: {self.max_pcount}")
 
     def __len__(self):
+        """return the dataset length
+
+        Returns:
+            int: the length of the dataset
+        """
         return len(self.r_seqs)
 
     def __getitem__(self, index):
+        """
+        Args:
+            index (int): the index of the data want to get
+
+        Returns:
+            q_seqs (torch.tensor): question id sequence of the 0~seqlen-2 interactions
+            c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-2 interactions
+            r_seqs (torch.tensor): response id sequence of the 0~seqlen-2 interactions
+            qshft_seqs (torch.tensor): question id sequence of the 1~seqlen-1 interactions
+            cshft_seqs (torch.tensor): knowledge concept id sequence of the 1~seqlen-1 interactions
+            rshft_seqs (torch.tensor): response id sequence of the 1~seqlen-1 interactions
+            mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
+            select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
+            dcur (dict): used only self.qtest is True, for question level evaluation
+        """
         q_seqs, qshft_seqs, c_seqs, cshft_seqs = torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
-        rgaps, sgaps, pcounts = torch.tensor([]), torch.tensor([]), torch.tensor([])
 
         d, dshft = dict(), dict()
         if "questions" in self.input_type:
@@ -80,6 +112,24 @@ class DktForgetDataset(Dataset):
             return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, d, dshft, dcur
 
     def load_data(self, sequence_path, folds, pad_val=-1):
+        """load data
+
+        Args:
+            sequence_path (str): file path of the sequences
+            folds (list[int]): 
+            pad_val (int, optional): pad value. Defaults to -1.
+
+        Returns:
+            q_seqs (torch.tensor): question id sequence of the 0~seqlen-1 interactions
+            c_seqs (torch.tensor): knowledge concept id sequence of the 0~seqlen-1 interactions
+            r_seqs (torch.tensor): response id sequence of the 0~seqlen-1 interactions
+            mask_seqs (torch.tensor): masked value sequence, shape is seqlen-1
+            select_masks (torch.tensor): is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
+            max_rgap (int): max num of the repeated time gap
+            max_sgap (int): max num of the sequence time gap
+            max_pcount (int): max num of the past exercise counts
+            dqtest (dict): not null only self.qtest is True, for question level evaluation
+        """
         seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         repeated_gap, sequence_gap, past_counts = [], [], []
         max_rgap, max_sgap, max_pcount = 0, 0, 0

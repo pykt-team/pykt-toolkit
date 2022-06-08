@@ -4,16 +4,16 @@ import os
 import numpy as np
 import pandas as pd
 
-def get_gkt_graph(data_config,graph_type="dense"):
+def get_gkt_graph(num_c, dpath, trainfile, testfile, graph_type="dense", tofile="./graph.npz"):
     graph = None
-    df_train = pd.read_csv(os.path.join(data_config["dpath"], "train_valid.csv"))
-    df_test = pd.read_csv(os.path.join(data_config["dpath"], "test.csv"))
+    df_train = pd.read_csv(os.path.join(dpath, trainfile))
+    df_test = pd.read_csv(os.path.join(dpath, testfile))
     df = pd.concat([df_train, df_test])  
     if graph_type == 'dense':
-        graph = build_dense_graph(data_config['num_c'])
+        graph = build_dense_graph(num_c)
     elif graph_type == 'transition':
-        graph = build_transition_graph(df,data_config['num_c'])
-    np.savez(os.path.join(data_config["dpath"], f"gkt_graph_{graph_type}.npz"), matrix = graph)
+        graph = build_transition_graph(df, num_c)
+    np.savez(os.path.join(dpath, tofile), matrix = graph)
     return graph
 
 def build_transition_graph(df, concept_num):

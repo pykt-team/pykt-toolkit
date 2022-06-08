@@ -25,7 +25,7 @@ if __name__ == "__main__":
     print(args)
 
     # process raw data
-    dname,writef = process_raw_data(args.dataset_name,dname2paths)
+    dname, writef = process_raw_data(args.dataset_name, dname2paths)
     print("-"*50)
     # split
     os.system("rm " + dname + "/*.pkl")

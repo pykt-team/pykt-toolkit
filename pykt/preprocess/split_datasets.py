@@ -449,8 +449,10 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5, 
         "num_c": num_c,
         "input_type": input_type,
         "emb_path": "",
+        "train_valid_original_file": "train_valid.csv", 
         "train_valid_file": "train_valid_sequences.csv",
         "folds": folds,
+        "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv"
     }

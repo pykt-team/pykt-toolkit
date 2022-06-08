@@ -15,10 +15,6 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
-with open("../configs/wandb.json") as fin:
-    wandb_config = json.load(fin)
-
-
 def save_config(train_config, model_config, data_config, params, save_dir):
     d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
     save_path = os.path.join(save_dir, "config.json")
@@ -31,7 +27,6 @@ def main(params):
 
     if params['use_wandb']==1:
         import wandb
-        os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
         wandb.init()
 
     set_seed(params["seed"])
@@ -60,7 +55,7 @@ def main(params):
     print("Start init data")
     print(dataset_name, model_name, data_config, fold, batch_size)
     
-    debug_print(text = "init_dataset",fuc_name="main")
+    debug_print(text="init_dataset",fuc_name="main")
     train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
     params_str = "_".join([str(_) for _ in params.values()])

@@ -12,6 +12,7 @@ from .atkt import ATKT
 from .dkt_forget import DKTForget
 from .akt import AKT
 from .gkt import GKT
+from .gkt_utils import get_gkt_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -37,13 +38,14 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "atktfix":
         model = ATKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], fix=True).to(device)
     elif model_name == "gkt":
-        from utils.gkt_utils import get_gkt_graph
         graph_type = model_config['graph_type']
-        graph_path = os.path.join(data_config["dpath"], f"gkt_graph_{graph_type}.npz")
+        fname = f"gkt_graph_{graph_type}.npz"
+        graph_path = os.path.join(data_config["dpath"], fname)
         if os.path.exists(graph_path):
             graph = torch.tensor(np.load(graph_path, allow_pickle=True)['matrix']).float()
         else:
-            graph = get_gkt_graph(data_config, graph_type = graph_type)
+            graph = get_gkt_graph(data_config["num_c"], data_config["dpath"], 
+                    data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
