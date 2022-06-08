@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 from torch.nn.functional import one_hot, binary_cross_entropy
 import numpy as np
-from models.evaluate_model import evaluate
+from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
-from models.atkt import _l2_normalize_adv
-from utils.utils import debug_print
+from .atkt import _l2_normalize_adv
+from ..utils.utils import debug_print
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

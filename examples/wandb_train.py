@@ -7,11 +7,9 @@ torch.set_num_threads(4)
 from torch.optim import SGD, Adam
 import copy
 
-from pykt.utils.utils import set_seed
-from pykt.models.train_model import train_model
-from pykt.models.evaluate_model import evaluate
-from pykt.utils.utils import debug_print, init_model, init_dataset4train
-
+from pykt.models import train_model,evaluate,init_model
+from pykt.utils import debug_print,set_seed
+from pykt.datasets import init_dataset4train
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"

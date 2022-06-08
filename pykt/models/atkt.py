@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
-from models.utils import ut_mask
+from .utils import ut_mask
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

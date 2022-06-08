@@ -1,7 +1,7 @@
 import torch
 
 from torch.nn import Module, Embedding, Linear, MultiheadAttention, LayerNorm, Dropout
-from models.utils import transformer_FFN, pos_encode, ut_mask, get_clones
+from .utils import transformer_FFN, pos_encode, ut_mask, get_clones
 
 class SAKT(Module):
     def __init__(self, num_c, seq_len, emb_size, num_attn_heads, dropout, num_en=2, emb_type="qid", emb_path="", pretrain_dim=768):

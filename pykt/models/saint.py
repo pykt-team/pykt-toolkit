@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Dropout
 import pandas as pd
-from models.utils import transformer_FFN, get_clones, ut_mask, pos_encode
+from .utils import transformer_FFN, get_clones, ut_mask, pos_encode
 from torch.nn import Embedding, Linear
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"

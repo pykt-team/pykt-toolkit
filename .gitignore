@@ -11,3 +11,5 @@ examples/wandb/
 dist/
 *.egg-info/
 *.pyc
+docs/
+*.pkl
