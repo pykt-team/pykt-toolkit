@@ -11,7 +11,6 @@ examples/wandb/
 dist/
 *.egg-info/
 *.pyc
-docs/
 *.pkl
 saved_model
 build/

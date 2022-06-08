@@ -15,26 +15,33 @@
    python data_preprocess.py --dataset_name=assist2009
 ```
 执行以上命令即可完成数据预处理和数据划分，生成训练所需数据格式。具体的数据集选取、预处理及划分方式如下:
+
 ### 1.1 数据集选取
+
 目前，我们已对7个数据集进行了处理，如下所示
-| 数据集             | 数据来源                                                                                                             | 文件名称                                     |
-|--------------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+
+| 数据集              | 数据来源                                                                                                              | 文件名称                                    |
+|:-------------------|:---------------------------------------------------------------------------------------------------------------------|:-------------------------------------------|
 | ASSIST2009         | https://sites.google.com/site/assistmentsdata/home/2009-2010-assistment-data/skill-builder-data-2009-2010?authuser=0 | skill_builder_data_corrected_collapsed.csv |
 | ASSIST2015         | https://sites.google.com/site/assistmentsdata/datasets/2015-assistments-skill-builder-data                           | 2015_100_skill_builders_main_problems.csv  |
 | Algebra2005        | https://pslcdatashop.web.cmu.edu/KDDCup/downloads.jsp                                                                | algebra_2005_2006_train.txt                |
 | Bridge_algebra2006 | https://pslcdatashop.web.cmu.edu/KDDCup/downloads.jsp                                                                | bridge_to_algebra_2006_2007_train.txt      |
 | Statics2011        | https://pslcdatashop.web.cmu.edu/DatasetInfo?datasetId=507                                                           | AllData_student_step_2011F.csv             |
-| NIPS2020 Task 3 & 4               | https://www.microsoft.com/en-us/research/academic-program/diagnostic-questions/                                                                                                                    | train_task_3_4.csv                                  |
+| NIPS2020 Task 3 & 4| https://www.microsoft.com/en-us/research/academic-program/diagnostic-questions/                                      | train_task_3_4.csv                         |
 | POJ                | https://drive.google.com/drive/folders/1LRljqWfODwTYRMPw6wEJ_mMt1KZ4xBDk                                             | poj_log.csv                                |
 
 ### 1.2 数据预处理标准
 每个数据集都对应一个数据预处理脚本: [数据集名称]_preprocess.py，处理标准如下:
+
 #### 1.2.1 字段提取
 对于任意一个数据集，我们主要提取用户ID、题目ID(名称)、知识点ID(名称)、答题情况、答案提交时间、答题用时6个字段（如数据集不存在该字段则用NA表示）。
+
 #### 1.2.2 数据筛选
 对于每条答题记录，如其用户ID、题目ID(名称)、知识点ID(名称)、答题情况、答案提交时间5个字段中任意字段为空，则该条答题记录予以删除。
+
 #### 1.2.3 数据排序
 每个学生答题序列都按照学生答题顺序进行排序，如同一学生的不同答题记录出现相同的顺序，则保持原始顺序，即与原数据集中的答题记录顺序保存一致。
+
 #### 1.2.4 字符处理
 - 字段拼接 
 
@@ -119,7 +126,7 @@ NA
 
    示例
    <div align="center">
-   <img src="image.png" width="300px" />
+   <img src="_static/image.png" width="300px" />
 
    图1：基于题目预测的Fusion方式
    </div> 
