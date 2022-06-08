@@ -24,7 +24,7 @@ def main(params):
     with open(os.path.join(save_dir, "config.json")) as fin:
         config = json.load(fin)
         model_config = copy.deepcopy(config["model_config"])
-        for remove_item in ['use_wandb','learning_rate']:
+        for remove_item in ['use_wandb','learning_rate','add_uuid']:
             if remove_item in model_config:
                 del model_config[remove_item]    
         trained_params = config["params"]

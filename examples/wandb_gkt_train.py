@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--graph_type", type=str, default='transition',help='dense or transition')
 
     parser.add_argument("--use_wandb", type=int, default=1)
+    parser.add_argument("--add_uuid", type=int, default=1)
     args = parser.parse_args()
     args.emb_size = args.hidden_dim
     params = vars(args)

@@ -65,9 +65,10 @@ def main(params):
 
     params_str = "_".join([str(_) for _ in params.values()])
     print(f"params: {params}, params_str: {params_str}")
-    import uuid
-    if not model_name in ['saint']:
-        params_str = params_str+f"_{ str(uuid.uuid4())}"
+    if params['add_uuid'] == 1:
+        import uuid
+        if not model_name in ['saint']:
+            params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
         os.makedirs(ckpt_path)
@@ -77,7 +78,7 @@ def main(params):
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    for remove_item in ['use_wandb','learning_rate']:
+    for remove_item in ['use_wandb','learning_rate','add_uuid']:
         if remove_item in model_config:
             del model_config[remove_item]
     if model_name in ["saint", "sakt"]:

@@ -13,3 +13,4 @@ dist/
 *.pyc
 docs/
 *.pkl
+saved_model
