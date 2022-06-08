@@ -11,6 +11,7 @@ pykt.preprocess.algebra2005\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.assist2009\_preprocess module
 ---------------------------------------------
@@ -19,6 +20,7 @@ pykt.preprocess.assist2009\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.assist2015\_preprocess module
 ---------------------------------------------
@@ -27,6 +29,7 @@ pykt.preprocess.assist2015\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.bridge2algebra2006\_preprocess module
 -----------------------------------------------------
@@ -35,6 +38,7 @@ pykt.preprocess.bridge2algebra2006\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.data\_proprocess module
 ---------------------------------------
@@ -43,6 +47,7 @@ pykt.preprocess.data\_proprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.nips\_task34\_preprocess module
 -----------------------------------------------
@@ -51,6 +56,7 @@ pykt.preprocess.nips\_task34\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.poj\_preprocess module
 --------------------------------------
@@ -59,6 +65,7 @@ pykt.preprocess.poj\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.split\_datasets module
 --------------------------------------
@@ -67,6 +74,7 @@ pykt.preprocess.split\_datasets module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.statics2011\_preprocess module
 ----------------------------------------------
@@ -75,6 +83,7 @@ pykt.preprocess.statics2011\_preprocess module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.preprocess.utils module
 ----------------------------
@@ -83,6 +92,7 @@ pykt.preprocess.utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Module contents
 ---------------
@@ -91,3 +101,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:

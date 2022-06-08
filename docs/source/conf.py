@@ -79,4 +79,7 @@ extensions.append('recommonmark')
 # autoapi_type = 'python'
 # autoapi_dirs = ['../../pykt']
 # autoapi_options = ['members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'imported-members']
-autoapi_add_toctree_entry = False
+# autoapi_add_toctree_entry = False
+
+autodoc_mock_imports = [
+]

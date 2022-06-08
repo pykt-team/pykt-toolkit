@@ -11,6 +11,7 @@ pykt.models.akt module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.atkt module
 -----------------------
@@ -19,6 +20,7 @@ pykt.models.atkt module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.dkt module
 ----------------------
@@ -27,6 +29,7 @@ pykt.models.dkt module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.dkt\_forget module
 ------------------------------
@@ -35,6 +38,7 @@ pykt.models.dkt\_forget module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.dkt\_plus module
 ----------------------------
@@ -43,6 +47,7 @@ pykt.models.dkt\_plus module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.dkvmn module
 ------------------------
@@ -51,6 +56,7 @@ pykt.models.dkvmn module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.evaluate\_model module
 ----------------------------------
@@ -59,6 +65,7 @@ pykt.models.evaluate\_model module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.gkt module
 ----------------------
@@ -67,6 +74,7 @@ pykt.models.gkt module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.gkt\_utils module
 -----------------------------
@@ -75,6 +83,7 @@ pykt.models.gkt\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.init\_model module
 ------------------------------
@@ -83,6 +92,7 @@ pykt.models.init\_model module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.kqn module
 ----------------------
@@ -91,6 +101,7 @@ pykt.models.kqn module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.saint module
 ------------------------
@@ -99,6 +110,7 @@ pykt.models.saint module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.sakt module
 -----------------------
@@ -107,6 +119,7 @@ pykt.models.sakt module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.train\_model module
 -------------------------------
@@ -115,6 +128,7 @@ pykt.models.train\_model module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 pykt.models.utils module
 ------------------------
@@ -123,6 +137,7 @@ pykt.models.utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Module contents
 ---------------
@@ -131,3 +146,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
