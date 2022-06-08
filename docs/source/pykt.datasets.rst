@@ -11,7 +11,6 @@ pykt.datasets.data\_loader module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 pykt.datasets.dkt\_forget\_dataloader module
 --------------------------------------------
@@ -20,7 +19,6 @@ pykt.datasets.dkt\_forget\_dataloader module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 pykt.datasets.init\_dataset module
 ----------------------------------
@@ -29,7 +27,6 @@ pykt.datasets.init\_dataset module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 Module contents
 ---------------
@@ -38,4 +35,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:

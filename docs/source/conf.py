@@ -13,7 +13,6 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../pykt/'))
-import sphinx_rtd_theme
 
 
 # -- Project information -----------------------------------------------------
@@ -73,9 +72,10 @@ source_parsers = {
     '.md': 'recommonmark.parser.CommonMarkParser',
 }
 extensions.append('recommonmark')
+
 # autoapi-python
 # extensions.append('autoapi.extension')
-# extensions.append("sphinx.ext.napoleon")
+extensions.append("sphinx.ext.napoleon")
 # autoapi_type = 'python'
 # autoapi_dirs = ['../../pykt']
 # autoapi_options = ['members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'imported-members']

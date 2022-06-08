@@ -26,7 +26,7 @@ To use pykt, first install it using pip:
    Models<pykt.models>
    Datasets<pykt.datasets>
    Data Preprocess<pykt.preprocess>
-   
+   Utils<pykt.utils>
 
 Indices and tables
 ==================

@@ -203,22 +203,18 @@ class GKT(nn.Module):
         pred = (yt * one_hot_qt).sum(dim=1)  # [batch_size, ]
         return pred
 
+
     def forward(self, q, r):
-        r"""
-        Parameters:
-            features: input one-hot matrix, is skill_with_answer
-            questions: question index matrix
-        seq_len dimension needs padding, because different students may have learning sequences with different lengths.
-        Shape:
-            features: [batch_size, seq_len]
-            questions: [batch_size, seq_len]
-            pred_res: [batch_size, seq_len - 1]
-        Return:
-            pred_res: the correct probability of questions answered at the next timestamp
-            concept_embedding: input of VAE (optional)
-            rec_embedding: reconstructed input of VAE (optional)
-            z_prob: probability distribution of latent variable z in VAE (optional)
+        """_summary_
+
+        Args:
+            q (_type_): _description_
+            r (_type_): _description_
+
+        Returns:
+            list: the correct probability of questions answered at the next timestamp
         """
+
         features = q*2 + r
         questions = q
         
@@ -282,11 +278,13 @@ class MLP(nn.Module):
 
 
 class EraseAddGate(nn.Module):
-    """
-    Erase & Add Gate module
+    """Erase & Add Gate module
     NOTE: this erase & add gate is a bit different from that in DKVMN.
     For more information about Erase & Add gate, please refer to the paper "Dynamic Key-Value Memory Networks for Knowledge Tracing"
     The paper can be found in https://arxiv.org/abs/1611.08108
+
+    Args:
+        nn (_type_): _description_
     """
 
     def __init__(self, feature_dim, num_c, bias=True):
@@ -304,16 +302,19 @@ class EraseAddGate(nn.Module):
         self.weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x):
-        r"""
+        """
         Params:
             x: input feature matrix
+        
         Shape:
             x: [batch_size, num_c, feature_dim]
             res: [batch_size, num_c, feature_dim]
+        
         Return:
             res: returned feature matrix with old information erased and new information added
-        The GKT paper didn't provide detailed explanation about this erase-add gate. As the erase-add gate in the GKT only has one input parameter,
-        this gate is different with that of the DKVMN. We used the input matrix to build the erase and add gates, rather than $\mathbf{v}_{t}$ vector in the DKVMN.
+            The GKT paper didn't provide detailed explanation about this erase-add gate. As the erase-add gate in the GKT only has one input parameter,
+            this gate is different with that of the DKVMN. We used the input matrix to build the erase and add gates, rather than $\mathbf{v}_{t}$ vector in the DKVMN.
+        
         """
         erase_gate = torch.sigmoid(self.erase(x))  # [batch_size, num_c, feature_dim]
         # self.weight.unsqueeze(dim=1) shape: [num_c, 1]

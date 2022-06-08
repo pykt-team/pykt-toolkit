@@ -1,3 +1,3 @@
-sphinx-apidoc -F -P -o ./source ../pykt/ 
+sphinx-apidoc -o ./source ../pykt/ 
 make clean
 make html
