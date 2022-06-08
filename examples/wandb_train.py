@@ -2,19 +2,15 @@ import os
 import argparse
 import json
 
-import sys
-sys.path.append("../")
-
 import torch
 torch.set_num_threads(4) 
 from torch.optim import SGD, Adam
 import copy
 
-from utils.utils import set_seed
-
-from models.train_model import train_model
-from models.evaluate_model import evaluate
-from utils.utils import debug_print, init_model, init_dataset4train
+from pykt.utils.utils import set_seed
+from pykt.models.train_model import train_model
+from pykt.models.evaluate_model import evaluate
+from pykt.utils.utils import debug_print, init_model, init_dataset4train
 
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"

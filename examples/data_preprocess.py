@@ -1,6 +1,9 @@
 import os, sys
 import argparse
-from split_datasets import main as split
+from pykt.preprocess import *
+from pykt.preprocess.split_datasets import main as split
+
+# from pykt.preprocess.assist2009_preprocess
 
 dname2paths = {
     "assist2009": "../data/assist2009/skill_builder_data_corrected_collapsed.csv",
