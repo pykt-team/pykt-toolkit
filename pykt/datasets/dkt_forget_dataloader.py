@@ -38,7 +38,7 @@ class DktForgetDataset(Dataset):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
             if self.qtest:
                 self.q_seqs, self.c_seqs, self.r_seqs, self.rgaps, self.sgaps, self.pcounts, self.mask_seqs, self.select_masks, self.max_rgap, self.max_sgap, self.max_pcount, self.dqtest = \
-                    self.__load_data__(self.sequence_path, folds)
+                        self.__load_data__(self.sequence_path, folds)
                 save_data = [self.q_seqs, self.c_seqs, self.r_seqs, self.rgaps, self.sgaps, self.pcounts, self.mask_seqs, self.select_masks, self.max_rgap, self.max_sgap, self.max_pcount, self.dqtest]
             else:
                 self.q_seqs, self.c_seqs, self.r_seqs, self.rgaps, self.sgaps, self.pcounts, self.mask_seqs, self.select_masks, self.max_rgap, self.max_sgap, self.max_pcount = \
