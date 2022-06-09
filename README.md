@@ -10,7 +10,7 @@ Use the following command to install PyKY:
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```
 
-## Reference
+## References
 ### Projects
 
 1. https://github.com/hcnoh/knowledge-tracing-collection-pytorch 
