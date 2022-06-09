@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pykt-toolkit",
-    version="0.1.1",
+    version="0.0.34",
     author="pykt-team",
     author_email="pykt.team@gmail.com",
     description="pyKT: A Python Library to Benchmark Deep Learning based Knowledge Tracing Models",
