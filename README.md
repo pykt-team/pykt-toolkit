@@ -1,9 +1,9 @@
 # PyKY
 <!-- [![Python Versions](https://img.shields.io/pypi/pyversions/pykt-toolkit.svg)](https://pypi.org/project/pykt-toolkit) -->
 [![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
-[![PyPI Version](https://img.shields.io/pypi/v/pykt-toolkit.svg)](https://pypi.org/project/pykt-toolkit)
+<!-- [![PyPI Version](https://img.shields.io/pypi/v/pykt-toolkit.svg)](https://pypi.org/project/pykt-toolkit) -->
 [![GitHub Issues](https://img.shields.io/github/issues/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/issues)
-[![GitHub release](https://img.shields.io/github/release/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/releases)
+<!-- [![GitHub release](https://img.shields.io/github/release/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/releases) -->
 [![Documentation](https://img.shields.io/website/http/pykt-team.github.io/index.html?down_color=red&down_message=offline&up_message=online)](https://huggingface.co/docs/transformers/index)
 
 
