@@ -44,6 +44,14 @@ def build_transition_graph(df, concept_num):
     return graph
 
 def build_dense_graph(node_num):
+    """_summary_
+
+    Args:
+        node_num (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     graph = 1. / (node_num - 1) * np.ones((node_num, node_num))
     np.fill_diagonal(graph, 0)
     graph = torch.from_numpy(graph).float()
