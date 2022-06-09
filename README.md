@@ -1,5 +1,4 @@
 # PyKT
-<!-- ![](https://pykt-team.github.io/assets/img/logo.png) -->
 
 [![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
 [![GitHub Issues](https://img.shields.io/github/issues/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/issues)
