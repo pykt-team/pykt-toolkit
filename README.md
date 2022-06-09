@@ -4,11 +4,39 @@ PyKT is a python library build upon PyTorch to train deep learning based knowled
 
 
 ## Installation
-Use the following command to install PyKY :
+Use the following command to install PyKY:
 
 ```
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```
+
+## Reference
+### projects
+
+https://github.com/hcnoh/knowledge-tracing-collection-pytorch <br/>
+https://github.com/arshadshk/SAKT-pytorch <br/>
+https://github.com/shalini1194/SAKT <br/>
+https://github.com/arshadshk/SAINT-pytorch <br/>
+https://github.com/Shivanandmn/SAINT_plus-Knowledge-Tracing- <br/>
+https://github.com/arghosh/AKT <br/>
+https://github.com/JSLBen/Knowledge-Query-Network-for-Knowledge-Tracing <br/>
+https://github.com/xiaopengguo/ATKT <br/>
+https://github.com/jhljx/GKT <br/>
+
+### papers
+
+DKT: Deep knowledge tracing
+DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization
+DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior
+KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills
+DKVMN: Dynamic key-value memory networks for knowledge tracing
+ATKT: Enhancing Knowledge Tracing via Adversarial Training
+GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network
+SAKT: A self-attentive model for knowledge tracing
+SAINT: Towards an appropriate query, key, and value computation for knowledge tracing
+AKT: Context-aware attentive knowledge tracing
+
+
 
 <!-- 
 # How to use?
