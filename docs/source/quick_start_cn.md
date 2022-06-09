@@ -1,5 +1,7 @@
-# KT Toolkits
+# pykt-toolkit
+
 现有的知识追踪（Knowledge Tracing）工作中缺乏一个统一的数据划分标准，导致在各个知识追踪文献中，即便是相同的数据，由于划分方式不同，导致在相同的模型上也有不同的实验结果。因此，本工作旨在构建一个统一的数据预处理及划分结果，并在多个知识追踪SOTA上调优，供后续的知识追踪相关工作进行参考。
+
 ## 1. 生成训练数据
 - cd preprocess
 - python data_preprocess.py [参数]
@@ -20,7 +22,7 @@
 
 目前，我们已对7个数据集进行了处理，如下所示
 
-| 数据集              | 数据来源                                                                                                              | 文件名称                                    |
+<!-- | 数据集              | 数据来源                                                                                                              | 文件名称                                    |
 |:-------------------|:---------------------------------------------------------------------------------------------------------------------|:-------------------------------------------|
 | ASSIST2009         | https://sites.google.com/site/assistmentsdata/home/2009-2010-assistment-data/skill-builder-data-2009-2010?authuser=0 | skill_builder_data_corrected_collapsed.csv |
 | ASSIST2015         | https://sites.google.com/site/assistmentsdata/datasets/2015-assistments-skill-builder-data                           | 2015_100_skill_builders_main_problems.csv  |
@@ -28,9 +30,10 @@
 | Bridge_algebra2006 | https://pslcdatashop.web.cmu.edu/KDDCup/downloads.jsp                                                                | bridge_to_algebra_2006_2007_train.txt      |
 | Statics2011        | https://pslcdatashop.web.cmu.edu/DatasetInfo?datasetId=507                                                           | AllData_student_step_2011F.csv             |
 | NIPS2020 Task 3 & 4| https://www.microsoft.com/en-us/research/academic-program/diagnostic-questions/                                      | train_task_3_4.csv                         |
-| POJ                | https://drive.google.com/drive/folders/1LRljqWfODwTYRMPw6wEJ_mMt1KZ4xBDk                                             | poj_log.csv                                |
+| POJ                | https://drive.google.com/drive/folders/1LRljqWfODwTYRMPw6wEJ_mMt1KZ4xBDk                                             | poj_log.csv                                | -->
 
 ### 1.2 数据预处理标准
+
 每个数据集都对应一个数据预处理脚本: [数据集名称]_preprocess.py，处理标准如下:
 
 #### 1.2.1 字段提取
