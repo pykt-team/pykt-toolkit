@@ -16,7 +16,8 @@ To use pykt, first install it using pip:
 .. toctree::
    :maxdepth: 2
    :caption: Home:
-
+   
+   Official Website <https://pykt-team.github.io/>
    Quick Start (cn) <quick_start_cn>
 
 .. toctree::
