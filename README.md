@@ -1,4 +1,9 @@
 # PyKY
+[![Python Versions](https://img.shields.io/pypi/pyversions/pykt-toolkit.svg)](https://pypi.org/project/pykt-toolkit)
+[![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
+[![PyPI Version](https://img.shields.io/pypi/v/pykt-toolkit.svg)](https://pypi.org/project/pykt-toolkit)
+[![GitHub Issues](https://img.shields.io/github/issues/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/issues)
+
 
 PyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on 7 popular datasets across different domains, 5 detailed prediction scenarios, 10 frequently compared DLKT approaches for transparent and extensive experiments.
 
