@@ -1,4 +1,5 @@
-# PyKY
+# PyKT
+<!-- ![](https://pykt-team.github.io/assets/img/logo.png) -->
 
 [![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
 [![GitHub Issues](https://img.shields.io/github/issues/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/issues)
@@ -8,7 +9,7 @@ PyKT is a python library build upon PyTorch to train deep learning based knowled
 
 
 ## Installation
-Use the following command to install PyKY:
+Use the following command to install PyKT:
 
 ```
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
