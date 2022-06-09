@@ -11,6 +11,19 @@ import torch
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class GKT(nn.Module):
+    """Graph-based Knowledge Tracing Modeling Student Proficiency Using Graph Neural Network
+
+    Args:
+        num_c (int): total num of unique questions
+        hidden_dim (int): hidden dimension for MLP
+        emb_size (int): embedding dimension for question embedding layer
+        graph_type (str, optional): graph type, dense or transition. Defaults to "dense".
+        graph (_type_, optional): graph. Defaults to None.
+        dropout (float, optional): dropout. Defaults to 0.5.
+        emb_type (str, optional): emb_type. Defaults to "qid".
+        emb_path (str, optional): emb_path. Defaults to "".
+        bias (bool, optional): add bias for DNN. Defaults to True.
+    """
     def __init__(self, num_c, hidden_dim, emb_size, graph_type="dense", graph=None, dropout=0.5, emb_type="qid", emb_path="",bias=True):
         super(GKT, self).__init__()
         self.model_name = "gkt"
