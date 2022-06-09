@@ -25,7 +25,7 @@ https://github.com/jhljx/GKT <br/>
 
 ### papers
 
-DKT: Deep knowledge tracing
+DKT: Deep knowledge tracing <br/>
 DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization <br/>
 DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior <br/>
 KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills <br/>
