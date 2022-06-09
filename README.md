@@ -26,15 +26,15 @@ https://github.com/jhljx/GKT <br/>
 ### papers
 
 DKT: Deep knowledge tracing
-DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization
-DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior
-KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills
-DKVMN: Dynamic key-value memory networks for knowledge tracing
-ATKT: Enhancing Knowledge Tracing via Adversarial Training
-GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network
-SAKT: A self-attentive model for knowledge tracing
-SAINT: Towards an appropriate query, key, and value computation for knowledge tracing
-AKT: Context-aware attentive knowledge tracing
+DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization <br/>
+DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior <br/>
+KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills <br/>
+DKVMN: Dynamic key-value memory networks for knowledge tracing <br/>
+ATKT: Enhancing Knowledge Tracing via Adversarial Training <br/>
+GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network <br/>
+SAKT: A self-attentive model for knowledge tracing <br/>
+SAINT: Towards an appropriate query, key, and value computation for knowledge tracing <br/>
+AKT: Context-aware attentive knowledge tracing <br/>
 
 
 
