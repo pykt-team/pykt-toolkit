@@ -10,6 +10,34 @@ Use the following command to install PyKY:
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```
 
+## Reference
+### projects
+
+https://github.com/hcnoh/knowledge-tracing-collection-pytorch <br/>
+https://github.com/arshadshk/SAKT-pytorch <br/>
+https://github.com/shalini1194/SAKT <br/>
+https://github.com/arshadshk/SAINT-pytorch <br/>
+https://github.com/Shivanandmn/SAINT_plus-Knowledge-Tracing- <br/>
+https://github.com/arghosh/AKT <br/>
+https://github.com/JSLBen/Knowledge-Query-Network-for-Knowledge-Tracing <br/>
+https://github.com/xiaopengguo/ATKT <br/>
+https://github.com/jhljx/GKT <br/>
+
+### papers
+
+DKT: Deep knowledge tracing <br/>
+DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization <br/>
+DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior <br/>
+KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills <br/>
+DKVMN: Dynamic key-value memory networks for knowledge tracing <br/>
+ATKT: Enhancing Knowledge Tracing via Adversarial Training <br/>
+GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network <br/>
+SAKT: A self-attentive model for knowledge tracing <br/>
+SAINT: Towards an appropriate query, key, and value computation for knowledge tracing <br/>
+AKT: Context-aware attentive knowledge tracing <br/>
+
+
+
 <!-- 
 # How to use?
 
