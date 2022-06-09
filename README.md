@@ -11,30 +11,30 @@ pip install -U pykt-toolkit -i  https://pypi.python.org/simple
 ```
 
 ## Reference
-### projects
+### Projects
 
-https://github.com/hcnoh/knowledge-tracing-collection-pytorch <br/>
-https://github.com/arshadshk/SAKT-pytorch <br/>
-https://github.com/shalini1194/SAKT <br/>
-https://github.com/arshadshk/SAINT-pytorch <br/>
-https://github.com/Shivanandmn/SAINT_plus-Knowledge-Tracing- <br/>
-https://github.com/arghosh/AKT <br/>
-https://github.com/JSLBen/Knowledge-Query-Network-for-Knowledge-Tracing <br/>
-https://github.com/xiaopengguo/ATKT <br/>
-https://github.com/jhljx/GKT <br/>
+1. https://github.com/hcnoh/knowledge-tracing-collection-pytorch 
+2. https://github.com/arshadshk/SAKT-pytorch 
+3. https://github.com/shalini1194/SAKT 
+4. https://github.com/arshadshk/SAINT-pytorch 
+5. https://github.com/Shivanandmn/SAINT_plus-Knowledge-Tracing- 
+6. https://github.com/arghosh/AKT 
+7. https://github.com/JSLBen/Knowledge-Query-Network-for-Knowledge-Tracing 
+8. https://github.com/xiaopengguo/ATKT 
+9. https://github.com/jhljx/GKT 
 
-### papers
+### Papers
 
-DKT: Deep knowledge tracing <br/>
-DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization <br/>
-DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior <br/>
-KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills <br/>
-DKVMN: Dynamic key-value memory networks for knowledge tracing <br/>
-ATKT: Enhancing Knowledge Tracing via Adversarial Training <br/>
-GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network <br/>
-SAKT: A self-attentive model for knowledge tracing <br/>
-SAINT: Towards an appropriate query, key, and value computation for knowledge tracing <br/>
-AKT: Context-aware attentive knowledge tracing <br/>
+1. DKT: Deep knowledge tracing 
+2. DKT+: Addressing two problems in deep knowledge tracing via prediction-consistent regularization 
+3. DKT-Forget: Augmenting knowledge tracing by considering forgetting behavior 
+4. KQN: Knowledge query network for knowledge tracing: How knowledge interacts with skills 
+5. DKVMN: Dynamic key-value memory networks for knowledge tracing 
+6. ATKT: Enhancing Knowledge Tracing via Adversarial Training 
+7. GKT: Graph-based knowledge tracing: modeling student proficiency using graph neural network 
+8. SAKT: A self-attentive model for knowledge tracing 
+9. SAINT: Towards an appropriate query, key, and value computation for knowledge tracing 
+10. AKT: Context-aware attentive knowledge tracing 
 
 
 
