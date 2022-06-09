@@ -18,6 +18,7 @@ To use pykt, first install it using pip:
    :caption: Home:
    
    Official Website <https://pykt-team.github.io/>
+   Quick Start <quick_start>
    Quick Start (cn) <quick_start_cn>
 
 .. toctree::
