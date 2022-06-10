@@ -11,6 +11,14 @@ PyKT is a python library build upon PyTorch to train deep learning based knowled
 ## Installation
 Use the following command to install PyKT:
 
+Create conda envirment.
+
+```
+conda create --name=pykt python=3.7.5
+source activate pykt
+```
+
+
 ```
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```

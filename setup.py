@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pykt-toolkit",
-    version="0.0.35-alpha",
+    version="0.0.36",
     author="pykt-team",
     author_email="pykt.team@gmail.com",
     description="pyKT: A Python Library to Benchmark Deep Learning based Knowledge Tracing Models",
@@ -23,5 +23,5 @@ setup(
     packages=find_packages(),
     python_requires=">=3.5",
     include_package_data=True,
-    install_requires=['pandas'],
+    install_requires=['numpy==1.17.2','pandas==1.1.5','scikit-learn==0.21.3','torch==1.7.0','wandb==0.12.9'],
 )
