@@ -49,7 +49,7 @@ html_static_path = ['_static']
 # theme
 extensions.append('sphinx_rtd_theme')
 html_theme = "sphinx_rtd_theme"
-html_logo = "_static/logo.png"
+html_logo = "https://pykt.org/assets/img/logo.png"
 html_theme_options = {
     'logo_only': True,
     'navigation_depth': 5,
