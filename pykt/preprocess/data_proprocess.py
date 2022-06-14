@@ -22,6 +22,8 @@ def process_raw_data(dataset_name,dname2paths):
         from .nips_task34_preprocess import read_data_from_csv
     elif dataset_name == "poj":
         from .poj_preprocess import read_data_from_csv
+    elif dataset_name == "slepemapy":
+        from .slepemapy_preprocess import read_data_from_csv
 
     if dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)

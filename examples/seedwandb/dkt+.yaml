@@ -1,0 +1,30 @@
+program: ./runs/wandb_dkt_plus_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["dkt+"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["dkt_plus_tiaocan"]
+    emb_size:
+        values: [50, 100, 200, 300]
+    learning_rate:
+        values: [1e-2, 1e-3, 1e-4]
+    lambda_r:
+        values: [0, 0.05, 0.10, 0.15, 0.20, 0.25]
+    lambda_w1:
+        values: [0, 0.01, 0.03, 0.1, 0.3, 1.0]
+    lambda_w2:
+        values: [0, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
