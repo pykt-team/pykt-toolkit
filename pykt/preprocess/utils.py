@@ -15,7 +15,7 @@ def sta_infos(df, keys, stares, split_str="_"):
             dq2c.setdefault(q, set())
             if ks == "NANA":
                 continue
-            for k in ks.split(split_str):
+            for k in str(ks).split(split_str):
                 dq2c[q].add(k)
                 cids.add(k)
         ctotal, na, qtotal = 0, 0, 0
@@ -53,3 +53,7 @@ def change2timestamp(t, hasf=True):
 def replace_text(text):
     text = text.replace("_", "####").replace(",", "@@@@")
     return text
+
+
+def format_list2str(input_list):
+    return [str(x) for x in input_list]

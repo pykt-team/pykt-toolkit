@@ -8,6 +8,8 @@ def process_raw_data(dataset_name,dname2paths):
     print(f"Start preprocessing data: {dataset_name}")
     if dataset_name == "assist2009":
         from .assist2009_preprocess import read_data_from_csv
+    elif dataset_name == "assist2012":
+        from .assist2012_preprocess import read_data_from_csv
     elif dataset_name == "assist2015":
         from .assist2015_preprocess import read_data_from_csv
     elif dataset_name == "algebra2005":
