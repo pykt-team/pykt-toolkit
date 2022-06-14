@@ -70,9 +70,10 @@
     },
     "slepemapy": {
         "dpath": "../data/slepemapy",
-        "num_q": 0,
+        "num_q": 2913,
         "num_c": 1458,
         "input_type": [
+            "questions",
             "concepts"
         ],
         "emb_path": "",
@@ -87,6 +88,8 @@
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
-        "test_window_file": "test_window_sequences.csv"
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
     }
 }

@@ -1,10 +1,11 @@
 import pandas as pd
 from .utils import sta_infos, write_txt, change2timestamp
 
-KEYS = ["user", "place_asked"]
+KEYS = ["user", "place_asked", "questions"]
 def read_data_from_csv(read_file, write_file):
     stares = []
     df = pd.read_csv(read_file, sep=";", low_memory=False)
+    df["questions"] = df.apply(lambda x:f"{x['place_asked']}----{x['type']}",axis=1)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -33,7 +34,7 @@ def read_data_from_csv(read_file, write_file):
         seq_len = len(responses)
         # print(f"uid: {uid}, seq_len: {seq_len}")
         uids = [str(uid), str(seq_len)]
-        questions = ["NA"]
+        questions = curdf["questions"].astype(str)
         data.append([uids, questions, concepts, responses, timestamps, usetimes])
         if len(data) % 1000 == 0:
             print(len(data))
