@@ -10,7 +10,8 @@ dname2paths = {
     "bridge2algebra2006": "../data/bridge2algebra2006/bridge_to_algebra_2006_2007_train.txt",
     "statics2011": "../data/statics2011/AllData_student_step_2011F.csv",
     "nips_task34": "../data/nips_task34/train_task_3_4.csv",
-    "poj": "../data/poj/poj_log.csv"
+    "poj": "../data/poj/poj_log.csv",
+    "slepemapy": "../data/slepemapy/answer.csv"
 }
 configf = "../configs/data_config.json"
 
