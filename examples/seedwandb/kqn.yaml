@@ -1,0 +1,31 @@
+program: ./runs/wandb_kqn_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["kqn"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["kqn_tiaocan"]
+    n_hidden:
+        values: [32, 64, 128]
+    n_rnn_hidden:
+        values: [32, 64, 128]
+    n_mlp_hidden:
+        values: [32, 64, 128]
+    n_rnn_layers:
+        values: [1, 2]
+    learning_rate:
+        values: [1e-2, 1e-3, 1e-4]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
+ 
