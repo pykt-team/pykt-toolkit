@@ -22,9 +22,10 @@ def read_data_from_csv(read_file, write_file):
 
     # add timestamp and duration
     df['start_timestamp'] = df['start_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
-    df['end_timestamp'] = df['end_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
-    df['duration'] = df['end_timestamp'] - df['start_timestamp']
-    df = df[df['duration']>=0]# remove timestamp error
+    # we are not sure how to cal duration
+    # df['end_timestamp'] = df['end_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
+    # df['duration'] = df['end_timestamp'] - df['start_timestamp']
+    # df = df[df['duration']>=0]# remove timestamp error
 
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
@@ -36,7 +37,7 @@ def read_data_from_csv(read_file, write_file):
         group = group.sort_values(['start_timestamp','tmp_index'])
         seq_skills = group['skill_id'].tolist()
         seq_ans = group['correct'].tolist()
-        seq_response_cost = group['duration'].tolist()
+        seq_response_cost = ['NA']
         seq_start_time = group['start_timestamp'].tolist()
         seq_problems = group['problem_id'].tolist()
         seq_len = len(group)
