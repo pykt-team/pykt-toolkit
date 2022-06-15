@@ -14,4 +14,11 @@ dist/
 saved_model
 build/
 .vscode/
+data/assist2009
 data/assist2012
+data/algebra2005
+data/bridge2algebra2006
+data/statics2011
+data/nips_task34
+data/poj
+data/slepemapy
