@@ -5,10 +5,10 @@ import torch
 
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout
 
-class DKT(Module):
+class DKTQue(Module):
     def __init__(self, num_c, emb_size, dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768):
         super().__init__()
-        self.model_name = "dkt"
+        self.model_name = "dkt_que"
         self.num_c = num_c
         self.emb_size = emb_size
         self.hidden_size = emb_size
@@ -23,12 +23,11 @@ class DKT(Module):
         
 
     def forward(self, q, r):
-        print(f"q.shape is {q.shape}")
         emb_type = self.emb_type
         if emb_type == "qid":
             x = q + self.num_c * r
             xemb = self.interaction_emb(x)
-        print(f"xemb.shape is {xemb.shape}")
+
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
         y = self.out_layer(h)

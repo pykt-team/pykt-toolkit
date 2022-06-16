@@ -18,10 +18,10 @@ configf = "../configs/data_config.json"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", type=str, default="assist2015")
-    parser.add_argument("--min_seq_len", type=int, default=3)
-    parser.add_argument("--maxlen", type=int, default=200)
-    parser.add_argument("--kfold", type=int, default=5)
+    parser.add_argument("-d","--dataset_name", type=str, default="assist2015")
+    parser.add_argument("-m","--min_seq_len", type=int, default=3)
+    parser.add_argument("-l","--maxlen", type=int, default=200)
+    parser.add_argument("-k","--kfold", type=int, default=5)
     args = parser.parse_args()
 
     print(args)
