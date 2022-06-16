@@ -448,6 +448,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5, 
         "num_q": num_q,
         "num_c": num_c,
         "input_type": input_type,
+        "max_concepts":dkeyid2idx["max_concepts"],
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv", 
         "train_valid_file": "train_valid_sequences.csv",
@@ -497,6 +498,16 @@ def calStatistics(df, stares, key):
     stares.append(",".join([str(s) for s in [key, allin, df.shape[0], allselect]]))
     return allin, allselect, len(allqs), len(allcs), df.shape[0]
 
+
+def get_max_concepts(df):
+    max_concepts = 1
+    for i, row in df.iterrows():
+        cs = row["concepts"].split(",")
+        num_concepts = max([len(c.split("_")) for c in cs])
+        if num_concepts >= max_concepts:
+            max_concepts = num_concepts
+    return max_concepts
+
 def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfold = 5):
     """split main function
 
@@ -519,6 +530,11 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     stares = []
 
     total_df, effective_keys = read_data(fname)
+    #cal max_concepts
+    if 'concepts' in effective_keys:
+        max_concepts = get_max_concepts(total_df)
+    else:
+        max_concepts = -1
 
     oris, _, qs, cs, seqnum = calStatistics(total_df, stares, "original")
     print("="*20)
@@ -526,6 +542,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
 
     total_df, effective_keys = extend_multi_concepts(total_df, effective_keys)
     total_df, dkeyid2idx = id_mapping(total_df)
+    dkeyid2idx["max_concepts"] = max_concepts
 
     extends, _, qs, cs, seqnum = calStatistics(total_df, stares, "extend multi")
     print("="*20)
