@@ -25,8 +25,14 @@ def process_raw_data(dataset_name,dname2paths):
     elif dataset_name == "slepemapy":
         from .slepemapy_preprocess import read_data_from_csv
     elif dataset_name == "assist2017":
-            from .assist2017_preprocess import read_data_from_csv
-    if dataset_name != "nips_task34":
+        from .assist2017_preprocess import read_data_from_csv
+    elif dataset_name == "junyi2015":
+        from .junyi2015_preprocess import read_data_from_csv, load_q2c
+    
+    if dataset_name == "junyi2015":
+        dq2c = load_q2c("../data/junyi2015/junyi_Exercise_table.csv")
+        read_data_from_csv(readf, writef, dq2c)
+    elif dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)
     else:
         metap = os.path.join(dname, "metadata")

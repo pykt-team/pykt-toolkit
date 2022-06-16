@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import sta_infos, write_txt
+from .utils import sta_infos, write_txt
 
 def load_q2c(qname):
     df = pd.read_csv(qname, encoding = "utf-8",low_memory=False).dropna(subset=["name", "topic"])
@@ -13,7 +13,7 @@ def load_q2c(qname):
     return dq2c
 
 KEYS = ["user_id", "exercise"]
-def read_file_from_csv(read_file, write_file, dq2c):
+def read_data_from_csv(read_file, write_file, dq2c):
     stares = []
 
     df = pd.read_csv(read_file)
@@ -65,5 +65,5 @@ def read_file_from_csv(read_file, write_file, dq2c):
 
     return
 
-dq2c = load_q2c("../data/junyi2015/junyi_Exercise_table.csv")
-read_file_from_csv("../data/junyi2015/junyi_ProblemLog_original.csv", "../data/junyi2015/data.txt", dq2c)
+# dq2c = load_q2c("../data/junyi2015/junyi_Exercise_table.csv")
+# read_file_from_csv("../data/junyi2015/junyi_ProblemLog_original.csv", "../data/junyi2015/data.txt", dq2c)

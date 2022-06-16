@@ -14,6 +14,8 @@ from .akt import AKT
 from .gkt import GKT
 from .gkt_utils import get_gkt_graph
 from .lpkt import LPKT
+from .lpkt_utils import generate_qmatrix, generate_time2idx
+from .skvmn import SKVMN
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -57,6 +59,8 @@ def init_model(model_name, model_config, data_config, emb_type):
             q_matrix = generate_qmatrix(data_config, gamma=0.3)
             q_matrix = torch.tensor(q_matrix).float()
         model = LPKT(data_config["num_at"], data_config["num_it"], data_config["num_q"], data_config["num_c"], **model_config, q_matrix=q_matrix, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "skvmn":
+        model = SKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)   
     else:
         print("The wrong model name was used...")
         return None
