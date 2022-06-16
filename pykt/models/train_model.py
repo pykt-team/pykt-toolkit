@@ -36,13 +36,17 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y, t) + preloss[0]
-
+    elif model_name == "lpkt":
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        criterion = nn.BCELoss(reduction='none')        
+        loss = criterion(y, t).sum()
     return loss
 
 
 def model_forward(model, data):
     model_name = model.model_name
-    if model_name in ["dkt_forget"]:
+    if model_name in ["dkt_forget", "lpkt"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     else:
         q, c, r, qshft, cshft, rshft, m, sm = data
@@ -96,6 +100,11 @@ def model_forward(model, data):
         y = model(cc.long(), cr.long())
         ys.append(y)  
     # cal loss
+    elif model_name == "lpkt":
+        cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
+        cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1)
+        y = model(cq.long(), cr.long(), cat.long(), cit.long())
+        ys.append(y[:, 1:])  
     if model_name not in ["atkt", "atktfix"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
@@ -112,7 +121,11 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             loss = model_forward(model, data)
             opt.zero_grad()
             loss.backward()
-            opt.step()
+            if model.model_name != "lpkt":
+                opt.step()
+            else:
+                scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
+                scheduler.step()
 
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:

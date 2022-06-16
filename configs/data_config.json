@@ -91,5 +91,27 @@
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "assist2017": {
+        "dpath": "../data/assist2017",
+        "num_q": 3162,
+        "num_c": 102,
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
     }
 }

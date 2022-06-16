@@ -13,6 +13,7 @@ from .dkt_forget import DKTForget
 from .akt import AKT
 from .gkt import GKT
 from .gkt_utils import get_gkt_graph
+from .lpkt import LPKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -48,6 +49,14 @@ def init_model(model_name, model_config, data_config, emb_type):
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "lpkt":
+        qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
+        if os.path.exists(qmatrix_path):
+            q_matrix = torch.tensor(np.load(qmatrix_path, allow_pickle=True)['matrix']).float()
+        else:
+            q_matrix = generate_qmatrix(data_config, gamma=0.3)
+            q_matrix = torch.tensor(q_matrix).float()
+        model = LPKT(data_config["num_at"], data_config["num_it"], data_config["num_q"], data_config["num_c"], **model_config, q_matrix=q_matrix, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None

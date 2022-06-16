@@ -50,7 +50,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
         y_scores = []
         dres = dict()
         for data in test_loader:
-            if model_name in ["dkt_forget"]:
+            if model_name in ["dkt_forget", "lpkt"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             else:
                 q, c, r, qshft, cshft, rshft, m, sm = data
@@ -84,6 +84,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
+            elif model_name == "lpkt":
+                cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)
+                cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1).to(device)
+                y = model(cq.long(), cat.long(), cr.long(), cit.long())
+                y = y[:,1:]  
                 
             # print(f"after y: {y.shape}")
             # save predict result

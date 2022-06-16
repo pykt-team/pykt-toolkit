@@ -74,5 +74,12 @@
         "hidden_dim": 32,
         "emb_size": 32,
         "dropout": 0.5
+    },
+    "lpkt": {
+        "learning_rate": 0.003,
+        "d_a": 50,
+        "d_e": 128,
+        "d_k":128,
+        "dropout": 0.2
     }
 }
