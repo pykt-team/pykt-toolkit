@@ -12,7 +12,8 @@ dname2paths = {
     "statics2011": "../data/statics2011/AllData_student_step_2011F.csv",
     "nips_task34": "../data/nips_task34/train_task_3_4.csv",
     "poj": "../data/poj/poj_log.csv",
-    "slepemapy": "../data/slepemapy/answer.csv"
+    "slepemapy": "../data/slepemapy/answer.csv",
+    "assist2017": "../data/assist2017/anonymized_full_release_competition_dataset.csv"
 }
 configf = "../configs/data_config.json"
 
