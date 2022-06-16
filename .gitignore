@@ -22,3 +22,5 @@ data/statics2011
 data/nips_task34
 data/poj
 data/slepemapy
+.ipynb_checkpoints
+dev_tools
