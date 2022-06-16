@@ -13,7 +13,8 @@ dname2paths = {
     "nips_task34": "../data/nips_task34/train_task_3_4.csv",
     "poj": "../data/poj/poj_log.csv",
     "slepemapy": "../data/slepemapy/answer.csv",
-    "assist2017": "../data/assist2017/anonymized_full_release_competition_dataset.csv"
+    "assist2017": "../data/assist2017/anonymized_full_release_competition_dataset.csv",
+    "junyi2015": "../data/junyi2015/junyi_ProblemLog_original.csv"
 }
 configf = "../configs/data_config.json"
 
