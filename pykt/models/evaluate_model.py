@@ -68,7 +68,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), d, dshft)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-            elif model_name in ["dkvmn"]:
+            elif model_name in ["dkvmn", "skvmn"]:
                 y = model(cc.long(), cr.long())
                 y = y[:,1:]
             elif model_name in ["kqn", "sakt"]:
@@ -113,7 +113,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
     return auc, acc
 
 def early_fusion(curhs, model, model_name):
-    if model_name == "dkvmn":
+    if model_name in ["dkvmn", "skvmn"]:
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
@@ -157,7 +157,7 @@ def effective_fusion(df, model, model_name, fusion_type):
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
-        if model_name in ["dkvmn", "akt", "saint", "sakt"]:
+        if model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt"]:
             curhs[0].append(curdf["hidden"].mean().astype(float))
         elif model_name == "kqn":
             curhs[0].append(curdf["ek"].mean().astype(float))
@@ -180,7 +180,7 @@ def effective_fusion(df, model, model_name, fusion_type):
         dres.setdefault(key, [])
         dres[key].append(np.array(dcur[key]))
     # early fusion
-    if "early_fusion" in fusion_type and model_name in ["dkvmn", "akt", "saint", "sakt", "kqn"]:
+    if "early_fusion" in fusion_type and model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt", "kqn"]:
         curhs = [torch.tensor(curh).float().to(device) for curh in curhs]
         curr = torch.tensor(curr).long().to(device)
         p = early_fusion(curhs, model, model_name)
@@ -207,7 +207,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
         # print(f"qid: {len(curqidxs)}, select: {len(cursm)}, response: {len(rs[bz].cpu().tolist())}, preds: {len(curps)}")
         df = pd.DataFrame({"qidx": curqidxs, "rest": currests, "row": currows, "select": cursm, 
                 "questions": cq[bz].cpu().tolist(), "concepts": cc[bz].cpu().tolist(), "response": rs[bz].cpu().tolist(), "preds": curps})
-        if model_name in ["dkvmn", "akt", "saint", "sakt"]:
+        if model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt"]:
             df["hidden"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
         elif model_name == "kqn":
             df["ek"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
@@ -233,7 +233,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     for key in dmerge.keys():
         if key == "hs":
             drest[key] = []
-            if model_name in ["dkvmn", "akt", "saint", "sakt"]:
+            if model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt"]:
                 drest[key] = [dmerge[key][0][rest_start:]]
             elif model_name == "kqn":
                 drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]                
@@ -259,7 +259,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     for key in dres:
         dfinal[key] = np.concatenate(dres[key], axis=0)
     early = False
-    if model_name in ["dkvmn", "akt", "saint", "sakt", "kqn"]:
+    if model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt", "kqn"]:
         early = True
     save_question_res(dfinal, fout, early)
     return dfinal , drest
@@ -285,7 +285,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # kqn: give past+cur -> predict cur
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
-        if model_name in ["dkvmn", "akt", "saint", "sakt", "kqn"]:
+        if model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt", "kqn"]:
             fout.write("\t".join(["orirow", "qidx", "questions", "concepts", "concept_preds", "late_trues", "late_mean", "late_vote", "late_all", "early_trues", "early_preds"]) + "\n")
         else:
             fout.write("\t".join(["orirow", "qidx", "questions", "concepts", "concept_preds", "late_trues", "late_mean", "late_vote", "late_all"]) + "\n")
@@ -314,7 +314,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             dcur = dict()
-            if model_name in ["dkvmn"]:
+            if model_name in ["dkvmn", "skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
             elif model_name == "akt":
@@ -357,7 +357,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             hs = []
             if model_name == "kqn":
                 hs = [ek, es]
-            elif model_name in ["dkvmn", "akt", "saint", "sakt"]:
+            elif model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt"]:
                 hs = [h]
             dcur["hs"], dcur["sm"], dcur["cq"], dcur["cc"], dcur["cr"], dcur["y"], dcur["qidxs"], dcur["rests"], dcur["orirow"] = hs, sm, cq, cc, cr, y, qidxs, rests, orirow
             # merge history
@@ -372,7 +372,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                             dmerge[key] = [[], []]
                             dmerge[key][0] = torch.cat((dhistory[key][0], dcur[key][0]), dim=0)
                             dmerge[key][1] = torch.cat((dhistory[key][1], dcur[key][1]), dim=0)
-                        elif model_name in ["dkvmn", "akt", "saint", "sakt"]:
+                        elif model_name in ["dkvmn", "skvmn", "akt", "saint", "sakt"]:
                             dmerge[key] = [torch.cat((dhistory[key][0], dcur[key][0]), dim=0)]                            
                     else:
                         dmerge[key] = torch.cat((dhistory[key], dcur[key]), dim=0)
@@ -643,7 +643,7 @@ def predict_each_group(curdforget, dforget, is_repeat, qidx, uid, idx, curqin, c
                 pred = y[0][oricinlen-1][cout.item()]
             else:
                 pred = y[0][-1][cout.item()]
-        elif model_name in ["dkvmn"]:
+        elif model_name in ["dkvmn", "skvmn"]:
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[true.item()]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
             # print(f"cin: {cin.shape}, curc: {curc.shape}")
@@ -832,7 +832,7 @@ def predict_each_group2(curdforget, dforget, is_repeat, qidx, uid, idx, curqin, 
         elif model_name in ["dkt_forget"]:
             y = model(curc.long(), curr.long(), curd, curdshft)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
-        elif model_name in ["dkvmn"]:
+        elif model_name in ["dkvmn", "skvmn"]:
             y = model(ccc.long(), ccr.long())
             y = y[:,1:]
         elif model_name in ["kqn", "sakt"]:

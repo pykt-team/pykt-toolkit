@@ -6,7 +6,6 @@ import numpy as np
 from .data_loader import KTDataset
 from .dkt_forget_dataloader import DktForgetDataset
 from .lpkt_dataloader import LPKTDataset
-from .lpkt_utils import generate_qmatrix, generate_time2idx
 
 def init_test_datasets(data_config, model_name, batch_size):
     test_question_loader, test_question_window_loader = None, None

@@ -81,5 +81,11 @@
         "d_e": 128,
         "d_k":128,
         "dropout": 0.2
+    },
+    "skvmn": {
+        "learning_rate": 1e-3,
+        "dim_s": 200,
+        "size_m": 50,
+        "dropout": 0.2
     }
 }

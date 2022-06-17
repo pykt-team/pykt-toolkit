@@ -141,5 +141,24 @@
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "statics2011": {
+        "dpath": "../data/statics2011",
+        "num_q": 0,
+        "num_c": 1223,
+        "input_type": [
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
     }
 }

@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import sta_infos, write_txt
+from .utils import sta_infos, write_txt, replace_text
 
 def load_q2c(qname):
     df = pd.read_csv(qname, encoding = "utf-8",low_memory=False).dropna(subset=["name", "topic"])
@@ -13,7 +13,7 @@ def load_q2c(qname):
     return dq2c
 
 KEYS = ["user_id", "exercise"]
-def read_file_from_csv(read_file, write_file, dq2c):
+def read_data_from_csv(read_file, write_file, dq2c):
     stares = []
 
     df = pd.read_csv(read_file)
@@ -28,11 +28,14 @@ def read_file_from_csv(read_file, write_file, dq2c):
     usedf = usedf.dropna(subset=['user_id', 'exercise', 'time_done', 'correct'])
     usedf = usedf[usedf["correct"].isin([False, True])]
     usedf["time_taken_attempts"] = (usedf["time_taken_attempts"].fillna(-100)).astype(str) # only hint! False correct
-    usedf.loc[:, "time_taken_attempts"] = usedf["time_taken_attempts"].astype(str).apply(lambda x: int(x.split("&")[0])*1000).astype(str)
+    usedf.loc[:, "time_taken_attempts"] = usedf["time_taken_attempts"].astype(str).apply(lambda x: int(x.split("&")[0])*60).astype(str)
     
-    usedf.loc[:, "time_done"] = usedf["time_done"].astype(str)
+    usedf.loc[:, "time_done"] = usedf["time_done"].astype(int)
     usedf["topic"] = usedf["exercise"].apply(lambda q: "NANA" if q not in dq2c else dq2c[q])
     usedf = usedf[usedf["topic"] != "NANA"]
+
+    usedf["exercise"] = usedf["exercise"].apply(replace_text)
+    usedf["topic"] = usedf["topic"].apply(replace_text)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(usedf, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -48,7 +51,7 @@ def read_file_from_csv(read_file, write_file, dq2c):
         uid, curdf = ui[0], ui[1]
         curdf = curdf.sort_values(by=["time_done", "index"])
 
-        curdf["time_done"] = curdf["time_done"].apply(lambda x: int(int(x) / 1000)).astype(str) # ms
+        curdf["time_done"] = curdf["time_done"].apply(lambda x: round(int(x) / 1000)).astype(str) # ms
         questions = curdf["exercise"].tolist()
         concepts = curdf["topic"].tolist()
         rs = curdf["correct"].astype(int).astype(str).tolist()
@@ -64,6 +67,3 @@ def read_file_from_csv(read_file, write_file, dq2c):
     print("\n".join(stares))
 
     return
-
-dq2c = load_q2c("../data/junyi2015/junyi_Exercise_table.csv")
-read_file_from_csv("../data/junyi2015/junyi_ProblemLog_original.csv", "../data/junyi2015/data.txt", dq2c)
