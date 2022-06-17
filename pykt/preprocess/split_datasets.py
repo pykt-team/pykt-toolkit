@@ -434,7 +434,7 @@ def save_id2idx(dkeyid2idx, save_path):
     with open(save_path, "w+") as fout:
         fout.write(json.dumps(dkeyid2idx))
     
-def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,min_seq_len = 3, maxlen=200,flag=False):
+def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,min_seq_len = 3, maxlen=200,flag=False,other_config={}):
     input_type, num_q, num_c = [], 0, 0
     if "questions" in effective_keys:
         input_type.append("questions")
@@ -459,6 +459,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv"
     }
+    dconfig.update(other_config)
     if flag:
         dconfig["test_question_file"] = "test_question_sequences.csv"
         dconfig["test_question_window_file"] = "test_question_window_sequences.csv"
@@ -473,6 +474,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
     with open(configf, "w") as fout:
         data = json.dumps(data_config, ensure_ascii=False, indent=4)
         fout.write(data)
+      
       
 def calStatistics(df, stares, key):
     allin, allselect = 0, 0
