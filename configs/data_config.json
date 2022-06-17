@@ -100,6 +100,32 @@
             "questions",
             "concepts"
         ],
+        "min_seq_len": 3,
+        "maxlen": 500,
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "assist2012": {
+        "dpath": "../data/assist2012",
+        "num_q": 53070,
+        "num_c": 265,
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv",
         "train_valid_file": "train_valid_sequences.csv",

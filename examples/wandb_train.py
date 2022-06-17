@@ -46,12 +46,14 @@ def main(params):
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
         # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
-
     batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
-    seq_len = train_config["seq_len"]
 
     with open("../configs/data_config.json") as fin:
         data_config = json.load(fin)
+    if 'maxlen' in data_config:#prefer to use the maxlen in data config
+        train_config["seq_len"] = data_config['maxlen']
+    seq_len = train_config["seq_len"]
+
     print("Start init data")
     print(dataset_name, model_name, data_config, fold, batch_size)
     
@@ -87,6 +89,9 @@ def main(params):
         opt = SGD(model.parameters(), learning_rate, momentum=0.9)
     elif optimizer == "adam":
         opt = Adam(model.parameters(), learning_rate)
+        
+    if model_name == 'lpkt':
+        opt = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.1, 0.999), weight_decay=1e-6)
    
     testauc, testacc = -1, -1
     window_testauc, window_testacc = -1, -1
