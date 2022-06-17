@@ -1,5 +1,4 @@
 import os, sys
-from .split_datasets import main as split
 
 def process_raw_data(dataset_name,dname2paths):
     readf = dname2paths[dataset_name]
