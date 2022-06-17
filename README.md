@@ -22,6 +22,39 @@ source activate pykt
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```
 
+## Development
+1、Clone pykt repositoriy
+
+```shell
+git clone https://github.com/pykt-team/pykt-toolkit
+```
+
+2、Change to dev branch 
+
+```shell
+cd pykt-toolkit
+git checkout dev
+```
+
+**Do not** work on the main branch.
+
+3、Editable install
+
+You can use the following command to install the pykt library. 
+
+```shell
+pip install -e .
+```
+In this mode, every modification in `pykt` directory will take effect immediately. You do not need to reinstall the package again. 
+
+4、Push to remote(dev)
+
+After development models or fix bugs, you can push your codes to dev branch. 
+
+
+The main branch is **not allowed** to push codes (the push will be failed). You can use a Pull Request to merge your code from **dev** branch to the main branch. We will reject the Pull Request from another branch to main branch, you can merge to dev branch first.
+
+
 ## References
 ### Projects
 
