@@ -23,5 +23,5 @@ setup(
     packages=find_packages(),
     python_requires=">=3.5",
     include_package_data=True,
-    install_requires=['numpy==1.17.2','pandas==1.1.5','scikit-learn==0.21.3','torch==1.7.0','wandb==0.12.9'],
+    install_requires=['numpy==1.17.2','pandas==1.1.5','scikit-learn','torch>=1.7.0','wandb>=0.12.9'],
 )
