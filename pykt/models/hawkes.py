@@ -52,7 +52,6 @@ class HawkesKT(nn.Module):
     def forward(self, skills, problems, times, labels, qtest=False):
         # self.printparams()
         # assert False
-        times = times.double() / 1000
         
         # skills = torch.tensor([[1246, 1257, 1251, 1255, 1254]]).long().to(device)
         # problems = torch.tensor([[2493, 2514, 2502, 2510, 2508]]).long().to(device)
@@ -83,8 +82,12 @@ class HawkesKT(nn.Module):
         # target_idx = skills.unsqueeze(1).repeat(1, labels.shape[1], 1).long()
         # alphas = self.alpha[source_idx, target_idx]
         # betas = self.beta[source_idx, target_idx]
-
-        delta_t = (times[:, :, None] - times[:, None, :]).abs().double()
+        if times.shape[1] > 0:
+            times = times.double() / 1000
+            delta_t = (times[:, :, None] - times[:, None, :]).abs().double()
+        else:
+            # 1 if no timestamps
+            delta_t = torch.ones(skills.shape[0], skills.shape[1]).double()
         delta_t = torch.log(delta_t + 1e-10) / np.log(self.time_log)
 
         cross_effects = alphas * torch.exp(-betas * delta_t)
