@@ -87,5 +87,10 @@
         "dim_s": 200,
         "size_m": 50,
         "dropout": 0.2
+    },
+    "hawkes": {
+        "learning_rate": 1e-4,
+        "emb_size": 64,
+        "time_log": 2
     }
 }

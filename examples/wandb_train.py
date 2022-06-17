@@ -86,14 +86,20 @@ def main(params):
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-
-    if optimizer == "sgd":
-        opt = SGD(model.parameters(), learning_rate, momentum=0.9)
-    elif optimizer == "adam":
-        opt = Adam(model.parameters(), learning_rate)
-        
-    if model_name == 'lpkt':
-        opt = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.1, 0.999), weight_decay=1e-6)
+    if model_name == "hawkes":
+        weight_p, bias_p = [], []
+        for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):
+            if 'bias' in name:
+                bias_p.append(p)
+            else:
+                weight_p.append(p)
+        optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
+        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=1e-5)
+    else:
+        if optimizer == "sgd":
+            opt = SGD(model.parameters(), learning_rate, momentum=0.9)
+        elif optimizer == "adam":
+            opt = Adam(model.parameters(), learning_rate)
    
     testauc, testacc = -1, -1
     window_testauc, window_testacc = -1, -1

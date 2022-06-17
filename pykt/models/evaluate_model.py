@@ -53,7 +53,10 @@ def evaluate(model, test_loader, model_name, save_path=""):
             if model_name in ["dkt_forget", "lpkt"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             else:
-                q, c, r, qshft, cshft, rshft, m, sm = data
+                dcur = data
+                q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
+                qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
+                m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
 
             model.eval()
@@ -89,6 +92,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1).to(device)
                 y = model(cq.long(), cr.long(), cat.long(), cit.long())
                 y = y[:,1:]  
+            elif model_name == "hawkes":
+                ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
+                csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
+                y = model(cc.long(), cq.long(), ct.long(), cr.long(), csm.long())
+                y = y[:, 1:]
                 
             # print(f"after y: {y.shape}")
             # save predict result
