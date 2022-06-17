@@ -50,8 +50,8 @@ def main(params):
 
     with open("../configs/data_config.json") as fin:
         data_config = json.load(fin)
-    if 'maxlen' in data_config:#prefer to use the maxlen in data config
-        train_config["seq_len"] = data_config['maxlen']
+    if 'maxlen' in data_config[dataset_name]:#prefer to use the maxlen in data config
+        train_config["seq_len"] = data_config[dataset_name]
     seq_len = train_config["seq_len"]
 
     print("Start init data")

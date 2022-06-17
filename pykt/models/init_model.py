@@ -14,7 +14,7 @@ from .akt import AKT
 from .gkt import GKT
 from .gkt_utils import get_gkt_graph
 from .lpkt import LPKT
-from .lpkt_utils import generate_qmatrix, generate_time2idx
+from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
