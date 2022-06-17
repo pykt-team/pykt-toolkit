@@ -12,8 +12,8 @@ class HawkesKT(nn.Module):
         super().__init__()
         self.model_name = "hawkes"
         self.emb_type = emb_type
-        self.problem_num = 2946#n_problems
-        self.skill_num = 1473#n_skills
+        self.problem_num = n_problems
+        self.skill_num = n_skills
         self.emb_size = emb_size
         self.time_log = time_log
         self.gpu = device
@@ -49,7 +49,7 @@ class HawkesKT(nn.Module):
         self.count += 1
         print(f"count: {self.count}")
 
-    def forward(self, skills, problems, times, labels, sm):
+    def forward(self, skills, problems, times, labels, qtest=False):
         # self.printparams()
         # assert False
         times = times.double() / 1000
@@ -64,7 +64,7 @@ class HawkesKT(nn.Module):
         # print("problems: ", problems)
         # print("times: ", times)
         # assert False
-        mask_labels = labels * (sm == 1).long()#labels * (labels > -1).long()
+        mask_labels = labels# * (sm == 1).long()#labels * (labels > -1).long()
         # print(f"labels: {labels}")
         # print(f"mask_labels: {mask_labels}")
         # print(f"sm: {sm==1}")
@@ -108,4 +108,8 @@ class HawkesKT(nn.Module):
         # print(f"out_dict: {out_dict}")
         # print(f"loss: {loss}")
         # assert False
-        return prediction
+        h = problem_bias + skill_bias + sum_t
+        if not qtest:
+            return prediction
+        else:
+            return prediction, h

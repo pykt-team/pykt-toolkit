@@ -63,6 +63,9 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "skvmn":
         model = SKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)   
     elif model_name == "hawkes":
+        if data_config["num_q"] == 0 or data_config["num_c"] == 0:
+            print(f"model: {model_name} needs questions ans concepts! but the dataset has no both")
+            return None
         model = HawkesKT(data_config["num_c"], data_config["num_q"], **model_config)
         model = model.double()
         # print("===before init weights"+"@"*100)
