@@ -111,9 +111,9 @@ def model_forward(model, data):
         ys.append(y[:, 1:])  
     elif model_name == "hawkes":
         # ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
-        csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
+        # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
-        y = model(cc.long(), cq.long(), ct.long(), cr.long(), csm.long())
+        y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
     if model_name not in ["atkt", "atktfix"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
