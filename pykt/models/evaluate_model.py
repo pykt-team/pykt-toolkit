@@ -87,7 +87,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name == "lpkt":
                 cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)
                 cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1).to(device)
-                y = model(cq.long(), cat.long(), cr.long(), cit.long())
+                y = model(cq.long(), cr.long(), cat.long(), cit.long())
                 y = y[:,1:]  
                 
             # print(f"after y: {y.shape}")

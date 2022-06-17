@@ -113,6 +113,8 @@ def model_forward(model, data):
 def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch = 0, -1
     train_step = 0
+    if model.model_name=='lpkt':
+        scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
     for i in range(1, num_epochs + 1):
         loss_mean = []
         for data in train_loader:
@@ -120,19 +122,15 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             model.train()
             loss = model_forward(model, data)
             opt.zero_grad()
-            loss.backward()
-            if model.model_name != "lpkt":
-                opt.step()
-            else:
-                scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
-                scheduler.step()
-
+            loss.backward()#compute gradients 
+            opt.step()#update model’s parameters
+                
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
                 text = f"Total train step is {train_step}, the loss is {loss.item():.5}"
                 debug_print(text = text,fuc_name="train_model")
-
-
+        if model.model_name=='lpkt':
+            scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
         auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
