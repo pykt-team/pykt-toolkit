@@ -2,6 +2,7 @@
 
 import pandas as pd
 from .utils import sta_infos, write_txt,format_list2str,change2timestamp
+#ref https://sites.google.com/site/assistmentsdata/datasets/2012-13-school-data-with-affect
 
 KEYS = ["user_id", "skill_id", "problem_id"]
 
@@ -10,22 +11,18 @@ def read_data_from_csv(read_file, write_file):
 
     # load data
     df = pd.read_csv(read_file, low_memory=False, usecols=[
-                 "user_id", "skill_id", "start_time", "end_time", "problem_id", "correct"])
+                 "user_id", "skill_id", "start_time", "problem_id", "correct","ms_first_response"])
     df['correct'] = df['correct'].apply(int)
  
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
     df['tmp_index'] = range(len(df))
-    df = df.dropna(subset=["user_id", "skill_id", "start_time","end_time","problem_id", "correct"])
+    df = df.dropna(subset=["user_id", "skill_id", "start_time","problem_id", "correct","ms_first_response"])
     df = df[df['correct'].isin([0,1])]#filter responses
 
     # add timestamp and duration
     df['start_timestamp'] = df['start_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
-    # we are not sure how to cal duration
-    # df['end_timestamp'] = df['end_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
-    # df['duration'] = df['end_timestamp'] - df['start_timestamp']
-    # df = df[df['duration']>=0]# remove timestamp error
 
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
@@ -37,7 +34,7 @@ def read_data_from_csv(read_file, write_file):
         group = group.sort_values(['start_timestamp','tmp_index'])
         seq_skills = group['skill_id'].tolist()
         seq_ans = group['correct'].tolist()
-        seq_response_cost = ['NA']
+        seq_response_cost = group['ms_first_response'].tolist()
         seq_start_time = group['start_timestamp'].tolist()
         seq_problems = group['problem_id'].tolist()
         seq_len = len(group)
