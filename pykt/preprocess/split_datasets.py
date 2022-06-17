@@ -434,7 +434,7 @@ def save_id2idx(dkeyid2idx, save_path):
     with open(save_path, "w+") as fout:
         fout.write(json.dumps(dkeyid2idx))
     
-def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5, flag=False):
+def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,min_seq_len = 3, maxlen=200,flag=False):
     input_type, num_q, num_c = [], 0, 0
     if "questions" in effective_keys:
         input_type.append("questions")
@@ -449,6 +449,8 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5, 
         "num_c": num_c,
         "input_type": input_type,
         "max_concepts":dkeyid2idx["max_concepts"],
+        "min_seq_len":min_seq_len,
+        "maxlen":maxlen,
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv", 
         "train_valid_file": "train_valid_sequences.csv",
@@ -497,7 +499,6 @@ def calStatistics(df, stares, key):
             allqs |= curqs
     stares.append(",".join([str(s) for s in [key, allin, df.shape[0], allselect]]))
     return allin, allselect, len(allqs), len(allcs), df.shape[0]
-
 
 def get_max_concepts(df):
     max_concepts = 1
@@ -598,9 +599,10 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
         print(f"test question interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
         ins, ss, qs, cs, seqnum = calStatistics(test_question_window_seqs, stares, "test question window")
         print(f"test question window interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
+   
+    write_config(dataset_name=dataset_name, dkeyid2idx=dkeyid2idx, effective_keys=effective_keys, 
+                configf=configf, dpath = dname, k=kfold,min_seq_len = min_seq_len, maxlen=maxlen,flag=flag)
     
-    write_config(dataset_name, dkeyid2idx, effective_keys, configf, dname, kfold, flag)
-
     print("="*20)
     print("\n".join(stares))
 

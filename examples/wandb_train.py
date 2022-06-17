@@ -38,7 +38,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "sakt", "saint", "akt", "atkt"]:
+        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -46,12 +46,14 @@ def main(params):
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
         # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
-
     batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
-    seq_len = train_config["seq_len"]
 
     with open("../configs/data_config.json") as fin:
         data_config = json.load(fin)
+    if 'maxlen' in data_config[dataset_name]:#prefer to use the maxlen in data config
+        train_config["seq_len"] = data_config[dataset_name]
+    seq_len = train_config["seq_len"]
+
     print("Start init data")
     print(dataset_name, model_name, data_config, fold, batch_size)
     
@@ -78,14 +80,26 @@ def main(params):
             del model_config[remove_item]
     if model_name in ["saint", "sakt"]:
         model_config["seq_len"] = seq_len
+    if model_name in ["skvmn"]:
+        model_config["batch_size"] = batch_size
         
     debug_print(text = "init_model",fuc_name="main")
+    print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-
-    if optimizer == "sgd":
-        opt = SGD(model.parameters(), learning_rate, momentum=0.9)
-    elif optimizer == "adam":
-        opt = Adam(model.parameters(), learning_rate)
+    if model_name == "hawkes":
+        weight_p, bias_p = [], []
+        for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):
+            if 'bias' in name:
+                bias_p.append(p)
+            else:
+                weight_p.append(p)
+        optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
+        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=1e-5)
+    else:
+        if optimizer == "sgd":
+            opt = SGD(model.parameters(), learning_rate, momentum=0.9)
+        elif optimizer == "adam":
+            opt = Adam(model.parameters(), learning_rate)
    
     testauc, testacc = -1, -1
     window_testauc, window_testacc = -1, -1
