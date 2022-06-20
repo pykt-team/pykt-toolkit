@@ -126,7 +126,7 @@ def extend_multi_concepts(df, effective_keys):
     return finaldf, effective_keys
 
 def id_mapping(df):
-    id_keys = ["questions", "concepts"]
+    id_keys = ["questions", "concepts","uid"]
     dres = dict()
     dkeyid2idx = dict()
     print(f"df.columns: {df.columns}")
@@ -576,7 +576,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     test_seqs = generate_sequences(test_df, list(effective_keys) + ['cidxs'], min_seq_len, maxlen)
     ins, ss, qs, cs, seqnum = calStatistics(test_df, stares, "test original")
     print(f"original test interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
-    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequencces")
+    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequences")
     print(f"test sequences interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
     print("="*20)
 

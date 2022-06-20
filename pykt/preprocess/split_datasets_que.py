@@ -94,7 +94,32 @@ def save_id2idx(dkeyid2idx, save_path):
     with open(save_path, "w+") as fout:
         fout.write(json.dumps(dkeyid2idx))
     
-
+def id_mapping_que(df):
+    id_keys = ["questions", "concepts","uid"]
+    dres = dict()
+    dkeyid2idx = dict()
+    print(f"df.columns: {df.columns}")
+    for key in df.columns:
+        if key not in id_keys:
+            dres[key] = df[key]
+    for i, row in df.iterrows():
+        for key in id_keys:
+            if key not in df.columns:
+                continue
+            dkeyid2idx.setdefault(key, dict())
+            dres.setdefault(key, [])
+            curids = []
+            for id in row[key].split(","):
+                sub_ids = id.split('_')
+                sub_curids = []
+                for sub_id in sub_ids:
+                    if sub_id not in dkeyid2idx[key]:
+                        dkeyid2idx[key][sub_id] = len(dkeyid2idx[key])
+                    sub_curids.append(str(dkeyid2idx[key][sub_id]))
+                curids.append("_".join(sub_curids))
+            dres[key].append(",".join(curids))
+    finaldf = pd.DataFrame(dres)
+    return finaldf, dkeyid2idx
 
 def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfold = 5):
     """split main function
@@ -129,8 +154,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     print(f"original total interactions: {oris}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
 
      # just for id map
-    total_df_expand, _ = extend_multi_concepts(total_df, effective_keys)
-    _, dkeyid2idx = id_mapping(total_df_expand)
+    total_df, dkeyid2idx = id_mapping_que(total_df)
     dkeyid2idx["max_concepts"] = max_concepts
 
     save_id2idx(dkeyid2idx, os.path.join(dname, "keyid2idx.json"))
@@ -163,7 +187,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     test_seqs = generate_sequences(test_df, list(effective_keys), min_seq_len, maxlen)
     ins, ss, qs, cs, seqnum = calStatistics(test_df, stares, "test original question level")
     print(f"original test interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
-    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequencces question level")
+    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequences question level")
     print(f"test sequences interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
     print("="*20)
 
