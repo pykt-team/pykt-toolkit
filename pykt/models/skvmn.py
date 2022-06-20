@@ -190,8 +190,8 @@ class SKVMN(Module):
 
         # w'= max((w-a)/(b-a), (c-w)/(c-b))
         # min(w', 0)
-        correlation_weight = correlation_weight.view(self.batch_size * self.seqlen, -1)
-        correlation_weight = torch.cat([correlation_weight[i] for i in range(correlation_weight.shape[0])], 0).unsqueeze(0)
+        correlation_weight = correlation_weight.view(self.batch_size * self.seqlen, -1) # (seqlen * bz) * |K|
+        correlation_weight = torch.cat([correlation_weight[i] for i in range(correlation_weight.shape[0])], 0).unsqueeze(0) # 1*(seqlen*bz*|K|)
         correlation_weight = torch.cat([(correlation_weight-a)/(b-a), (c-correlation_weight)/(c-b)], 0)
         correlation_weight, _ = torch.min(correlation_weight, 0)
         w0 = torch.zeros(correlation_weight.shape[0]).to(device)
@@ -222,7 +222,7 @@ class SKVMN(Module):
         unique_iv_square_norm = torch.sum(torch.pow(identity_vector_batch, 2), dim=2, keepdim=True)
         unique_iv_square_norm = unique_iv_square_norm.repeat((1, 1, self.seqlen)).transpose(2, 1)
         # A * B.T
-        iv_matrix_product = torch.bmm(identity_vector_batch, identity_vector_batch.transpose(2,1))
+        iv_matrix_product = torch.bmm(identity_vector_batch, identity_vector_batch.transpose(2,1)) # A * A.T diff!!!!!! #TODO
         # A^2 + B^2 - 2A*B.T
         iv_distances = iv_square_norm + unique_iv_square_norm - 2 * iv_matrix_product
         iv_distances = torch.where(iv_distances>0.0, torch.tensor(-1e32).to(device), iv_distances)
@@ -315,9 +315,10 @@ class SKVMN(Module):
         for i in range(self.seqlen):
             ## Attention
             # print(f"k : {k.shape}")
+            # k: bz * seqlen * dim
             q = k.permute(1,0,2)[i]
             # print(f"q : {q.shape}")
-            correlation_weight = self.mem.attention(q)
+            correlation_weight = self.mem.attention(q) # q: bz * dim
             # print(f"correlation_weight : {correlation_weight.shape}")
 
             ## Read Process
@@ -331,15 +332,18 @@ class SKVMN(Module):
             input_embed_l.append(q)
 
             # modify
-            batch_predict_input = torch.cat([read_content, q], 1)
+            batch_predict_input = torch.cat([read_content, q], 1) ###q: 是r emb后的qemb
             f = torch.tanh(self.f_layer(batch_predict_input))
             # print(f"f: {f.shape}")
             ft.append(f)
 
             # 写入value矩阵的输入为[yt, ft]，onehot向量和ft向量拼接
+            # r: bz * seqlen, r.permute(1,0)[i]: bz * 1, f: bz * dim_s
+            # y的表示是复制吗？？论文中的向量是2|Q| * dv
+            # TODO
             y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
             # print(f"y: {y.shape}")
-            write_embed = torch.cat([f, y], 1)
+            write_embed = torch.cat([f, y], 1) # bz * 2dim_s
 
             # 写入value矩阵的输入为[ft, yt]，ft直接和题目对错（0或1）拼接
         #     write_embed = torch.cat([f, slice_a[i].float()], 1)
@@ -362,7 +366,7 @@ class SKVMN(Module):
 
         for i in range(self.seqlen): # 逐个ex进行计算
             for j in range(self.batch_size):
-                hx, cx = hx, cx
+                # hx, cx = hx, cx
                 if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
                     # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
                     hx[j,:] = hidden_state[idx_values[0][2]][j]
