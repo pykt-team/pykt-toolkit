@@ -148,15 +148,25 @@ class QueBaseModel(nn.Module):
     
     def batch_to_device(self,data):
         dcur = data
-        q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
-        qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
-        m, sm = dcur["masks"], dcur["smasks"]
-
-        cq = torch.cat((q[:,0:1], qshft), dim=1)
-        cc = torch.cat((c[:,0:1], cshft), dim=1)
-        cr = torch.cat((r[:,0:1], rshft), dim=1)
-        ct = torch.cat((t[:,0:1], tshft), dim=1)
-        return q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct
+        # q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
+        # qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+        # m, sm = dcur["masks"], dcur["smasks"]
+        data_new = {}
+        data_new['cq'] = torch.cat((dcur["qseqs"][:,0:1], dcur["shft_qseqs"]), dim=1)
+        data_new['cc'] = torch.cat((dcur["cseqs"][:,0:1],  dcur["shft_cseqs"]), dim=1)
+        data_new['cr'] = torch.cat((dcur["rseqs"][:,0:1], dcur["shft_rseqs"]), dim=1)
+        data_new['ct'] = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
+        data_new['q'] = dcur["qseqs"]
+        data_new['c'] = dcur["cseqs"]
+        data_new['r'] = dcur["rseqs"]
+        data_new['t'] = dcur["tseqs"]
+        data_new['qshft'] = dcur["shft_qseqs"]
+        data_new['cshft'] = dcur["shft_cseqs"]
+        data_new['rshft'] = dcur["shft_rseqs"]
+        data_new['tshft'] = dcur["shft_tseqs"]
+        data_new['m'] = dcur["masks"]
+        data_new['sm'] = dcur["smasks"]
+        return data_new
 
     def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,ckpt_path="",save_model=False,patient=10,shuffle=True):
         self.ckpt_path = ckpt_path
@@ -171,11 +181,9 @@ class QueBaseModel(nn.Module):
         for i in range(1, num_epochs + 1):
             loss_mean = []
             for data in train_loader:
-                q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
                 train_step += 1
                 self.model.train()
-                y = self.train_one_step(data)
-                loss = self.get_loss(y,rshft,sm)#get loss
+                y,loss = self.train_one_step(data)
                 self.opt.zero_grad()
                 loss.backward()#compute gradients 
                 self.opt.step()#update model’s parameters
@@ -220,10 +228,10 @@ class QueBaseModel(nn.Module):
             y_trues = []
             y_scores = []
             for data in test_loader:
-                q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
+                new_data = self.batch_to_device(data)
                 y = self.predict_one_step(data)
-                y = torch.masked_select(y, sm).detach().cpu()
-                t = torch.masked_select(rshft, sm).detach().cpu()
+                y = torch.masked_select(y, new_data['sm']).detach().cpu()
+                t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
                 y_trues.append(t.numpy())
                 y_scores.append(y.numpy())
         ts = np.concatenate(y_trues, axis=0)
