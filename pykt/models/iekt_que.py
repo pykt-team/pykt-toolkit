@@ -1,0 +1,353 @@
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+from .que_base_model import QueBaseModel,QueEmb
+from torch.distributions import Categorical
+import math
+from .iekt_utils import batch_data_to_device,mygru,funcsgru,funcs
+
+
+class IEKTQueNet(nn.Module): 
+    def __init__(self, num_q,num_c,emb_size,max_concepts,n_epochs,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu'):
+        super().__init__()
+        self.node_dim = emb_size
+        self.concept_num = num_c
+        self.max_concept = max_concepts
+        self.device = device
+        self.predictor = funcs(n_layer, emb_size * 5, 1, dropout)
+        self.cog_matrix = nn.Parameter(torch.randn(cog_levels, emb_size * 2).to(self.device), requires_grad=True) 
+        self.acq_matrix = nn.Parameter(torch.randn(acq_levels, emb_size * 2).to(self.device), requires_grad=True)
+        self.select_preemb = funcs(n_layer, emb_size * 3, cog_levels, dropout)#MLP
+        self.checker_emb = funcs(n_layer, emb_size * 12, acq_levels, dropout) 
+        self.prob_emb = nn.Parameter(torch.randn(num_q - 1, emb_size).to(self.device), requires_grad=True)#题目表征
+        self.gamma = gamma
+        self.gru_h = mygru(0, emb_size * 4, emb_size)
+        showi0 = []
+        for i in range(0, n_epochs):
+            showi0.append(i)
+        self.show_index = torch.tensor(showi0).to(self.device)
+        self.concept_emb = nn.Parameter(torch.randn(self.concept_num - 1, emb_size).to(self.device), requires_grad=True)#知识点表征
+        self.sigmoid = torch.nn.Sigmoid()
+
+    def get_ques_representation(self, prob_ids, related_concept_index, filter0, data_len):
+        """Get question representation 公式3
+        Input example, batch is 8.
+        (tensor([592,   1, 461, 490,  20,  37, 257, 247]),
+         tensor([[49,  0,  0,  0],
+                [ 1,  2,  3,  0],
+                [33, 34,  0,  0],
+                [26,  0,  0,  0],
+                [ 9, 10,  0,  0],
+                [12,  0,  0,  0],
+                [52,  7,  0,  0],
+                [51,  0,  0,  0]]),
+         tensor([[1., 0., 0., 0.],
+                [1., 1., 1., 0.],
+                [1., 1., 0., 0.],
+                [1., 0., 0., 0.],
+                [1., 1., 0., 0.],
+                [1., 0., 0., 0.],
+                [1., 1., 0., 0.],
+                [1., 0., 0., 0.]]),
+        8)
+
+        Args:
+            prob_ids (_type_): question ids
+            related_concept_index (_type_): concepts ids
+            filter0 (_type_): concepts ids mask 矩阵，1表示符合这个知识点，0表示不符合
+            data_len (_type_): batch size
+
+        Returns:
+            _type_: _description_
+        """
+        concepts_cat = torch.cat(
+            [torch.zeros(1, self.node_dim).to(self.device),
+            self.concept_emb],
+            dim = 0).unsqueeze(0).repeat(data_len, 1, 1)#确保0取到值为全0
+        r_index = self.show_index[0: data_len].unsqueeze(1).repeat(1, self.max_concept)
+        related_concepts = concepts_cat[r_index, related_concept_index,:]
+        filter_sum = torch.sum(filter0, dim = 1)
+
+        div = torch.where(filter_sum == 0, 
+            torch.tensor(1.0).to(self.device), 
+            filter_sum
+            ).unsqueeze(1).repeat(1, self.node_dim)
+        
+        concept_level_rep = torch.sum(related_concepts, dim = 1) / div
+        
+        prob_cat = torch.cat([
+            torch.zeros(1, self.node_dim).to(self.device),
+            self.prob_emb], dim = 0)
+        
+        item_emb = prob_cat[prob_ids]
+
+        v = torch.cat(
+            [concept_level_rep,
+            item_emb],
+            dim = 1)
+        return v
+
+
+    def pi_cog_func(self, x, softmax_dim = 1):
+        return F.softmax(self.select_preemb(x), dim = softmax_dim)
+
+    def obtain_v(self, this_input, h, x, emb):
+        """_summary_
+
+        Args:
+            this_input (_type_): _description_
+            h (_type_): _description_
+            x (_type_): rt_x = torch.zeros(data_len, 1, args.dim * 2).to(self.device) 不知道干啥用的
+            emb (_type_): m_t
+
+        Returns:
+            _type_: _description_
+        """
+        
+        last_show, problem, related_concept_index, show_count, operate, filter0, prob_ids, related_concept_matrix = this_input
+
+        data_len = operate.size()[0]
+
+        v = self.get_ques_representation(prob_ids, related_concept_index, filter0, data_len)
+        predict_x = torch.cat([h, v], dim = 1)#公式4
+        h_v = torch.cat([h, v], dim = 1)#公式4 为啥要计算两次？
+        prob = self.predictor(torch.cat([
+            predict_x, emb
+        ], dim = 1))#公式7
+        return h_v, v, prob, x
+
+    def update_state(self, h, v, emb, operate):
+        """_summary_
+
+        Args:
+            h (_type_): rnn的h
+            v (_type_): question 表示
+            emb (_type_): s_t knowledge acquistion sensitivity
+            operate (_type_): label
+
+        Returns:
+            next_p_state {}: _description_
+        """
+        #equation 13
+        v_cat = torch.cat([
+            v.mul(operate.repeat(1, self.node_dim * 2)),
+            v.mul((1 - operate).repeat(1, self.node_dim * 2))], dim = 1)#v_t扩展，分别对应正确的错误的情况
+        e_cat = torch.cat([
+            emb.mul((1-operate).repeat(1, self.node_dim * 2)),
+            emb.mul((operate).repeat(1, self.node_dim * 2))], dim = 1)# s_t 扩展，分别对应正确的错误的情况
+        inputs = v_cat + e_cat#起到concat作用
+        
+        h_t_next = self.gru_h(inputs, h)#公式14
+        return h_t_next
+    
+
+    def pi_sens_func(self, x, softmax_dim = 1):
+        return F.softmax(self.checker_emb(x), dim = softmax_dim)
+
+
+
+class IEKTQue(QueBaseModel):
+    def __init__(self, num_q,num_c,emb_size,max_concepts,n_epochs,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
+        model_name = "iekt_que"
+        super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
+        self.model = IEKTQueNet(num_q=num_q,num_c=num_c,emb_size=emb_size,max_concepts=max_concepts,n_epochs=n_epochs,n_layer=n_layer,cog_levels=cog_levels,acq_levels=acq_levels,dropout=dropout,gamma=gamma, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim,device=device)
+        
+        self.model = self.model.to(device)
+    
+    def train_one_step(self,data):
+        BCELoss = torch.nn.BCEWithLogitsLoss()
+        train_sigmoid = torch.nn.Sigmoid()
+        with torch.no_grad():
+            x, y = batch_data_to_device(data, self.device)
+        self.model.train()
+        data_len = len(x[0])
+        h = torch.zeros(data_len, self.model.dim).to(self.device)
+        p_action_list, pre_state_list, emb_action_list, op_action_list, actual_label_list, states_list, reward_list, predict_list, ground_truth_list = [], [], [], [], [], [], [], [], []
+
+        rt_x = torch.zeros(data_len, 1, self.model.dim * 2).to(self.device)
+        for seqi in range(0, self.model.seq_len):#序列长度
+            ques_h = torch.cat([
+                self.model.get_ques_representation(x[1][seqi][6], x[1][seqi][2], x[1][seqi][5], x[1][seqi][5].size()[0]),
+                h], dim = 1)#公式4
+            # d = 64*3 [题目,知识点,h]
+            flip_prob_emb = self.model.pi_cog_func(ques_h)
+
+            m = Categorical(flip_prob_emb)#公式 5 的 f_p
+            emb_ap = m.sample()#公式 5
+            emb_p = self.model.cog_matrix[emb_ap,:]#公式 6
+
+            h_v, v, logits, rt_x = self.model.obtain_v(x[1][seqi], h, rt_x, emb_p)#公式 7
+            prob = train_sigmoid(logits)#公式 7 sigmoid
+
+            out_operate_groundtruth = x[1][seqi][4] #获取标签
+            out_x_groundtruth = torch.cat([
+                h_v.mul(out_operate_groundtruth.repeat(1, h_v.size()[-1]).float()),
+                h_v.mul((1-out_operate_groundtruth).repeat(1, h_v.size()[-1]).float())],
+                dim = 1)#公式9
+
+            out_operate_logits = torch.where(prob > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device)) 
+            out_x_logits = torch.cat([
+                h_v.mul(out_operate_logits.repeat(1, h_v.size()[-1]).float()),
+                h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
+                dim = 1)#公式10                
+            out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)#公式11
+
+            ground_truth = x[1][seqi][4].squeeze(-1)
+
+            flip_prob_emb = self.model.pi_sens_func(out_x)##公式12中的f_e
+
+            m = Categorical(flip_prob_emb)
+            emb_a = m.sample()
+            emb = self.model.acq_matrix[emb_a,:]#公式12 s_t
+
+            h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))#公式13～14
+            
+            emb_action_list.append(emb_a)#s_t 列表
+            p_action_list.append(emb_ap)#m_t
+            states_list.append(out_x)
+            pre_state_list.append(ques_h)#上一个题目的状态
+            
+            ground_truth_list.append(ground_truth)
+            predict_list.append(logits.squeeze(1))
+            this_reward = torch.where(out_operate_logits.squeeze(1).float() == ground_truth,
+                            torch.tensor(1).to(self.device), 
+                            torch.tensor(0).to(self.device))# if condition x else y,这里相当于统计了正确的数量
+            reward_list.append(this_reward)
+
+        #以下是强化学习部分内容
+        seq_num = x[0]
+        emb_action_tensor = torch.stack(emb_action_list, dim = 1)
+        p_action_tensor = torch.stack(p_action_list, dim = 1)
+        state_tensor = torch.stack(states_list, dim = 1)
+        pre_state_tensor = torch.stack(pre_state_list, dim = 1)
+        reward_tensor = torch.stack(reward_list, dim = 1).float() / (seq_num.unsqueeze(-1).repeat(1, self.model.seq_len)).float()#公式15
+        logits_tensor = torch.stack(predict_list, dim = 1)
+        ground_truth_tensor = torch.stack(ground_truth_list, dim = 1)
+        loss = []
+        tracat_logits = []
+        tracat_ground_truth = []
+        
+        for i in range(0, data_len):
+            this_seq_len = seq_num[i]
+            this_reward_list = reward_tensor[i]
+        
+            this_cog_state = torch.cat([pre_state_tensor[i][0: this_seq_len],
+                                    torch.zeros(1, pre_state_tensor[i][0].size()[0]).to(self.device)
+                                    ], dim = 0)
+            this_sens_state = torch.cat([state_tensor[i][0: this_seq_len],
+                                    torch.zeros(1, state_tensor[i][0].size()[0]).to(self.device)
+                                    ], dim = 0)
+
+            td_target_cog = this_reward_list[0: this_seq_len].unsqueeze(1)
+            delta_cog = td_target_cog
+            delta_cog = delta_cog.detach().cpu().numpy()
+
+            td_target_sens = this_reward_list[0: this_seq_len].unsqueeze(1)
+            delta_sens = td_target_sens
+            delta_sens = delta_sens.detach().cpu().numpy()
+
+            advantage_lst_cog = []
+            advantage = 0.0
+            for delta_t in delta_cog[::-1]:
+                advantage = self.model.gamma * advantage + delta_t[0]#公式17
+                advantage_lst_cog.append([advantage])
+            advantage_lst_cog.reverse()
+            advantage_cog = torch.tensor(advantage_lst_cog, dtype=torch.float).to(self.device)
+            
+            pi_cog = self.model.pi_cog_func(this_cog_state[:-1])
+            pi_a_cog = pi_cog.gather(1,p_action_tensor[i][0: this_seq_len].unsqueeze(1))
+
+            loss_cog = -torch.log(pi_a_cog) * advantage_cog#公式16
+            
+            loss.append(torch.sum(loss_cog))
+
+            advantage_lst_sens = []
+            advantage = 0.0
+            for delta_t in delta_sens[::-1]:
+                # advantage = args.gamma * args.beta * advantage + delta_t[0]
+                advantage = self.model.gamma * advantage + delta_t[0]
+                advantage_lst_sens.append([advantage])
+            advantage_lst_sens.reverse()
+            advantage_sens = torch.tensor(advantage_lst_sens, dtype=torch.float).to(self.device)
+            
+            pi_sens = self.model.pi_sens_func(this_sens_state[:-1])
+            pi_a_sens = pi_sens.gather(1,emb_action_tensor[i][0: this_seq_len].unsqueeze(1))
+
+            loss_sens = - torch.log(pi_a_sens) * advantage_sens#公式18
+            loss.append(torch.sum(loss_sens))
+            
+
+            this_prob = logits_tensor[i][0: this_seq_len]
+            this_groud_truth = ground_truth_tensor[i][0: this_seq_len]
+
+            tracat_logits.append(this_prob)
+            tracat_ground_truth.append(this_groud_truth)
+
+        bce = BCELoss(torch.cat(tracat_logits, dim = 0), torch.cat(tracat_ground_truth, dim = 0))   
+        y = torch.cat(tracat_logits, dim = 0)
+        label_len = torch.cat(tracat_ground_truth, dim = 0).size()[0]
+        loss_l = sum(loss)
+        loss = self.model.lamb * (loss_l / label_len) +  bce#公式21
+        return y,loss
+
+    def predict_one_step(self,data,return_details=False):
+        eval_sigmoid = torch.nn.Sigmoid()
+        
+        with torch.no_grad():
+            x, y = batch_data_to_device(data, self.device)
+        self.model.train()
+        data_len = len(x[0])
+        h = torch.zeros(data_len, self.model.dim).to(self.device)
+        batch_probs, uni_prob_list, actual_label_list, states_list, reward_list =[], [], [], [], []
+        H = None
+        if 'eernna' in self.model_name:
+            H = torch.zeros(data_len, 1, self.model.dim).to(self.device)
+        else:
+            H = torch.zeros(data_len, self.model.concept_num - 1, self.model.dim).to(self.device)
+        rt_x = torch.zeros(data_len, 1, self.model.dim * 2).to(self.device)
+        for seqi in range(0, self.model.seq_len):
+            ques_h = torch.cat([
+                    self.model.get_ques_representation(x[1][seqi][6], x[1][seqi][2], x[1][seqi][5], x[1][seqi][5].size()[0]),
+                    h], dim = 1)
+            flip_prob_emb = self.model.pi_cog_func(ques_h)
+
+            m = Categorical(flip_prob_emb)
+            emb_ap = m.sample()
+            emb_p = self.model.cog_matrix[emb_ap,:]
+
+            h_v, v, logits, rt_x = self.model.obtain_v(x[1][seqi], h, rt_x, emb_p)#
+            prob = eval_sigmoid(logits)
+            out_operate_groundtruth = x[1][seqi][4]
+            out_x_groundtruth = torch.cat([
+                h_v.mul(out_operate_groundtruth.repeat(1, h_v.size()[-1]).float()),
+                h_v.mul((1-out_operate_groundtruth).repeat(1, h_v.size()[-1]).float())],
+                dim = 1)
+
+            out_operate_logits = torch.where(prob > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device)) 
+            out_x_logits = torch.cat([
+                h_v.mul(out_operate_logits.repeat(1, h_v.size()[-1]).float()),
+                h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
+                dim = 1)                
+            out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)
+
+            ground_truth = x[1][seqi][4].squeeze(-1)
+
+            flip_prob_emb = self.model.pi_sens_func(out_x)
+            
+            m = Categorical(flip_prob_emb)
+            emb_a = m.sample()
+            emb = self.model.acq_matrix[emb_a,:]
+
+            h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))
+            uni_prob_list.append(prob.detach())
+
+        seq_num = x[0]
+        prob_tensor = torch.cat(uni_prob_list, dim = 1)
+        for i in range(0, data_len):
+            this_seq_len = seq_num[i]
+            batch_probs.append(prob_tensor[i][0: this_seq_len])
+        batch_t = torch.cat(batch_probs, dim = 0)
+
+        return y,batch_t
