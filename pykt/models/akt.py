@@ -79,7 +79,7 @@ class AKT(nn.Module):
     def forward(self, q_data, target, pid_data=None, qtest=False):
         emb_type = self.emb_type
         # Batch First
-        if emb_type == "qid":
+        if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if self.n_pid > 0: # have problem id
@@ -103,7 +103,7 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data)
+        d_output = self.model(q_embed_data, qa_embed_data, emb_type)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
@@ -140,7 +140,7 @@ class Architecture(nn.Module):
                 for _ in range(n_blocks*2)
             ])
 
-    def forward(self, q_embed_data, qa_embed_data):
+    def forward(self, q_embed_data, qa_embed_data, emb_type):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -153,15 +153,15 @@ class Architecture(nn.Module):
 
         # encoder
         for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y = block(mask=1, query=y, key=y, values=y) # yt^
+            y = block(mask=1, query=y, key=y, values=y, emb_type=emb_type) # yt^
         flag_first = True
         for block in self.blocks_2:
             if flag_first:  # peek current question
                 x = block(mask=1, query=x, key=x,
-                          values=x, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
+                          values=x, emb_type=emb_type, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
                 flag_first = False
             else:  # dont peek current response
-                x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                x = block(mask=0, query=x, key=x, values=y, emb_type=emb_type, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
                 # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
                 # print(x[0,0,:])
                 flag_first = True
@@ -191,7 +191,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True):
+    def forward(self, mask, query, key, values, emb_type, apply_pos=True):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -212,11 +212,11 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False)
+                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -249,6 +249,14 @@ class MultiHeadAttention(nn.Module):
         self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
         torch.nn.init.xavier_uniform_(self.gammas)
 
+        # pooling
+        #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
+        pool_size = 3
+        self.pooling =  nn.AvgPool1d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
+
+        # linear
+        self.linear = nn.Linear(self.d_k, self.d_k, bias=bias)
+
         self._reset_parameters()
 
     def _reset_parameters(self):
@@ -264,7 +272,7 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
-    def forward(self, q, k, v, mask, zero_pad):
+    def forward(self, q, k, v, mask, zero_pad, emb_type):
 
         bs = q.size(0)
 
@@ -283,9 +291,10 @@ class MultiHeadAttention(nn.Module):
         q = q.transpose(1, 2)
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
-        gammas = self.gammas
-        scores = attention(q, k, v, self.d_k,
-                           mask, self.dropout, zero_pad, gammas)
+        # gammas = self.gammas
+        # scores = attention(q, k, v, self.d_k,
+        #                    mask, self.dropout, zero_pad, gammas)
+        scores = self.attnblock(q, k, v, mask, zero_pad, emb_type)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1, 2).contiguous()\
@@ -295,6 +304,36 @@ class MultiHeadAttention(nn.Module):
 
         return output
 
+
+    def attnblock(self, q, k, v, mask, zero_pad, emb_type):
+        def pad_zero(scores, bs, head, dim, zero_pad):
+            if zero_pad:
+                # # need: torch.Size([256, 8, 1, 200]), scores: torch.Size([256, 8, 200, 200]), v: torch.Size([256, 8, 200, 32])
+                pad_zero = torch.zeros(bs, head, 1, dim).to(device)
+                # print(f"pad_zero: {pad_zero.shape}, scores: {scores.shape}, v: {v.shape}")
+                scores = torch.cat([pad_zero, scores[:, :, 0:-1, :]], dim=2) # 所有v后置一位
+                # print(scores)
+                # import sys
+                # sys.exit()
+            # print(f"after zero pad scores: {scores}")
+            return scores
+        bs, head, seqlen, dim = v.size(0), v.size(1), v.size(2), v.size(3) # bs, head, seqlen, dim
+        if emb_type.endswith("avgpool"):
+            scores = []
+            for i in range(0, v.shape[0]):
+                scores.append(self.pooling(v[i]).reshape(1, v[i].shape[0], v[i].shape[1], v[i].shape[2])) # self.pool(v)#self.linear(v)#v#self.pool(v)
+            scores = torch.cat(scores)
+            scores = pad_zero(scores, bs, head, dim, zero_pad)
+            # scores = scores - v
+        elif emb_type.endswith("linear"):
+            scores = self.linear(v)
+            scores = pad_zero(scores, bs, head, dim, zero_pad)
+        else:
+            gammas = self.gammas
+            scores = attention(q, k, v, self.d_k,
+                            mask, self.dropout, zero_pad, gammas)
+        
+        return scores
 
 def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     """
