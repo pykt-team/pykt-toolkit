@@ -6,6 +6,8 @@
         "input_type": [
             "concepts"
         ],
+        "min_seq_len": 3,
+        "maxlen": 200,
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv",
         "train_valid_file": "train_valid_sequences.csv",
