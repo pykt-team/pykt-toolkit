@@ -58,7 +58,8 @@ def model_forward(model, data):
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
-    ct = torch.cat((t[:,0:1], tshft), dim=1)
+    if model_name in ["hawkes"]:
+        ct = torch.cat((t[:,0:1], tshft), dim=1)
 
     if model_name in ["dkt"]:
         y = model(c.long(), r.long())
