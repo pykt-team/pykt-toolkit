@@ -126,7 +126,7 @@ def extend_multi_concepts(df, effective_keys):
     return finaldf, effective_keys
 
 def id_mapping(df):
-    id_keys = ["questions", "concepts"]
+    id_keys = ["questions", "concepts","uid"]
     dres = dict()
     dkeyid2idx = dict()
     print(f"df.columns: {df.columns}")
@@ -434,7 +434,7 @@ def save_id2idx(dkeyid2idx, save_path):
     with open(save_path, "w+") as fout:
         fout.write(json.dumps(dkeyid2idx))
     
-def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,min_seq_len = 3, maxlen=200,flag=False):
+def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,min_seq_len = 3, maxlen=200,flag=False,other_config={}):
     input_type, num_q, num_c = [], 0, 0
     if "questions" in effective_keys:
         input_type.append("questions")
@@ -448,6 +448,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
         "num_q": num_q,
         "num_c": num_c,
         "input_type": input_type,
+        "max_concepts":dkeyid2idx["max_concepts"],
         "min_seq_len":min_seq_len,
         "maxlen":maxlen,
         "emb_path": "",
@@ -458,6 +459,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv"
     }
+    dconfig.update(other_config)
     if flag:
         dconfig["test_question_file"] = "test_question_sequences.csv"
         dconfig["test_question_window_file"] = "test_question_window_sequences.csv"
@@ -472,6 +474,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
     with open(configf, "w") as fout:
         data = json.dumps(data_config, ensure_ascii=False, indent=4)
         fout.write(data)
+      
       
 def calStatistics(df, stares, key):
     allin, allselect = 0, 0
@@ -499,6 +502,14 @@ def calStatistics(df, stares, key):
     stares.append(",".join([str(s) for s in [key, allin, df.shape[0], allselect]]))
     return allin, allselect, len(allqs), len(allcs), df.shape[0]
 
+def get_max_concepts(df):
+    max_concepts = 1
+    for i, row in df.iterrows():
+        cs = row["concepts"].split(",")
+        num_concepts = max([len(c.split("_")) for c in cs])
+        if num_concepts >= max_concepts:
+            max_concepts = num_concepts
+    return max_concepts
 
 def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfold = 5):
     """split main function
@@ -522,6 +533,11 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     stares = []
 
     total_df, effective_keys = read_data(fname)
+    #cal max_concepts
+    if 'concepts' in effective_keys:
+        max_concepts = get_max_concepts(total_df)
+    else:
+        max_concepts = -1
 
     oris, _, qs, cs, seqnum = calStatistics(total_df, stares, "original")
     print("="*20)
@@ -529,6 +545,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
 
     total_df, effective_keys = extend_multi_concepts(total_df, effective_keys)
     total_df, dkeyid2idx = id_mapping(total_df)
+    dkeyid2idx["max_concepts"] = max_concepts
 
     extends, _, qs, cs, seqnum = calStatistics(total_df, stares, "extend multi")
     print("="*20)
@@ -559,7 +576,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     test_seqs = generate_sequences(test_df, list(effective_keys) + ['cidxs'], min_seq_len, maxlen)
     ins, ss, qs, cs, seqnum = calStatistics(test_df, stares, "test original")
     print(f"original test interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
-    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequencces")
+    ins, ss, qs, cs, seqnum = calStatistics(test_seqs, stares, "test sequences")
     print(f"test sequences interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
     print("="*20)
 

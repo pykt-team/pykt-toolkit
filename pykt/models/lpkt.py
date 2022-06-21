@@ -26,18 +26,6 @@ class LPKT(nn.Module):
         self.e_embed = nn.Embedding(n_exercise + 10, d_e)
         torch.nn.init.xavier_uniform_(self.e_embed.weight)
 
-        if emb_type.startswith("qidcatr"):
-            self.interaction_emb = nn.Embedding(self.num_exercise * 2, self.d_k)
-            self.catrlinear = nn.Linear(self.d_k * 2, self.d_k)
-            self.pooling = nn.MaxPool1d(2, stride=2)
-            self.avg_pooling = nn.AvgPool1d(2, stride=2)
-        if emb_type.startswith("qidrobertacatr"):
-            self.catrlinear = nn.Linear(self.d_k * 3, self.d_k)
-            self.pooling = nn.MaxPool1d(3, stride=3)
-            self.avg_pooling = nn.AvgPool1d(3, stride=3)
-        if emb_type.find("roberta") != -1:
-            self.roberta_emb = RobertaEncode(self.d_k, emb_path, pretrain_dim)
-
         self.linear_0 = nn.Linear(d_a + d_e, d_k)
         torch.nn.init.xavier_uniform_(self.linear_0.weight)
         self.linear_1 = nn.Linear(d_a + d_e + d_k, d_k)
@@ -76,40 +64,6 @@ class LPKT(nn.Module):
                 all_learning = self.linear_1(torch.cat((e_embed_data, at_embed_data, a_data), 2))
             else:
                 all_learning = self.linear_0(torch.cat((e_embed_data, a_data), 2))
-        elif emb_type.startswith("qidcatr"):
-            x = e_data + self.n_exercise * a_data
-            xemb = self.interaction_emb(x)
-            remb = a_data.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
-            if emb_type.endswith("linear"):
-                merge_emb = self.catrlinear(torch.cat((xemb, remb), dim=-1))
-            elif emb_type.endswith("maxpool"):
-                merge_emb = self.pooling(torch.cat((xemb, remb), dim=-1))
-            elif emb_type.endswith("avgpool"):
-                merge_emb = self.avg_pooling(torch.cat((xemb, remb), dim=-1))
-            xemb = merge_emb
-            all_learning = xemb
-        elif emb_type == "qroberta":
-            _, xemb = self.roberta_emb(e_data, a_data)
-            all_learning = xemb
-        elif emb_type.startswith("qidrobertacatr"):
-            x = e_data + self.n_exercise * a_data
-            xemb = self.interaction_emb(x)
-            qemb2, _ = self.roberta_emb(e_data, a_data)
-            remb = a_data.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
-            if emb_type.endswith("linear"):
-                merge_emb = self.catrlinear(torch.cat((qemb2, xemb, remb), dim=-1))
-            elif emb_type.endswith("maxpool"):
-                merge_emb = self.pooling(torch.cat((qemb2, xemb, remb), dim=-1))
-            elif emb_type.endswith("avgpool"):
-                merge_emb = self.avg_pooling(torch.cat((qemb2, xemb, remb), dim=-1))
-            xemb = merge_emb
-            all_learning = xemb
-        elif emb_type == "qidroberta":
-            x = e_data + self.n_exercise * a_data
-            xemb = self.interaction_emb(x)
-            _, xemb2 = self.roberta_emb(e_data, a_data)
-            xemb = xemb + xemb2
-            all_learning = xemb
         learning_pre = torch.zeros(batch_size, self.d_k).to(device)
 
         pred = torch.zeros(batch_size, seq_len).to(device)

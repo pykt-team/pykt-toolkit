@@ -20,9 +20,10 @@ data/algebra2005
 data/bridge2algebra2006
 data/statics2011
 data/nips_task34
+data/assist2017
 data/poj
 data/slepemapy
-data/assist2017
 .ipynb_checkpoints
 dev_tools
 tmp*
+configs/wandb.json

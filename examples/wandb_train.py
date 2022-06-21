@@ -62,7 +62,7 @@ def main(params):
 
     params_str = "_".join([str(_) for _ in params.values()])
     print(f"params: {params}, params_str: {params_str}")
-    if params['add_uuid'] == 1:
+    if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
         if not model_name in ['saint']:
             params_str = params_str+f"_{ str(uuid.uuid4())}"

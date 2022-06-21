@@ -6,6 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
+from .que_base_model import QueBaseModel,QueEmb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -14,8 +15,8 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-class AKT(nn.Module):
-    def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
+class AKTQueNet(nn.Module):
+    def __init__(self, num_q, num_c, emb_size, n_blocks, dropout, d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         """
@@ -27,33 +28,33 @@ class AKT(nn.Module):
             kq_same: if key query same, kq_same=1, else = 0
         """
         self.model_name = "akt"
-        self.n_question = n_question
+        self.num_c = num_c
         self.dropout = dropout
         self.kq_same = kq_same
-        self.n_pid = n_pid
+        self.num_q = num_q
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
-        embed_l = d_model
-        if self.n_pid > 0:
-            self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
-            self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-            self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
+        # embed_l = d_model
+        if self.num_q > 0:
+            self.difficult_param = nn.Embedding(self.num_q+1, 1) # 题目难度
+            self.q_embed_diff = nn.Embedding(self.num_q+1, emb_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+            self.qa_embed_diff = nn.Embedding(2 * self.num_q + 1, emb_size) # interaction emb, 同上
         
-        if emb_type.startswith("qid"):
-            # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question, embed_l)
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
+        if self.separate_qa: 
+            self.qa_embed = nn.Embedding(2*self.num_c+1, emb_size) # interaction emb
+        else: # false default
+            self.qa_embed = nn.Embedding(2, emb_size)
+
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
+                             emb_path=emb_path,pretrain_dim=pretrain_dim)
         # Architecture Object. It contains stack of attention block
-        self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
+        self.model = Architecture(num_q=num_q, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=emb_size, d_feature=emb_size / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
 
         self.out = nn.Sequential(
-            nn.Linear(d_model + embed_l,
+            nn.Linear(emb_size + emb_size,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 256), nn.ReLU(
             ), nn.Dropout(self.dropout),
@@ -63,33 +64,32 @@ class AKT(nn.Module):
 
     def reset(self):
         for p in self.parameters():
-            if p.size(0) == self.n_pid+1 and self.n_pid > 0:
+            if p.size(0) == self.num_q+1 and self.num_q > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def base_emb(self, q_data, target):
-        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
+    def base_emb(self, q, c, r):
+        q_embed_data = self.que_emb(q,c,r)  # BS, seqlen,  d_model# c_ct
         if self.separate_qa:
-            qa_data = q_data + self.n_question * target
+            qa_data = q + self.num_q * r
             qa_embed_data = self.qa_embed(qa_data)
         else:
             # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            qa_embed_data = self.qa_embed(target)+q_embed_data
+            qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def forward(self, q_data, target, pid_data=None, qtest=False):
-        emb_type = self.emb_type
+    # def forward(self, q_data, target, pid_data=None, qtest=False):
+    def forward(self, q, c, r):
         # Batch First
-        if emb_type.startswith("qid"):
-            q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+        q_embed_data, qa_embed_data = self.base_emb(q,c,r)
 
-        if self.n_pid > 0: # have problem id
-            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
+        if self.num_q > 0: # have problem id
+            q_embed_diff_data = self.q_embed_diff(q)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            pid_embed_data = self.difficult_param(q)  # uq 当前problem的难度
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
             qa_embed_diff_data = self.qa_embed_diff(
-                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                r)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
             if self.separate_qa:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
@@ -103,20 +103,47 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data, emb_type)
+        d_output = self.model(q_embed_data, qa_embed_data)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
         preds = m(output)
-        if not qtest:
-            return preds, c_reg_loss
-        else:
-            return preds, c_reg_loss, concat_q
+       
+        return preds, c_reg_loss
+       
 
+
+
+class AKTQue(QueBaseModel):
+    def __init__(self, num_q,num_c, emb_size,n_blocks=1, dropout=0.1, emb_type='qid',kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5,d_ff=256,emb_path="", pretrain_dim=768,device='cpu',seed=0):
+        model_name = "dkt_que"
+        super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
+        self.model = AKTQueNet(num_q=num_q, num_c=num_c, emb_size=emb_size, n_blocks=n_blocks, dropout=dropout, d_ff=d_ff, 
+            kq_same=kq_same, final_fc_dim=final_fc_dim, num_attn_heads=num_attn_heads, separate_qa=separate_qa, 
+            l2=l2, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim)
+        self.model = self.model.to(device)
+    
+    def train_one_step(self,data):
+        y,reg_loss,data_new = self.predict_one_step(data,return_details=True)
+        loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
+        print(f"reg_loss is {reg_loss}")
+        loss = loss+reg_loss
+        return y,loss
+
+
+    def predict_one_step(self,data,return_details=False):
+        data_new = self.batch_to_device(data)
+        # q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
+        y, reg_loss = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long())
+        y = y[:,1:]
+        if return_details:
+            return y,reg_loss,data_new
+        else:
+            return y
 
 class Architecture(nn.Module):
-    def __init__(self, n_question,  n_blocks, d_model, d_feature,
+    def __init__(self, num_q,  n_blocks, d_model, d_feature,
                  d_ff, n_heads, dropout, kq_same, model_type):
         super().__init__()
         """
@@ -140,7 +167,7 @@ class Architecture(nn.Module):
                 for _ in range(n_blocks*2)
             ])
 
-    def forward(self, q_embed_data, qa_embed_data, emb_type):
+    def forward(self, q_embed_data, qa_embed_data):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -153,15 +180,15 @@ class Architecture(nn.Module):
 
         # encoder
         for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y = block(mask=1, query=y, key=y, values=y, emb_type=emb_type) # yt^
+            y = block(mask=1, query=y, key=y, values=y) # yt^
         flag_first = True
         for block in self.blocks_2:
             if flag_first:  # peek current question
                 x = block(mask=1, query=x, key=x,
-                          values=x, emb_type=emb_type, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
+                          values=x, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
                 flag_first = False
             else:  # dont peek current response
-                x = block(mask=0, query=x, key=x, values=y, emb_type=emb_type, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
                 # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
                 # print(x[0,0,:])
                 flag_first = True
@@ -191,7 +218,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, emb_type, apply_pos=True):
+    def forward(self, mask, query, key, values, apply_pos=True):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -212,11 +239,11 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+                query, key, values, mask=src_mask, zero_pad=True) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type)
+                query, key, values, mask=src_mask, zero_pad=False)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -249,14 +276,6 @@ class MultiHeadAttention(nn.Module):
         self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
         torch.nn.init.xavier_uniform_(self.gammas)
 
-        # pooling
-        #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
-        pool_size = 3
-        self.pooling =  nn.AvgPool1d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
-
-        # linear
-        self.linear = nn.Linear(self.d_k, self.d_k, bias=bias)
-
         self._reset_parameters()
 
     def _reset_parameters(self):
@@ -272,7 +291,7 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
-    def forward(self, q, k, v, mask, zero_pad, emb_type):
+    def forward(self, q, k, v, mask, zero_pad):
 
         bs = q.size(0)
 
@@ -291,10 +310,9 @@ class MultiHeadAttention(nn.Module):
         q = q.transpose(1, 2)
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
-        # gammas = self.gammas
-        # scores = attention(q, k, v, self.d_k,
-        #                    mask, self.dropout, zero_pad, gammas)
-        scores = self.attnblock(q, k, v, mask, zero_pad, emb_type)
+        gammas = self.gammas
+        scores = attention(q, k, v, self.d_k,
+                           mask, self.dropout, zero_pad, gammas)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1, 2).contiguous()\
@@ -304,36 +322,6 @@ class MultiHeadAttention(nn.Module):
 
         return output
 
-
-    def attnblock(self, q, k, v, mask, zero_pad, emb_type):
-        def pad_zero(scores, bs, head, dim, zero_pad):
-            if zero_pad:
-                # # need: torch.Size([256, 8, 1, 200]), scores: torch.Size([256, 8, 200, 200]), v: torch.Size([256, 8, 200, 32])
-                pad_zero = torch.zeros(bs, head, 1, dim).to(device)
-                # print(f"pad_zero: {pad_zero.shape}, scores: {scores.shape}, v: {v.shape}")
-                scores = torch.cat([pad_zero, scores[:, :, 0:-1, :]], dim=2) # 所有v后置一位
-                # print(scores)
-                # import sys
-                # sys.exit()
-            # print(f"after zero pad scores: {scores}")
-            return scores
-        bs, head, seqlen, dim = v.size(0), v.size(1), v.size(2), v.size(3) # bs, head, seqlen, dim
-        if emb_type.endswith("avgpool"):
-            scores = []
-            for i in range(0, v.shape[0]):
-                scores.append(self.pooling(v[i]).reshape(1, v[i].shape[0], v[i].shape[1], v[i].shape[2])) # self.pool(v)#self.linear(v)#v#self.pool(v)
-            scores = torch.cat(scores)
-            scores = pad_zero(scores, bs, head, dim, zero_pad)
-            # scores = scores - v
-        elif emb_type.endswith("linear"):
-            scores = self.linear(v)
-            scores = pad_zero(scores, bs, head, dim, zero_pad)
-        else:
-            gammas = self.gammas
-            scores = attention(q, k, v, self.d_k,
-                            mask, self.dropout, zero_pad, gammas)
-        
-        return scores
 
 def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     """
@@ -410,3 +398,6 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
+
+

@@ -46,19 +46,22 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
 
 def model_forward(model, data):
     model_name = model.model_name
-    if model_name in ["dkt_forget", "lpkt"]:
-        q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
+    # if model_name in ["dkt_forget", "lpkt"]:
+    #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
+    if model_name in ["dkt_forget"]:
+        dcur, dgaps = data
     else:
         dcur = data
-        q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
-        qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
-        m, sm = dcur["masks"], dcur["smasks"]
+    q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
+    qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+    m, sm = dcur["masks"], dcur["smasks"]
 
     ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
-    ct = torch.cat((t[:,0:1], tshft), dim=1)
+    if model_name in ["hawkes"]:
+        ct = torch.cat((t[:,0:1], tshft), dim=1)
 
     if model_name in ["dkt"]:
         y = model(c.long(), r.long())
@@ -70,7 +73,7 @@ def model_forward(model, data):
         y_curr = (y * one_hot(c.long(), model.num_c)).sum(-1)
         ys = [y_next, y_curr, y]
     elif model_name in ["dkt_forget"]:
-        y = model(c.long(), r.long(), d, dshft)
+        y = model(c.long(), r.long(), dgaps)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y)
     elif model_name in ["dkvmn", "skvmn"]:
