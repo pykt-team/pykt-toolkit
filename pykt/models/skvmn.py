@@ -310,8 +310,6 @@ class SKVMN(Module):
         >>> batch_identity_indices --> 在dim=0 & dim=1的idx
         [[3, 0, 0],
         [3, 1, 0]]
-        第0个batch: t=3时，此前有和它一样的实体向量
-        第1个batch: t=3时，此前有和它一样的实体向量
 
         lookup the indexes of same identities
         Examples
