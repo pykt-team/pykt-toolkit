@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.nn import Module, Parameter, Embedding, Linear, MaxPool1d, AvgPool1d, Dropout
 from torch.nn.init import kaiming_normal_
 import torch.nn.functional as F
+import numpy as np
 # from models.utils import RobertaEncode
 
 
@@ -139,7 +140,7 @@ class DKVMN(nn.Module):
 
 
 class SKVMN(Module):
-    def __init__(self, num_c, batch_size, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path=""):
+    def __init__(self, num_c, batch_size, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=True):
         super().__init__()
         self.model_name = "skvmn"
         self.num_c = num_c
@@ -147,22 +148,12 @@ class SKVMN(Module):
         self.dim_s = dim_s
         self.size_m = size_m
         self.emb_type = emb_type
+        self.use_onehot = use_onehot
 
         if emb_type.startswith("qid"):
             self.k_emb_layer = Embedding(self.num_c, self.dim_s)
             self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
             self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
-        if emb_type.startswith("qidcatr"):
-            self.catrlinear = Linear(self.dim_s * 2, self.dim_s)
-            self.pooling = MaxPool1d(2, stride=2)
-            self.avg_pooling = AvgPool1d(2, stride=2)
-        if emb_type.startswith("qidrobertacatr"):
-            self.catrlinear3 = Linear(self.dim_s * 3, self.dim_s)
-            self.merge_linear = Linear(self.dim_s * 2, self.dim_s)
-            self.pooling3 = MaxPool1d(3, stride=3)
-            self.avg_pooling3 = AvgPool1d(3, stride=3)
-        if emb_type.find("roberta") != -1:
-            self.roberta_emb = RobertaEncode(self.dim_s, emb_path)
 
         kaiming_normal_(self.Mk)
         kaiming_normal_(self.Mv0)
@@ -174,12 +165,18 @@ class SKVMN(Module):
         memory_value = nn.Parameter(torch.cat([self.Mv0.unsqueeze(0) for _ in range(self.batch_size)], 0).data)
         self.mem.init_value_memory(memory_value)
         
-        self.a_embed = nn.Linear(2 * self.dim_s, self.dim_s, bias=True)
+        # self.a_embed = nn.Linear(2 * self.dim_s, self.dim_s, bias=True)
+        self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
         self.v_emb_layer = Embedding(self.dim_s * 2, self.dim_s)
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
+        # self.hx = Parameter(torch.Tensor(self.batch_size, self.dim_s), requires_grad=False)
+        # self.cx = Parameter(torch.Tensor(self.batch_size, self.dim_s), requires_grad=False)
+        self.hx = Parameter(torch.Tensor(self.batch_size, self.dim_s))
+        self.cx = Parameter(torch.Tensor(self.batch_size, self.dim_s))
+        kaiming_normal_(self.hx)
+        kaiming_normal_(self.cx)
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
-
         self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
 
     def ut_mask(self, seq_len):
@@ -190,8 +187,8 @@ class SKVMN(Module):
 
         # w'= max((w-a)/(b-a), (c-w)/(c-b))
         # min(w', 0)
-        correlation_weight = correlation_weight.view(self.batch_size * self.seqlen, -1)
-        correlation_weight = torch.cat([correlation_weight[i] for i in range(correlation_weight.shape[0])], 0).unsqueeze(0)
+        correlation_weight = correlation_weight.view(self.batch_size * self.seqlen, -1) # (seqlen * bz) * |K|
+        correlation_weight = torch.cat([correlation_weight[i] for i in range(correlation_weight.shape[0])], 0).unsqueeze(0) # 1*(seqlen*bz*|K|)
         correlation_weight = torch.cat([(correlation_weight-a)/(b-a), (c-correlation_weight)/(c-b)], 0)
         correlation_weight, _ = torch.min(correlation_weight, 0)
         w0 = torch.zeros(correlation_weight.shape[0]).to(device)
@@ -212,8 +209,61 @@ class SKVMN(Module):
 
         # 输入：_identity_vector_batch
         # 输出：indices
+        """
+        >>> identity_vector_batch [bs, seqlen, size_m]
+        tensor([[[0., 1., 1.],
+         [1., 1., 1.],
+         [2., 2., 2.],
+         [1., 1., 1.],
+         [0., 0., 1.]],
+
+        [[1., 0., 1.],
+         [1., 1., 2.],
+         [2., 2., 0.],
+         [2., 2., 0.],
+         [0., 1., 2.]]])
+        """
         identity_vector_batch = _identity_vector_batch.view(self.batch_size * self.seqlen, -1)
-        identity_vector_batch = torch.reshape(identity_vector_batch,[self.batch_size, self.seqlen, -1])
+        identity_vector_batch = torch.reshape(identity_vector_batch,[self.batch_size, self.seqlen, -1]) #输出u(x) [bs, seqlen, size_m]
+        
+        """
+        >>> iv_square_norm (A^2)
+        tensor([[[ 2.,  2.,  2.,  2.,  2.], 
+         [ 3.,  3.,  3.,  3.,  3.],
+         [12., 12., 12., 12., 12.],
+         [ 3.,  3.,  3.,  3.,  3.],
+         [ 1.,  1.,  1.,  1.,  1.]],
+
+        [[ 2.,  2.,  2.,  2.,  2.],
+         [ 6.,  6.,  6.,  6.,  6.],
+         [ 8.,  8.,  8.,  8.,  8.],
+         [ 8.,  8.,  8.,  8.,  8.],
+         [ 5.,  5.,  5.,  5.,  5.]]])
+        >>> unique_iv_square_norm (B^2.T)
+        tensor([[[ 2.,  3., 12.,  3.,  1.],
+         [ 2.,  3., 12.,  3.,  1.],
+         [ 2.,  3., 12.,  3.,  1.],
+         [ 2.,  3., 12.,  3.,  1.],
+         [ 2.,  3., 12.,  3.,  1.]],
+
+        [[ 2.,  6.,  8.,  8.,  5.],
+         [ 2.,  6.,  8.,  8.,  5.],
+         [ 2.,  6.,  8.,  8.,  5.],
+         [ 2.,  6.,  8.,  8.,  5.],
+         [ 2.,  6.,  8.,  8.,  5.]]])
+        >>> iv_distances
+        tensor([[[0., 1., 6., 1., 1.],
+         [1., 0., 3., 0., 2.],
+         [6., 3., 0., 3., 9.],
+         [1., 0., 3., 0., 2.],
+         [1., 2., 9., 2., 0.]],
+
+        [[0., 2., 6., 6., 3.],
+         [2., 0., 6., 6., 1.],
+         [6., 6., 0., 0., 9.],
+         [6., 6., 0., 0., 9.],
+         [3., 1., 9., 9., 0.]]])
+        """
 
         # A^2
         iv_square_norm = torch.sum(torch.pow(identity_vector_batch, 2), dim=2, keepdim=True)
@@ -222,16 +272,45 @@ class SKVMN(Module):
         unique_iv_square_norm = torch.sum(torch.pow(identity_vector_batch, 2), dim=2, keepdim=True)
         unique_iv_square_norm = unique_iv_square_norm.repeat((1, 1, self.seqlen)).transpose(2, 1)
         # A * B.T
-        iv_matrix_product = torch.bmm(identity_vector_batch, identity_vector_batch.transpose(2,1))
+        iv_matrix_product = torch.bmm(identity_vector_batch, identity_vector_batch.transpose(2,1)) # A * A.T diff!!!!!! #TODO
         # A^2 + B^2 - 2A*B.T
         iv_distances = iv_square_norm + unique_iv_square_norm - 2 * iv_matrix_product
-        iv_distances = torch.where(iv_distances>0.0, torch.tensor(-1e32).to(device), iv_distances)
+        iv_distances = torch.where(iv_distances>0.0, torch.tensor(-1e32).to(device), iv_distances) #求每个batch内时间步t与t-lambda的相似距离（如果identity_vector一样，距离为0）
         masks = self.ut_mask(iv_distances.shape[1]).to(device)
-        mask_iv_distances = iv_distances.masked_fill(masks, value=torch.tensor(-1e32).to(device))
+        mask_iv_distances = iv_distances.masked_fill(masks, value=torch.tensor(-1e32).to(device)) #当前时刻t以前相似距离为0的依旧为0，其他为mask（即只看对角线以前）
         idx_matrix = torch.arange(0,self.seqlen * self.seqlen,1).reshape(self.seqlen,-1).repeat(self.batch_size,1,1).to(device)
-        final_iv_distance = mask_iv_distances + idx_matrix
-        
+        final_iv_distance = mask_iv_distances + idx_matrix 
+        values, indices = torch.topk(final_iv_distance, 1, dim=2, largest=True) #防止t以前存在多个相似距离为0的,因此加上idx取距离它最近的t - lambda
+
         """
+        >>> values
+        tensor([[[-1.0000e+32],
+         [-1.0000e+32],
+         [-1.0000e+32],
+         [ 1.6000e+01],
+         [-1.0000e+32]],
+
+        [[-1.0000e+32],
+         [-1.0000e+32],
+         [-1.0000e+32],
+         [ 1.7000e+01],
+         [-1.0000e+32]]])
+        >>> indices --> 在dim=2的idx
+        tensor([[[2],
+         [2],
+         [2],
+         [1],
+         [2]],
+
+        [[2],
+         [2],
+         [2],
+         [2],
+         [2]]])
+        >>> batch_identity_indices --> 在dim=0 & dim=1的idx
+        [[3, 0, 0],
+        [3, 1, 0]]
+
         lookup the indexes of same identities
         Examples
         >>> identity_idx
@@ -239,14 +318,15 @@ class SKVMN(Module):
                [3, 1, 2]]) 
         In 0th sequence, the identity in t3 is same to the ones in t1.
         In 1th sequence, the identity in t3 is same to the ones in t2.
+
         """
-        values, indices = torch.topk(final_iv_distance, 1, dim=2, largest=True)
+        
         _values = values.permute(1,0,2)
         _indices = indices.permute(1,0,2)
-        batch_identity_indices = (_values >= 0).nonzero()
+        batch_identity_indices = (_values >= 0).nonzero() #找到t
         identity_idx = []
         for identity_indices in batch_identity_indices:
-            pre_idx = _indices[identity_indices[0],identity_indices[1]]
+            pre_idx = _indices[identity_indices[0],identity_indices[1]] #找到t-lamda
             idx = torch.cat([identity_indices[:-1],pre_idx], dim=-1)
             identity_idx.append(idx)
         identity_idx = torch.stack(identity_idx, dim=0)
@@ -266,45 +346,20 @@ class SKVMN(Module):
             x = q + self.num_c * r
             k = self.k_emb_layer(q)
             #v = self.v_emb_layer(x)
-        elif emb_type.startswith("qidcatr"):
-            x = q + self.num_c * r
-            xemb = self.v_emb_layer(x)
-            remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
-            if emb_type.endswith("linear"):
-                merge_emb = self.catrlinear(torch.cat((xemb, remb), dim=-1))
-            elif emb_type.endswith("maxpool"):
-                merge_emb = self.pooling(torch.cat((xemb, remb), dim=-1))
-            elif emb_type.endswith("avgpool"):
-                merge_emb = self.avg_pooling(torch.cat((xemb, remb), dim=-1))
-            # v = merge_emb
-            k = self.k_emb_layer(q)
-        elif emb_type == "qroberta":
-            k, v = self.roberta_emb(q, r)
-        elif emb_type.startswith("qidrobertacatr"):
-            x = q + self.num_c * r
-            xemb = self.v_emb_layer(x)
 
-            k2, _ = self.roberta_emb(q, r)
-
-            remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
-            if emb_type.endswith("linear"):
-                # v = self.catrlinear3(torch.cat((k2, xemb, remb), dim=-1))
-                k = self.merge_linear(torch.cat((self.k_emb_layer(q), k2), dim=-1))
-            elif emb_type.endswith("maxpool"):
-                # v = self.pooling3(torch.cat((k2, xemb, remb), dim=-1))
-                k = self.pooling(torch.cat((self.k_emb_layer(q), k2), dim=-1))
-            elif emb_type.endswith("avgpool"):
-                # v = self.avg_pooling3(torch.cat((k2, xemb, remb), dim=-1))
-                k = self.avg_pooling(torch.cat((self.k_emb_layer(q), k2), dim=-1))
-        elif emb_type == "qidroberta":
-            # k: qemb  v: xemb
-            x = q + self.num_c * r
-            qemb = self.k_emb_layer(q)
-            xemb = self.v_emb_layer(x)
-            qemb2, xemb2 = self.roberta_emb(q, r)
-            # add
-            # k, v = qemb + qemb2, xemb + xemb2
-            k = qemb + qemb2
+        # modify 生成每道题对应的yt onehot向量
+        if self.use_onehot:
+            r_onehot_array = []
+            for i in range(r.shape[0]):
+                for j in range(r.shape[1]):
+                    r_onehot = np.zeros(self.num_c)
+                    index = r[i][j]
+                    if index > 0:
+                        r_onehot[index] = 1
+                    r_onehot_array.append(r_onehot)
+            r_onehot_content = torch.cat([torch.Tensor(r_onehot_array[i]).unsqueeze(0) for i in range(len(r_onehot_array))], 0)
+            r_onehot_content = r_onehot_content.view(self.batch_size, r.shape[1], -1).long().to(device)
+            # print(f"r_onehot_content: {r_onehot_content.shape}")
 
         value_read_content_l = []
         input_embed_l = []
@@ -315,9 +370,10 @@ class SKVMN(Module):
         for i in range(self.seqlen):
             ## Attention
             # print(f"k : {k.shape}")
+            # k: bz * seqlen * dim
             q = k.permute(1,0,2)[i]
             # print(f"q : {q.shape}")
-            correlation_weight = self.mem.attention(q)
+            correlation_weight = self.mem.attention(q) # q: bz * dim
             # print(f"correlation_weight : {correlation_weight.shape}")
 
             ## Read Process
@@ -331,21 +387,25 @@ class SKVMN(Module):
             input_embed_l.append(q)
 
             # modify
-            batch_predict_input = torch.cat([read_content, q], 1)
+            batch_predict_input = torch.cat([read_content, q], 1) ###q: 是r emb后的qemb
             f = torch.tanh(self.f_layer(batch_predict_input))
             # print(f"f: {f.shape}")
             ft.append(f)
 
             # 写入value矩阵的输入为[yt, ft]，onehot向量和ft向量拼接
-            y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
+            # r: bz * seqlen, r.permute(1,0)[i]: bz * 1, f: bz * dim_s
+            # y的表示是复制吗？？论文中的向量是2|Q| * dv
+            # TODO
+            if self.use_onehot:
+                y = r_onehot_content[:,i,:]
+            else:
+                y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
             # print(f"y: {y.shape}")
-            write_embed = torch.cat([f, y], 1)
-
             # 写入value矩阵的输入为[ft, yt]，ft直接和题目对错（0或1）拼接
-        #     write_embed = torch.cat([f, slice_a[i].float()], 1)
-            # print(f"write_embed: {write_embed.shape}")
+            # write_embed = torch.cat([f, slice_a[i].float()], 1)
+            write_embed = torch.cat([f, y], 1) # bz * 2dim_s
             write_embed = self.a_embed(write_embed)
-            # print(f"write_a_embed: {write_embed.shape}")
+            # print(f"write_embed: {write_embed.shape}")
             new_memory_value = self.mem.write(correlation_weight, write_embed)
 
         w = torch.cat([correlation_weight_list[i].unsqueeze(1) for i in range(self.seqlen)], 1)
@@ -353,16 +413,28 @@ class SKVMN(Module):
         # print(f"ft: {ft.shape}")
 
         #Sequential dependencies
-        idx_values = self.triangular_layer(w)
+        idx_values = self.triangular_layer(w) #[t,bs_n,t-lambda]
         # print(f"idx_values: {idx_values.shape}")
         #Hop-LSTM
-        hx = torch.randn(self.batch_size, self.dim_s).to(device)
-        cx = torch.randn(self.batch_size, self.dim_s).to(device)
+        # hx = torch.randn(self.batch_size, self.dim_s).to(device)
+        # cx = torch.randn(self.batch_size, self.dim_s).to(device)
         hidden_state, cell_state = [], []
-
+        """
+        >>> idx_values
+        tensor([[3, 0, 1],
+               [3, 1, 2]]) 
+        In 0th sequence, the identity in t3 is same to the ones in t1.
+        In 1th sequence, the identity in t3 is same to the ones in t2.
+        """
+        hx, cx = self.hx, self.cx
+        # hx.requires_grad = True
+        # cx.requires_grad = True
+        # print(f"hx:{hx}")
+        # print(f"hx_grad: {hx.requires_grad}")
+        # print(f"cx:{cx}")
+        # print(f"cx_grad: {cx.requires_grad}")
         for i in range(self.seqlen): # 逐个ex进行计算
             for j in range(self.batch_size):
-                hx, cx = hx, cx
                 if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
                     # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
                     hx[j,:] = hidden_state[idx_values[0][2]][j]

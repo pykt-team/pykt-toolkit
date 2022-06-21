@@ -50,13 +50,15 @@ def evaluate(model, test_loader, model_name, save_path=""):
         y_scores = []
         dres = dict()
         for data in test_loader:
-            if model_name in ["dkt_forget", "lpkt"]:
-                q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
+            # if model_name in ["dkt_forget", "lpkt"]:
+            #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
+            if model_name in ["dkt_forget"]:
+                dcur, dgaps = data
             else:
                 dcur = data
-                q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
-                qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
-                m, sm = dcur["masks"], dcur["smasks"]
+            q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
+            qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
+            m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
 
             model.eval()
@@ -69,7 +71,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
-                y = model(c.long(), r.long(), d, dshft)
+                y = model(c.long(), r.long(), dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkvmn", "skvmn"]:
                 y = model(cc.long(), cr.long())
@@ -266,7 +268,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
                 dfs.setdefault(key, [])
                 dfs[key].extend([row[key]])
     df = pd.DataFrame(dfs)
-    print(f"real bz: {realbz}, effective_dfs: {len(effective_dfs)}, rest_start: {rest_start}, drestlen: {restlen}, predict infos: {df.shape}")
+    # print(f"real bz: {realbz}, effective_dfs: {len(effective_dfs)}, rest_start: {rest_start}, drestlen: {restlen}, predict infos: {df.shape}")
 
     if df.shape[0] == 0:
         return {}, drest
@@ -318,14 +320,18 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         lenc = 0
         for data in test_loader:
             if model_name in ["dkt_forget"]:
-                q, c, r, qshft, cshft, rshft, m, sm, d, dshft, dqtest = data
+                dcurori, dgaps, dqtest = data
             else:
-                q, c, r, qshft, cshft, rshft, m, sm, dqtest = data
+                dcurori, dqtest = data
+
+            q, c, r = dcurori["qseqs"], dcurori["cseqs"], dcurori["rseqs"]
+            qshft, cshft, rshft = dcurori["shft_qseqs"], dcurori["shft_cseqs"], dcurori["shft_rseqs"]
+            m, sm = dcurori["masks"], dcurori["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
             qidxs, rests, orirow = dqtest["qidxs"], dqtest["rests"], dqtest["orirow"]
             lenc += q.shape[0]
-            print("="*20)
-            print(f"start predict seqlen: {lenc}")
+            # print("="*20)
+            # print(f"start predict seqlen: {lenc}")
             model.eval()
 
             # print(f"before y: {y.shape}")
@@ -357,14 +363,17 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
-                y = model(c.long(), r.long(), d, dshft)
+                y = model(c.long(), r.long(), dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
-            
+            elif model_name == "hawkes":
+                ct = torch.cat((dcurori["tseqs"][:,0:1], dcurori["shft_tseqs"]), dim=1)
+                y = model(cc.long(), cq.long(), ct.long(), cr.long(), True)
+                y, h = y[:, 1:]
 
             concepty = torch.masked_select(y, sm).detach().cpu()
             conceptt = torch.masked_select(rshft, sm).detach().cpu()
@@ -409,20 +418,20 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         aucs, accs = dict(), dict()
         ts = np.concatenate(y_trues, axis=0)
         ps = np.concatenate(y_scores, axis=0)
-        print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
+        # print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
         aucs["concepts"] = auc
         accs["concepts"] = acc
 
-        print(f"dinfos: {dinfos.keys()}")
+        # print(f"dinfos: {dinfos.keys()}")
         for key in dinfos:
             if key not in ["late_mean", "late_vote", "late_all", "early_preds"]:
                 continue
             ts = np.concatenate(dinfos['late_trues'], axis=0) # early_trues == late_trues
             ps = np.concatenate(dinfos[key], axis=0)
-            print(f"key: {key}, ts.shape: {ts.shape}, ps.shape: {ps.shape}")
+            # print(f"key: {key}, ts.shape: {ts.shape}, ps.shape: {ps.shape}")
             auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
             prelabels = [1 if p >= 0.5 else 0 for p in ps]
             acc = metrics.accuracy_score(ts, prelabels)
