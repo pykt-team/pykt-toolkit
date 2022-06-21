@@ -169,8 +169,12 @@ class SKVMN(Module):
         self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
         self.v_emb_layer = Embedding(self.dim_s * 2, self.dim_s)
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
-        self.hx = kaiming_normal_((torch.zeros(1, self.dim_s)).repeat(self.batch_size,1)
-        self.cx = kaiming_normal_((torch.zeros(1, self.dim_s)).repeat(self.batch_size,1)
+        # self.hx = Parameter(torch.Tensor(self.batch_size, self.dim_s), requires_grad=False)
+        # self.cx = Parameter(torch.Tensor(self.batch_size, self.dim_s), requires_grad=False)
+        self.hx = Parameter(torch.Tensor(self.batch_size, self.dim_s))
+        self.cx = Parameter(torch.Tensor(self.batch_size, self.dim_s))
+        kaiming_normal_(self.hx)
+        kaiming_normal_(self.cx)
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
         self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
@@ -206,7 +210,7 @@ class SKVMN(Module):
         # 输入：_identity_vector_batch
         # 输出：indices
         """
-        >>> identity_vector_batch
+        >>> identity_vector_batch [bs, seqlen, size_m]
         tensor([[[0., 1., 1.],
          [1., 1., 1.],
          [2., 2., 2.],
@@ -224,7 +228,7 @@ class SKVMN(Module):
         
         """
         >>> iv_square_norm (A^2)
-        tensor([[[ 2.,  2.,  2.,  2.,  2.],
+        tensor([[[ 2.,  2.,  2.,  2.,  2.], 
          [ 3.,  3.,  3.,  3.,  3.],
          [12., 12., 12., 12., 12.],
          [ 3.,  3.,  3.,  3.,  3.],
@@ -424,9 +428,15 @@ class SKVMN(Module):
         In 0th sequence, the identity in t3 is same to the ones in t1.
         In 1th sequence, the identity in t3 is same to the ones in t2.
         """
+        hx, cx = self.hx, self.cx
+        # hx.requires_grad = True
+        # cx.requires_grad = True
+        # print(f"hx:{hx}")
+        # print(f"hx_grad: {hx.requires_grad}")
+        # print(f"cx:{cx}")
+        # print(f"cx_grad: {cx.requires_grad}")
         for i in range(self.seqlen): # 逐个ex进行计算
             for j in range(self.batch_size):
-                hx, cx = self.hx, self.cx
                 if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
                     # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
                     hx[j,:] = hidden_state[idx_values[0][2]][j]
