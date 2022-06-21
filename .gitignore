@@ -26,3 +26,4 @@ data/slepemapy
 .ipynb_checkpoints
 dev_tools
 tmp*
+configs/wandb.json
