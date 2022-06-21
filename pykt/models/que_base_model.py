@@ -24,9 +24,10 @@ class QueEmb(nn.Module):
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
-        if emb_type.startswith("qid"):
+        if emb_type.startswith("qaid"):
             self.interaction_emb = nn.Embedding(self.num_q * 2, self.emb_size)
-        
+        if emb_type.startswith("qid"):
+            self.q_emb = nn.Embedding(self.num_q, self.emb_size)
         
         self.output_emb_dim = emb_size
 
@@ -57,11 +58,13 @@ class QueEmb(nn.Module):
             que_c_emb = torch.cat([concept_avg,que_emb],dim=-1)#[batch,max_len-1,2*emb_size]
             que_c_emb = self.que_c_linear(que_c_emb)#[batch,max_len-1,emb_size]
 
-        if emb_type == "qid":
+        if emb_type == "qaid":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
             # print("qid")
-        elif emb_type == "qid+q_c_merge":
+        elif emb_type == "qid":
+            xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
+        elif emb_type == "qaid+q_c_merge":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
             xemb = xemb + que_c_emb
