@@ -27,3 +27,5 @@ data/slepemapy
 dev_tools
 tmp*
 configs/wandb.json
+examples/nohup.out
+*.log

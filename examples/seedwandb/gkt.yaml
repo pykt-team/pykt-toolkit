@@ -1,4 +1,4 @@
-program: ./runs/wandb_gkt_train.py
+program: wandb_gkt_train.py
 method: grid
 metric:
     goal: maximize
