@@ -23,11 +23,12 @@ class DKT(Module):
         
 
     def forward(self, q, r):
+        print(f"q.shape is {q.shape}")
         emb_type = self.emb_type
         if emb_type == "qid":
             x = q + self.num_c * r
             xemb = self.interaction_emb(x)
-
+        print(f"xemb.shape is {xemb.shape}")
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
         y = self.out_layer(h)
