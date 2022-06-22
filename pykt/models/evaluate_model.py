@@ -279,7 +279,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     for key in dres:
         dfinal[key] = np.concatenate(dres[key], axis=0)
     early = False
-    if model_name in hasearly:
+    if model_name in hasearly and "early_fusion" in fusion_type:
         early = True
     save_question_res(dfinal, fout, early)
     return dfinal , drest

@@ -1,4 +1,4 @@
-program: ./runs/wandb_eval.py
+program: wandb_eval.py
 method: grid
 metric:
     goal: maximize

@@ -1,4 +1,4 @@
-program: ./runs/ wandb_sakt_train.py
+program:  wandb_sakt_train.py
 method: bayes
 metric:
     goal: maximize
