@@ -10,10 +10,10 @@ from .iekt_utils import batch_data_to_device,mygru,funcsgru,funcs
 from pykt.utils import debug_print
 import traceback
 
-class IEKTQueNet(nn.Module): 
+class IEKTNet(nn.Module): 
     def __init__(self, num_q,num_c,emb_size,max_concepts,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qc_merge', emb_path="", pretrain_dim=768,device='cpu'):
         super().__init__()
-        self.model_name = "iekt_que"
+        self.model_name = "iekt"
         self.emb_size = emb_size
         self.concept_num = num_c
         self.max_concept = max_concepts
@@ -103,12 +103,12 @@ class IEKTQueNet(nn.Module):
 
 
 
-class IEKTQue(QueBaseModel):
+class IEKT(QueBaseModel):
     def __init__(self, num_q,num_c,emb_size,max_concepts,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
-        model_name = "iekt_que"
+        model_name = "iekt"
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
 
-        self.model = IEKTQueNet(num_q=num_q,num_c=num_c,lamb=lamb,emb_size=emb_size,max_concepts=max_concepts,n_layer=n_layer,cog_levels=cog_levels,acq_levels=acq_levels,dropout=dropout,gamma=gamma, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim,device=device)
+        self.model = IEKTNet(num_q=num_q,num_c=num_c,lamb=lamb,emb_size=emb_size,max_concepts=max_concepts,n_layer=n_layer,cog_levels=cog_levels,acq_levels=acq_levels,dropout=dropout,gamma=gamma, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim,device=device)
 
         self.model = self.model.to(device)
         # self.step = 0
