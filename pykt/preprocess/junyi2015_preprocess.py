@@ -18,7 +18,6 @@ def read_data_from_csv(read_file, write_file, dq2c):
 
     df = pd.read_csv(read_file)
     df["exercise"] = df["exercise"].apply(replace_text)
-    df["topic"] = df["topic"].apply(replace_text)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -34,8 +33,8 @@ def read_data_from_csv(read_file, write_file, dq2c):
     
     usedf.loc[:, "time_done"] = usedf["time_done"].astype(int)
     usedf["topic"] = usedf["exercise"].apply(lambda q: "NANA" if q not in dq2c else dq2c[q])
+    usedf["topic"] = usedf["topic"].apply(replace_text)
     usedf = usedf[usedf["topic"] != "NANA"]
-
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(usedf, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
