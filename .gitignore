@@ -29,3 +29,6 @@ tmp*
 configs/wandb.json
 examples/nohup.out
 *.log
+start_sweep_*.sh
+wandb/*
+*tiaocan*
