@@ -11,7 +11,7 @@ from pykt.utils import debug_print
 import traceback
 
 class IEKTQueNet(nn.Module): 
-    def __init__(self, num_q,num_c,emb_size,max_concepts,batch_size,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu'):
+    def __init__(self, num_q,num_c,emb_size,max_concepts,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qc_merge', emb_path="", pretrain_dim=768,device='cpu'):
         super().__init__()
         self.model_name = "iekt_que"
         self.emb_size = emb_size
@@ -28,89 +28,24 @@ class IEKTQueNet(nn.Module):
         self.gamma = gamma
         self.lamb = lamb
         self.gru_h = mygru(0, emb_size * 4, emb_size)
-        showi0 = []
-        for i in range(0, batch_size):
-            showi0.append(i)
-        self.show_index = torch.tensor(showi0).to(self.device)
         self.concept_emb = nn.Parameter(torch.randn(self.concept_num, emb_size).to(self.device), requires_grad=True)#知识点表征
         self.sigmoid = torch.nn.Sigmoid()
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
+                             emb_path=emb_path,pretrain_dim=pretrain_dim)
 
-    def get_ques_representation(self, q, c, data_len):
-        """Get question representation equation3
-        Input example, batch is 8.
-        (tensor([592,   1, 461, 490,  20,  37, 257, 247]),
-         tensor([[49,  0,  0,  0],
-                [ 1,  2,  3,  0],
-                [33, 34,  0,  0],
-                [26,  0,  0,  0],
-                [ 9, 10,  0,  0],
-                [12,  0,  0,  0],
-                [52,  7,  0,  0],
-                [51,  0,  0,  0]]),
-         tensor([[1., 0., 0., 0.],
-                [1., 1., 1., 0.],
-                [1., 1., 0., 0.],
-                [1., 0., 0., 0.],
-                [1., 1., 0., 0.],
-                [1., 0., 0., 0.],
-                [1., 1., 0., 0.],
-                [1., 0., 0., 0.]]),
-        8)
+    def get_ques_representation(self, q, c):
+        """Get question representation equation 3
 
         Args:
-            p (_type_): question ids
-            related_concept_index (_type_): concepts ids
-            filter0 (_type_): concepts ids mask 矩阵，1表示符合这个知识点，0表示不符合
-            data_len (_type_): batch size
+            q (_type_): question ids
+            c (_type_): concept ids
 
         Returns:
             _type_: _description_
         """
-        #debug_print("start",fuc_name='get_ques_representation')
-        
-        #debug_print(f"start concepts_cat , c is {c},c shape is {c.shape}",fuc_name='get_ques_representation')
-        concepts_cat = torch.cat(
-            [torch.zeros(1, self.emb_size).to(self.device),
-            self.concept_emb],
-            dim = 0).unsqueeze(0).repeat(data_len, 1, 1)#确保0取到值为全0
-        
-        # #debug_print(f"start r_index , c is {c},c shape is {c.shape}",fuc_name='get_ques_representation')
-        r_index = self.show_index[0: data_len].unsqueeze(1).repeat(1, self.max_concept)
-        
-        #debug_print(f"start related_concepts , c is {c},c shape is {c.shape}",fuc_name='get_ques_representation')
-        related_concepts = concepts_cat[r_index, c+1,:]
-        
-        #debug_print(f"start filter0, c is {c},c shape is {c.shape}",fuc_name='get_ques_representation')
-        filter0 = torch.where(c!=-1,1,0)
+       
+        v = self.que_emb(q,c)
 
-        #debug_print("start filter_sum",fuc_name='get_ques_representation')
-        filter_sum = torch.sum(filter0, dim = 1)
-        
-        #debug_print(f"r_index is {r_index}, shape is {r_index.shape},device is {r_index.device}",fuc_name='get_ques_representation')
-        #debug_print(f"filter_sum is {filter_sum}, shape is {filter_sum.shape},device is {filter_sum.device}",fuc_name='get_ques_representation')
-
-        # debug_print(f"start div",fuc_name='get_ques_representation')
-
-        div = torch.where(filter_sum == 0, 
-            torch.tensor(1).to(self.device), 
-            filter_sum
-            ).unsqueeze(1).repeat(1, self.emb_size)
-
-        # debug_print(f"start div,filter_sum is {filter_sum}",fuc_name='get_ques_representation')
-        # print(traceback.format_exc())
-        # debug_print("start concept_level_rep",fuc_name='get_ques_representation')
-        concept_level_rep = torch.sum(related_concepts, dim = 1) / div
-        
-        prob_cat = torch.cat([
-            torch.zeros(1, self.emb_size).to(self.device),
-            self.prob_emb], dim = 0)
-        
-        item_emb = prob_cat[q]
-
-        v = torch.cat(
-            [concept_level_rep,
-            item_emb],
-            dim = 1)
         return v
 
 
@@ -169,11 +104,11 @@ class IEKTQueNet(nn.Module):
 
 
 class IEKTQue(QueBaseModel):
-    def __init__(self, num_q,num_c,emb_size,max_concepts,batch_size,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
+    def __init__(self, num_q,num_c,emb_size,max_concepts,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
         model_name = "iekt_que"
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
 
-        self.model = IEKTQueNet(num_q=num_q,num_c=num_c,lamb=lamb,emb_size=emb_size,max_concepts=max_concepts,batch_size=batch_size,n_layer=n_layer,cog_levels=cog_levels,acq_levels=acq_levels,dropout=dropout,gamma=gamma, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim,device=device)
+        self.model = IEKTQueNet(num_q=num_q,num_c=num_c,lamb=lamb,emb_size=emb_size,max_concepts=max_concepts,n_layer=n_layer,cog_levels=cog_levels,acq_levels=acq_levels,dropout=dropout,gamma=gamma, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim,device=device)
 
         self.model = self.model.to(device)
         # self.step = 0
@@ -371,5 +306,4 @@ class IEKTQue(QueBaseModel):
             h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))
             uni_prob_list.append(prob.detach())
         prob_tensor = torch.cat(uni_prob_list, dim = 1)
-        print(f"prob_tensor shape is {prob_tensor.shape}")
         return prob_tensor[:,1:]

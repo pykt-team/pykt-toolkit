@@ -17,7 +17,7 @@ class QueEmb(nn.Module):
             emb_size (_type_): emb_size
             device (str, optional): device. Defaults to 'cpu'.
             emb_type (str, optional): how to encode question id. Defaults to 'qid'. qid:question_id one-hot; 
-                qaid:question_id + r*question_num one-hot; q_c_merge: question emb + avg(concept emb);
+                qaid:question_id + r*question_num one-hot; qc_merge: question emb + avg(concept emb);
             emb_path (str, optional): _description_. Defaults to "".
             pretrain_dim (int, optional): _description_. Defaults to 768.
         """
@@ -30,7 +30,7 @@ class QueEmb(nn.Module):
         self.emb_path = emb_path
         self.pretrain_dim = pretrain_dim
 
-        if "q_c_merge" in emb_type:
+        if "qc_merge" in emb_type:
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
@@ -61,15 +61,14 @@ class QueEmb(nn.Module):
         concept_avg = (concept_emb_sum / concept_num)
         return concept_avg
 
-    def forward(self,q,c,r):
+    def forward(self,q,c,r=None):
         emb_type = self.emb_type
-        if "q_c_merge" in emb_type:
+        if "qc_merge" in emb_type:
             concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             que_emb = self.que_emb(q)#[batch,max_len-1,emb_size]
             # print(f"que_emb shape is {que_emb.shape}")
             que_c_emb = torch.cat([concept_avg,que_emb],dim=-1)#[batch,max_len-1,2*emb_size]
-            que_c_emb = self.que_c_linear(que_c_emb)#[batch,max_len-1,emb_size]
-
+            
         if emb_type == "qaid":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
@@ -77,13 +76,14 @@ class QueEmb(nn.Module):
         elif emb_type == "qid":
             xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
 
-        elif emb_type == "qaid+q_c_merge":
+        elif emb_type == "qaid+qc_merge":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
+            que_c_emb = self.que_c_linear(que_c_emb)#[batch,max_len-1,emb_size]
             xemb = xemb + que_c_emb
-            # print("qid+q_c_merge")
-        elif emb_type=="q_c_merge":
-            # print("q_c_merge")
+            # print("qid+qc_merge")
+        elif emb_type=="qc_merge":
+            # print("qc_merge")
             xemb = que_c_emb
         return xemb
 
