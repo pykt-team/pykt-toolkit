@@ -29,7 +29,7 @@ def process_raw_data(dataset_name,dname2paths):
         from .junyi2015_preprocess import read_data_from_csv, load_q2c
     
     if dataset_name == "junyi2015":
-        dq2c = load_q2c("../data/junyi2015/junyi_Exercise_table.csv")
+        dq2c = load_q2c(readf.replace("junyi_ProblemLog_original.csv","junyi_Exercise_table.csv"))
         read_data_from_csv(readf, writef, dq2c)
     elif dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)
