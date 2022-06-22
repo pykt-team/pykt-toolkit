@@ -9,6 +9,18 @@ from sklearn import metrics
 
 class QueEmb(nn.Module):
     def __init__(self,num_q,num_c,emb_size,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
+        """_summary_
+
+        Args:
+            num_q (_type_): num of question
+            num_c (_type_): num of concept
+            emb_size (_type_): emb_size
+            device (str, optional): device. Defaults to 'cpu'.
+            emb_type (str, optional): how to encode question id. Defaults to 'qid'. qid:question_id one-hot; 
+                qaid:question_id + r*question_num one-hot; q_c_merge: question emb + avg(concept emb);
+            emb_path (str, optional): _description_. Defaults to "".
+            pretrain_dim (int, optional): _description_. Defaults to 768.
+        """
         super().__init__()
         self.device = device
         self.num_q = num_q
@@ -25,6 +37,7 @@ class QueEmb(nn.Module):
 
         if emb_type.startswith("qaid"):
             self.interaction_emb = nn.Embedding(self.num_q * 2, self.emb_size)
+
         if emb_type.startswith("qid"):
             self.q_emb = nn.Embedding(self.num_q, self.emb_size)
         
@@ -63,6 +76,7 @@ class QueEmb(nn.Module):
             # print("qid")
         elif emb_type == "qid":
             xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
+
         elif emb_type == "qaid+q_c_merge":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
@@ -84,8 +98,6 @@ class QueBaseModel(nn.Module):
         self.device = device
         set_seed(seed)
 
-
-        
     def compile(self, optimizer,lr=0.001,
                 loss='binary_crossentropy',
                 metrics=None):
@@ -142,10 +154,10 @@ class QueBaseModel(nn.Module):
         return loss
 
     def _save_model(self):
-        torch.save(self.model.state_dict(), os.path.join(self.ckpt_path, self.model.emb_type+"_model.ckpt"))
+        torch.save(self.model.state_dict(), os.path.join(self.save_dir, self.model.emb_type+"_model.ckpt"))
 
-    def load_model(self,ckpt_path):
-        net = torch.load(os.path.join(ckpt_path, self.emb_type+"_model.ckpt"))
+    def load_model(self,save_dir):
+        net = torch.load(os.path.join(save_dir, self.emb_type+"_model.ckpt"))
         self.model.load_state_dict(net)
     
     def batch_to_device(self,data):
@@ -170,8 +182,10 @@ class QueBaseModel(nn.Module):
         data_new['sm'] = dcur["smasks"]
         return data_new
 
-    def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,ckpt_path="",save_model=False,patient=10,shuffle=True):
-        self.ckpt_path = ckpt_path
+    def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,save_dir="tmp",save_model=False,patient=10,shuffle=True):
+        self.save_dir = save_dir
+        os.makedirs(self.save_dir,exist_ok=True)
+
         if valid_batch_size is None:
             valid_batch_size = batch_size
 
@@ -205,7 +219,7 @@ class QueBaseModel(nn.Module):
                 validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_dataset, emb_type)
                 testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
                 max_auc = round(max_auc, 4)
-            print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.ckpt_path}")
+            print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
             print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
             if i - best_epoch >= patient:

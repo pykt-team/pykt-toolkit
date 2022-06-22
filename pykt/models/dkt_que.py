@@ -7,7 +7,7 @@ from .que_base_model import QueBaseModel,QueEmb
 
 
 class DKTQueNet(nn.Module):
-    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu'):
+    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu'):
         super().__init__()
         self.model_name = "dkt_que"
         self.num_q = num_q
@@ -30,7 +30,7 @@ class DKTQueNet(nn.Module):
         return y
 
 class DKTQue(QueBaseModel):
-    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
+    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
         model_name = "dkt_que"
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
         self.model = DKTQueNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,

@@ -14,7 +14,7 @@ dist/
 saved_model
 build/
 .vscode/
-data/assist2009
+data/assist*
 data/assist2012
 data/algebra2005
 data/bridge2algebra2006
@@ -23,6 +23,8 @@ data/nips_task34
 data/assist2017
 data/poj
 data/slepemapy
+data/junyi2015
+data/ednet
 .ipynb_checkpoints
 dev_tools
 tmp*
