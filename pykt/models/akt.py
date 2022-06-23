@@ -48,9 +48,10 @@ class AKT(nn.Module):
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
+
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, emb_type=self.emb_type)
 
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
@@ -82,6 +83,7 @@ class AKT(nn.Module):
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
+        pid_embed_data = None
         if self.n_pid > 0: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
@@ -103,7 +105,7 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data, emb_type)
+        d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
@@ -117,7 +119,7 @@ class AKT(nn.Module):
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
-                 d_ff, n_heads, dropout, kq_same, model_type):
+                 d_ff, n_heads, dropout, kq_same, model_type, emb_type):
         super().__init__()
         """
             n_block : number of stacked blocks in the attention
@@ -131,16 +133,16 @@ class Architecture(nn.Module):
         if model_type in {'akt'}:
             self.blocks_1 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
                 for _ in range(n_blocks)
             ])
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
                 for _ in range(n_blocks*2)
             ])
 
-    def forward(self, q_embed_data, qa_embed_data, emb_type):
+    def forward(self, q_embed_data, qa_embed_data, pid_embed_data):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -153,15 +155,15 @@ class Architecture(nn.Module):
 
         # encoder
         for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y = block(mask=1, query=y, key=y, values=y, emb_type=emb_type) # yt^
+            y = block(mask=1, query=y, key=y, values=y, pdiff=pid_embed_data) # yt^
         flag_first = True
         for block in self.blocks_2:
             if flag_first:  # peek current question
                 x = block(mask=1, query=x, key=x,
-                          values=x, emb_type=emb_type, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
+                          values=x, apply_pos=False, pdiff=pid_embed_data) # False: 没有FFN, 第一层只有self attention, 对应于xt^
                 flag_first = False
             else:  # dont peek current response
-                x = block(mask=0, query=x, key=x, values=y, emb_type=emb_type, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                x = block(mask=0, query=x, key=x, values=y, apply_pos=True, pdiff=pid_embed_data) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
                 # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
                 # print(x[0,0,:])
                 flag_first = True
@@ -169,7 +171,7 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same):
+                 d_ff, n_heads, dropout,  kq_same, emb_type):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
@@ -177,7 +179,7 @@ class TransformerLayer(nn.Module):
         kq_same = kq_same == 1
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same)
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -191,7 +193,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, emb_type, apply_pos=True):
+    def forward(self, mask, query, key, values, apply_pos=True, pdiff=None):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -212,11 +214,11 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+                query, key, values, mask=src_mask, zero_pad=True, pdiff=pdiff) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type)
+                query, key, values, mask=src_mask, zero_pad=False, pdiff=pdiff)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -229,35 +231,39 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid"):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
         """
         self.d_model = d_model
-        self.d_k = d_feature
-        self.h = n_heads
-        self.kq_same = kq_same
+        self.emb_type = emb_type
+        if emb_type.endswith("avgpool"):
+            # pooling
+            #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
+            pool_size = 3
+            self.pooling =  nn.AvgPool1d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        elif emb_type.endswith("linear"):
+            # linear
+            self.linear = nn.Linear(d_model, d_model, bias=bias)
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        elif emb_type.startswith("qid"):
+            self.d_k = d_feature
+            self.h = n_heads
+            self.kq_same = kq_same
 
-        self.v_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.k_linear = nn.Linear(d_model, d_model, bias=bias)
-        if kq_same is False:
-            self.q_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.dropout = nn.Dropout(dropout)
-        self.proj_bias = bias
-        self.out_proj = nn.Linear(d_model, d_model, bias=bias)
-        self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
-        torch.nn.init.xavier_uniform_(self.gammas)
+            self.v_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.k_linear = nn.Linear(d_model, d_model, bias=bias)
+            if kq_same is False:
+                self.q_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.dropout = nn.Dropout(dropout)
+            self.proj_bias = bias
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+            self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
+            torch.nn.init.xavier_uniform_(self.gammas)
+            self._reset_parameters()
 
-        # pooling
-        #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
-        pool_size = 3
-        self.pooling =  nn.AvgPool1d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
-
-        # linear
-        self.linear = nn.Linear(self.d_k, self.d_k, bias=bias)
-
-        self._reset_parameters()
 
     def _reset_parameters(self):
         xavier_uniform_(self.k_linear.weight)
@@ -270,72 +276,62 @@ class MultiHeadAttention(nn.Module):
             constant_(self.v_linear.bias, 0.)
             if self.kq_same is False:
                 constant_(self.q_linear.bias, 0.)
+            # constant_(self.attnlinear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
-    def forward(self, q, k, v, mask, zero_pad, emb_type):
+    def forward(self, q, k, v, mask, zero_pad, pdiff=None):
 
         bs = q.size(0)
 
-        # perform linear operation and split into h heads
+        if self.emb_type.endswith("avgpool"):
+            # v = v.transpose(1,2)
+            scores = self.pooling(v)
+            concat = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
+            # concat = concat.transpose(1,2)#.contiguous().view(bs, -1, self.d_model)
+        elif self.emb_type.endswith("linear"):
+            # v = v.transpose(1,2)
+            scores = self.linear(v)
+            concat = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
+            # concat = concat.transpose(1,2)
+        elif self.emb_type.startswith("qid"):
+            # perform linear operation and split into h heads
 
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
-        if self.kq_same is False:
-            q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
-        else:
-            q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
-        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+            k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+            if self.kq_same is False:
+                q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+            else:
+                q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
+            v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
 
-        # transpose to get dimensions bs * h * sl * d_model
+            # transpose to get dimensions bs * h * sl * d_model
 
-        k = k.transpose(1, 2)
-        q = q.transpose(1, 2)
-        v = v.transpose(1, 2)
-        # calculate attention using function we will define next
-        # gammas = self.gammas
-        # scores = attention(q, k, v, self.d_k,
-        #                    mask, self.dropout, zero_pad, gammas)
-        scores = self.attnblock(q, k, v, mask, zero_pad, emb_type)
+            k = k.transpose(1, 2)
+            q = q.transpose(1, 2)
+            v = v.transpose(1, 2)
+            # calculate attention using function we will define next
+            gammas = self.gammas
+            if self.emb_type.find("pdiff") == -1:
+                pdiff = None
+            scores = attention(q, k, v, self.d_k,
+                            mask, self.dropout, zero_pad, gammas, pdiff)
 
-        # concatenate heads and put through final linear layer
-        concat = scores.transpose(1, 2).contiguous()\
-            .view(bs, -1, self.d_model)
+            # concatenate heads and put through final linear layer
+            concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
 
         output = self.out_proj(concat)
 
         return output
 
-
-    def attnblock(self, q, k, v, mask, zero_pad, emb_type):
-        def pad_zero(scores, bs, head, dim, zero_pad):
-            if zero_pad:
-                # # need: torch.Size([256, 8, 1, 200]), scores: torch.Size([256, 8, 200, 200]), v: torch.Size([256, 8, 200, 32])
-                pad_zero = torch.zeros(bs, head, 1, dim).to(device)
-                # print(f"pad_zero: {pad_zero.shape}, scores: {scores.shape}, v: {v.shape}")
-                scores = torch.cat([pad_zero, scores[:, :, 0:-1, :]], dim=2) # 所有v后置一位
-                # print(scores)
-                # import sys
-                # sys.exit()
-            # print(f"after zero pad scores: {scores}")
-            return scores
-        bs, head, seqlen, dim = v.size(0), v.size(1), v.size(2), v.size(3) # bs, head, seqlen, dim
-        if emb_type.endswith("avgpool"):
-            scores = []
-            for i in range(0, v.shape[0]):
-                scores.append(self.pooling(v[i]).reshape(1, v[i].shape[0], v[i].shape[1], v[i].shape[2])) # self.pool(v)#self.linear(v)#v#self.pool(v)
-            scores = torch.cat(scores)
-            scores = pad_zero(scores, bs, head, dim, zero_pad)
-            # scores = scores - v
-        elif emb_type.endswith("linear"):
-            scores = self.linear(v)
-            scores = pad_zero(scores, bs, head, dim, zero_pad)
-        else:
-            gammas = self.gammas
-            scores = attention(q, k, v, self.d_k,
-                            mask, self.dropout, zero_pad, gammas)
-        
+    def pad_zero(self, scores, bs, dim, zero_pad):
+        if zero_pad:
+            # # need: torch.Size([64, 1, 200]), scores: torch.Size([64, 200, 200]), v: torch.Size([64, 200, 32])
+            pad_zero = torch.zeros(bs, 1, dim).to(device)
+            scores = torch.cat([pad_zero, scores[:, 0:-1, :]], dim=1) # 所有v后置一位
         return scores
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
+
+def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
     """
     This is called by Multi-head atention object to find the values.
     """
@@ -364,8 +360,14 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     m = nn.Softplus()
     gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
     # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
-    total_effect = torch.clamp(torch.clamp(
-        (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+    if pdiff == None:
+        total_effect = torch.clamp(torch.clamp(
+            (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+    else:
+        diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
+        diff = diff.sigmoid().exp()
+        total_effect = torch.clamp(torch.clamp(
+            (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
     scores = scores * total_effect
 
     scores.masked_fill_(mask == 0, -1e32)

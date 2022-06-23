@@ -41,6 +41,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         t = torch.masked_select(rshft, sm)
         criterion = nn.BCELoss(reduction='none')        
         loss = criterion(y, t).sum()
+    
     return loss
 
 
@@ -118,7 +119,9 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    if model_name not in ["atkt", "atktfix"]:
+    elif model_name == "iekt":
+        y,loss = model.train_one_step(data)
+    if model_name not in ["atkt", "atktfix","iekt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
@@ -132,7 +135,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            model.train()
+            if model.model_name=='iekt':
+                model.model.train()
+            else:
+                model.train()
             loss = model_forward(model, data)
             opt.zero_grad()
             loss.backward()#compute gradients 

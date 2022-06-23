@@ -2,6 +2,7 @@ import os, sys
 import json
 import argparse
 from tkinter.messagebox import YES
+WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 
 def str2bool(str):
     return True if str.lower() == "true" else False
@@ -15,7 +16,7 @@ def main(params):
     with open("../configs/wandb.json") as fin,\
         open(launch_file,"w") as fallsh:
         wandb_config = json.load(fin)
-        pre = "WANDB_API_KEY=" + wandb_config["api_key"] + " wandb sweep "
+        pre = "WANDB_API_KEY=" + WANDB_API_KEY + " wandb sweep "
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):

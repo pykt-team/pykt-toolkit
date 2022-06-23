@@ -60,8 +60,10 @@ def evaluate(model, test_loader, model_name, save_path=""):
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-
-            model.eval()
+            if model.model_name=='iekt':
+                model.model.eval()
+            else:
+                model.eval()
 
             # print(f"before y: {y.shape}")
             cq = torch.cat((q[:,0:1], qshft), dim=1)
@@ -99,7 +101,9 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-                
+            elif model_name == "iekt":
+                y = model.predict_one_step(data)
+                c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
