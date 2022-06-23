@@ -6,6 +6,8 @@ import numpy as np
 from torch.utils.data import DataLoader
 from sklearn import metrics
 
+emb_type_map = {"iekt_qid":"qc_merge",
+                "iekt_qc_merge":"qc_merge"}
 
 class QueEmb(nn.Module):
     def __init__(self,num_q,num_c,emb_size,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
@@ -26,6 +28,10 @@ class QueEmb(nn.Module):
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
+        emb_type = emb_type_map.get(emb_type,emb_type)
+        
+        print(f"emb_type is {emb_type}")
+
         self.emb_type = emb_type
         self.emb_path = emb_path
         self.pretrain_dim = pretrain_dim

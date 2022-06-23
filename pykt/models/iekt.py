@@ -30,7 +30,7 @@ class IEKTNet(nn.Module):
         self.gru_h = mygru(0, emb_size * 4, emb_size)
         self.concept_emb = nn.Parameter(torch.randn(self.concept_num, emb_size).to(self.device), requires_grad=True)#知识点表征
         self.sigmoid = torch.nn.Sigmoid()
-        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=f"{self.model_name}_{self.emb_type}",device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
 
     def get_ques_representation(self, q, c):
@@ -52,20 +52,22 @@ class IEKTNet(nn.Module):
     def pi_cog_func(self, x, softmax_dim = 1):
         return F.softmax(self.select_preemb(x), dim = softmax_dim)
 
-    def obtain_v(self, q, c, data_len, h, x, emb):
+    def obtain_v(self, q, c, h, x, emb):
         """_summary_
 
         Args:
-            this_input (_type_): _description_
+            q (_type_): _description_
+            c (_type_): _description_
             h (_type_): _description_
-            x (_type_): rt_x = torch.zeros(data_len, 1, args.dim * 2).to(self.device) 不知道干啥用的
+            x (_type_): _description_
             emb (_type_): m_t
 
         Returns:
             _type_: _description_
         """
+
         #debug_print("start",fuc_name='obtain_v')
-        v = self.get_ques_representation(q,c, data_len)
+        v = self.get_ques_representation(q,c)
         predict_x = torch.cat([h, v], dim = 1)#equation4
         h_v = torch.cat([h, v], dim = 1)#equation4 为啥要计算两次？
         prob = self.predictor(torch.cat([
@@ -130,7 +132,7 @@ class IEKT(QueBaseModel):
         for seqi in range(0, seq_len):#序列长度
             #debug_print(f"start data_new, c is {data_new}",fuc_name='train_one_step')
             ques_h = torch.cat([
-                self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], data_len=data_len),
+                self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi]),
                 h], dim = 1)#equation4
             # d = 64*3 [题目,知识点,h]
             flip_prob_emb = self.model.pi_cog_func(ques_h)
@@ -139,7 +141,7 @@ class IEKT(QueBaseModel):
             emb_ap = m.sample()#equation 5
             emb_p = self.model.cog_matrix[emb_ap,:]#equation 6
 
-            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], data_len=data_len, 
+            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], 
                                                         h=h, x=rt_x, emb=emb_p)#equation 7
             prob = train_sigmoid(logits)#equation 7 sigmoid
 
@@ -270,7 +272,7 @@ class IEKT(QueBaseModel):
         rt_x = torch.zeros(data_len, 1, self.model.emb_size * 2).to(self.device)
         for seqi in range(0, seq_len):
             ques_h = torch.cat([
-                    self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], data_len=data_len),
+                    self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi]),
                     h], dim = 1)
             flip_prob_emb = self.model.pi_cog_func(ques_h)
 
@@ -278,8 +280,7 @@ class IEKT(QueBaseModel):
             emb_ap = m.sample()
             emb_p = self.model.cog_matrix[emb_ap,:]
 
-            # h_v, v, logits, rt_x = self.model.obtain_v(data_new, h, rt_x, emb_p)#
-            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], data_len=data_len, 
+            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi],
                                                         h=h, x=rt_x, emb=emb_p)#equation 7
             prob = eval_sigmoid(logits)
             out_operate_groundtruth = data_new['cr'][:,seqi].unsqueeze(-1)
