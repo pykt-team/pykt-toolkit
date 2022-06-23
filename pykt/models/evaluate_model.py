@@ -103,6 +103,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = y[:, 1:]
             elif model_name == "iekt":
                 y = model.predict_one_step(data)
+                c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
