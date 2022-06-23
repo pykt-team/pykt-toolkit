@@ -5,10 +5,8 @@ import torch.nn.functional as F
 import numpy as np
 from .que_base_model import QueBaseModel,QueEmb
 from torch.distributions import Categorical
-import math
-from .iekt_utils import batch_data_to_device,mygru,funcsgru,funcs
+from .iekt_utils import mygru,funcs
 from pykt.utils import debug_print
-import traceback
 
 class IEKTNet(nn.Module): 
     def __init__(self, num_q,num_c,emb_size,max_concepts,lamb=40,n_layer=1,cog_levels=10,acq_levels=10,dropout=0,gamma=0.93, emb_type='qc_merge', emb_path="", pretrain_dim=768,device='cpu'):
@@ -120,66 +118,10 @@ class IEKT(QueBaseModel):
         # debug_print(f"step is {self.step},data is {data}","train_one_step")
         # debug_print(f"step is {self.step}","train_one_step")
         BCELoss = torch.nn.BCEWithLogitsLoss()
-        train_sigmoid = torch.nn.Sigmoid()
-        data_new = self.batch_to_device(data)
         
+        data_new,emb_action_list,p_action_list,states_list,pre_state_list,reward_list,predict_list,ground_truth_list = self.predict_one_step(data,return_details=True)
         data_len = data_new['cc'].shape[0]
         seq_len = data_new['cc'].shape[1]
-        h = torch.zeros(data_len, self.model.emb_size).to(self.device)
-        p_action_list, pre_state_list, emb_action_list, op_action_list, actual_label_list, states_list, reward_list, predict_list, ground_truth_list = [], [], [], [], [], [], [], [], []
-
-        rt_x = torch.zeros(data_len, 1, self.model.emb_size * 2).to(self.device)
-        for seqi in range(0, seq_len):#序列长度
-            #debug_print(f"start data_new, c is {data_new}",fuc_name='train_one_step')
-            ques_h = torch.cat([
-                self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi]),
-                h], dim = 1)#equation4
-            # d = 64*3 [题目,知识点,h]
-            flip_prob_emb = self.model.pi_cog_func(ques_h)
-
-            m = Categorical(flip_prob_emb)#equation 5 的 f_p
-            emb_ap = m.sample()#equation 5
-            emb_p = self.model.cog_matrix[emb_ap,:]#equation 6
-
-            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], 
-                                                        h=h, x=rt_x, emb=emb_p)#equation 7
-            prob = train_sigmoid(logits)#equation 7 sigmoid
-
-            out_operate_groundtruth = data_new['cr'][:,seqi].unsqueeze(-1) #获取标签
-            
-            out_x_groundtruth = torch.cat([
-                h_v.mul(out_operate_groundtruth.repeat(1, h_v.size()[-1]).float()),
-                h_v.mul((1-out_operate_groundtruth).repeat(1, h_v.size()[-1]).float())],
-                dim = 1)#equation9
-
-            out_operate_logits = torch.where(prob > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device)) 
-            out_x_logits = torch.cat([
-                h_v.mul(out_operate_logits.repeat(1, h_v.size()[-1]).float()),
-                h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
-                dim = 1)#equation10                
-            out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)#equation11
-
-            ground_truth = data_new['cr'][:,seqi].squeeze(-1)
-
-            flip_prob_emb = self.model.pi_sens_func(out_x)##equation12中的f_e
-
-            m = Categorical(flip_prob_emb)
-            emb_a = m.sample()
-            emb = self.model.acq_matrix[emb_a,:]#equation12 s_t
-
-            h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))#equation13～14
-            
-            emb_action_list.append(emb_a)#s_t 列表
-            p_action_list.append(emb_ap)#m_t
-            states_list.append(out_x)
-            pre_state_list.append(ques_h)#上一个题目的状态
-            
-            ground_truth_list.append(ground_truth)
-            predict_list.append(logits.squeeze(1))
-            this_reward = torch.where(out_operate_logits.squeeze(1).float() == ground_truth,
-                            torch.tensor(1).to(self.device), 
-                            torch.tensor(0).to(self.device))# if condition x else y,这里相当于统计了正确的数量
-            reward_list.append(this_reward)
 
         #以下是强化学习部分内容
         seq_num = data['smasks'].sum(axis=-1)+1
@@ -258,53 +200,70 @@ class IEKT(QueBaseModel):
         return y,loss
 
     def predict_one_step(self,data,return_details=False):
-        eval_sigmoid = torch.nn.Sigmoid()
+        sigmoid_func = torch.nn.Sigmoid()
         data_new = self.batch_to_device(data)
-        data_len = data['smasks'].shape[0]
+        
+        data_len = data_new['cc'].shape[0]
         seq_len = data_new['cc'].shape[1]
         h = torch.zeros(data_len, self.model.emb_size).to(self.device)
         batch_probs, uni_prob_list, actual_label_list, states_list, reward_list =[], [], [], [], []
-        H = None
-        if 'eernna' in self.model_name:
-            H = torch.zeros(data_len, 1, self.model.emb_size).to(self.device)
-        else:
-            H = torch.zeros(data_len, self.model.concept_num, self.model.emb_size).to(self.device)
+        p_action_list, pre_state_list, emb_action_list, op_action_list, actual_label_list, predict_list, ground_truth_list = [], [], [], [], [], [], []
+
         rt_x = torch.zeros(data_len, 1, self.model.emb_size * 2).to(self.device)
-        for seqi in range(0, seq_len):
+        for seqi in range(0, seq_len):#序列长度
+            #debug_print(f"start data_new, c is {data_new}",fuc_name='train_one_step')
             ques_h = torch.cat([
-                    self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi]),
-                    h], dim = 1)
+                self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi]),
+                h], dim = 1)#equation4
+            # d = 64*3 [题目,知识点,h]
             flip_prob_emb = self.model.pi_cog_func(ques_h)
 
-            m = Categorical(flip_prob_emb)
-            emb_ap = m.sample()
-            emb_p = self.model.cog_matrix[emb_ap,:]
+            m = Categorical(flip_prob_emb)#equation 5 的 f_p
+            emb_ap = m.sample()#equation 5
+            emb_p = self.model.cog_matrix[emb_ap,:]#equation 6
 
-            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi],
+            h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], 
                                                         h=h, x=rt_x, emb=emb_p)#equation 7
-            prob = eval_sigmoid(logits)
-            out_operate_groundtruth = data_new['cr'][:,seqi].unsqueeze(-1)
+            prob = sigmoid_func(logits)#equation 7 sigmoid
+
+            out_operate_groundtruth = data_new['cr'][:,seqi].unsqueeze(-1) #获取标签
+            
             out_x_groundtruth = torch.cat([
                 h_v.mul(out_operate_groundtruth.repeat(1, h_v.size()[-1]).float()),
                 h_v.mul((1-out_operate_groundtruth).repeat(1, h_v.size()[-1]).float())],
-                dim = 1)
+                dim = 1)#equation9
 
             out_operate_logits = torch.where(prob > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device)) 
             out_x_logits = torch.cat([
                 h_v.mul(out_operate_logits.repeat(1, h_v.size()[-1]).float()),
                 h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
-                dim = 1)                
-            out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)
+                dim = 1)#equation10                
+            out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)#equation11
 
             ground_truth = data_new['cr'][:,seqi].squeeze(-1)
 
-            flip_prob_emb = self.model.pi_sens_func(out_x)
-            
+            flip_prob_emb = self.model.pi_sens_func(out_x)##equation12中的f_e
+
             m = Categorical(flip_prob_emb)
             emb_a = m.sample()
-            emb = self.model.acq_matrix[emb_a,:]
+            emb = self.model.acq_matrix[emb_a,:]#equation12 s_t
 
-            h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))
+            h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))#equation13～14
             uni_prob_list.append(prob.detach())
+            
+            emb_action_list.append(emb_a)#s_t 列表
+            p_action_list.append(emb_ap)#m_t
+            states_list.append(out_x)
+            pre_state_list.append(ques_h)#上一个题目的状态
+            
+            ground_truth_list.append(ground_truth)
+            predict_list.append(logits.squeeze(1))
+            this_reward = torch.where(out_operate_logits.squeeze(1).float() == ground_truth,
+                            torch.tensor(1).to(self.device), 
+                            torch.tensor(0).to(self.device))# if condition x else y,这里相当于统计了正确的数量
+            reward_list.append(this_reward)
         prob_tensor = torch.cat(uni_prob_list, dim = 1)
-        return prob_tensor[:,1:]
+        if return_details:
+            return data_new,emb_action_list,p_action_list,states_list,pre_state_list,reward_list,predict_list,ground_truth_list
+        else:
+            return prob_tensor[:,1:]
