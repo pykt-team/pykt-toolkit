@@ -80,8 +80,6 @@ def main(params):
             del model_config[remove_item]
     if model_name in ["saint", "sakt"]:
         model_config["seq_len"] = seq_len
-    if model_name in ["skvmn"]:
-        model_config["batch_size"] = batch_size
         
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
