@@ -119,8 +119,8 @@ class KTQueDataset(Dataset):
         """
         dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
 
-        df = pd.read_csv(sequence_path)#[0:1000]
-        df = df[df["fold"].isin(folds)].copy()
+        df = pd.read_csv(sequence_path)
+        df = df[df["fold"].isin(folds)].copy()#[0:1000]
         interaction_num = 0
         for i, row in df.iterrows():
             #use kc_id or question_id as input

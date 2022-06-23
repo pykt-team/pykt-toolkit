@@ -95,6 +95,8 @@ def main(params):
                 weight_p.append(p)
         optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
         opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=1e-5)
+    elif model_name == "iekt":
+        opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
     else:
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
