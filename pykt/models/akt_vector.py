@@ -14,9 +14,9 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-class AKT(nn.Module):
+class AKTVec(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
-            kq_same=1, final_fc_dim=512, num_attn_heads=8, seq_len=200, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, monotonic=True, use_pos=False, rasch_x=False, rasch_y=False):
+            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_qmatrix=False, qmatrix=None, kt_state=False):
         super().__init__()
         """
         Input:
@@ -26,27 +26,14 @@ class AKT(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.use_rasch = use_rasch
-        self.monotonic = monotonic
-        self.use_pos = use_pos
-        self.rasch_x = rasch_x
-        self.rasch_y = rasch_y
-        if self.use_rasch and self.monotonic and not self.rasch_x and not self.rasch_y:
-            self.model_name = "akt"
-        elif not self.use_rasch and self.monotonic:
-            self.model_name = "akt_norasch"
-        elif self.use_rasch and not self.monotonic:
-            self.model_name = "akt_mono"
-        elif self.use_rasch and not self.monotonic and self.use_pos:
-            self.model_name = "aktmono_pos"
-        elif not self.use_rasch and not self.monotonic and not self.use_pos and not self.rasch_x and not self.rasch_y:
-            self.model_name = "akt_attn"
-        elif not self.use_rasch and not self.monotonic and self.use_pos and not self.rasch_x and not self.rasch_y:
-            self.model_name = "aktattn_pos"
-        elif self.use_rasch and self.monotonic and self.rasch_x and not self.rasch_y:
-            self.model_name = "akt_raschx"
-        elif self.use_rasch and self.monotonic and self.rasch_y and not self.rasch_x:
-            self.model_name = "akt_raschy"
+        self.use_qmatrix = use_qmatrix
+        self.kt_state = kt_state
+        if not self.use_qmatrix and not self.kt_state:
+            self.model_name = "akt_vector"
+        elif self.use_qmatrix and not self.kt_state:
+            self.model_name = "akt_qmatrix"
+        elif self.use_qmatrix and self.kt_state:
+            self.model_name = "akt_h"
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -55,13 +42,20 @@ class AKT(nn.Module):
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
+        self.qmatrix = qmatrix
         embed_l = d_model
-        if self.n_pid > 0 and self.use_rasch:
-            self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
-            self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-            if not self.rasch_x:
-                self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
-   
+        if self.n_pid > 0:
+            # self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
+            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
+            if self.use_qmatrix:
+                self.q_embed_diff = Embedding.from_pretrained(qmatrix, freeze=False)
+            else:
+                self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+            self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
+
+        if self.kt_state:
+            h0 = nn.Parameter(torch.Tensor(self.n_question, embed_l))
+
         if emb_type.startswith("qid"):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
@@ -69,9 +63,10 @@ class AKT(nn.Module):
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
+
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff, seq_len=seq_len, kq_same=self.kq_same, model_type=self.model_type, use_monotonic=self.monotonic, use_pos=self.use_pos)
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
 
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
@@ -89,37 +84,42 @@ class AKT(nn.Module):
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
-
         if self.separate_qa:
-            qa_data = q_data + self.n_question * target  
-            qa_embed_data = self.qa_embed(qa_data)  # onehot * w
+            qa_data = q_data + self.n_question * target
+            qa_embed_data = self.qa_embed(qa_data)
         else:
             # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
             qa_embed_data = self.qa_embed(target)+q_embed_data
-
         return q_embed_data, qa_embed_data
 
     def forward(self, q_data, target, pid_data=None, qtest=False):
         emb_type = self.emb_type
+        batch_size = q_data.shape[0]
         # Batch First
         if emb_type == "qid":
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
-        if self.use_rasch and self.n_pid > 0: # have problem id
+        if self.n_pid > 0: # have problem id
+            if self.use_qmatrix:
+                pid_embed_data = self.q_embed_diff(pid_data)
+                q_embed_diff_data = torch.nn.functional.softmax(pid_embed_data,-1)
+                # print(f"q_embed_diff_data: {q_embed_diff_data.shape}")
+                q_embed_diff_data = torch.einsum('bij, jk -> bik', q_embed_diff_data, self.q_embed.weight)
+            else:
+                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            if not self.rasch_y:
-                q_embed_data = q_embed_data + pid_embed_data * \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-            if not self.rasch_x:
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                if self.separate_qa:
-                    qa_embed_data = qa_embed_data + pid_embed_data * \
-                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
-                else:
-                    qa_embed_data = qa_embed_data + pid_embed_data * \
-                        (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+            q_embed_data = q_embed_data + pid_embed_data + \
+                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+
+            qa_embed_diff_data = self.qa_embed_diff(
+                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+            if self.separate_qa:
+                qa_embed_data = qa_embed_data + pid_embed_data + \
+                    qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            else:
+                qa_embed_data = qa_embed_data + pid_embed_data + \
+                    (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
             c_reg_loss = 0.
@@ -127,8 +127,8 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data)
 
+        d_output = self.model(q_embed_data, qa_embed_data)
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
@@ -141,7 +141,7 @@ class AKT(nn.Module):
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
-                 d_ff, n_heads, seq_len, dropout, kq_same, model_type, use_monotonic, use_pos):
+                 d_ff, n_heads, dropout, kq_same, model_type):
         super().__init__()
         """
             n_block : number of stacked blocks in the attention
@@ -151,21 +151,16 @@ class Architecture(nn.Module):
         """
         self.d_model = d_model
         self.model_type = model_type
-        self.use_pos = use_pos
-        self.seq_len = seq_len
-
-        if self.use_pos:
-            self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=self.seq_len)   
 
         if model_type.startswith('akt'):
             self.blocks_1 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, use_monotonic=use_monotonic)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
                 for _ in range(n_blocks)
             ])
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, use_monotonic=use_monotonic)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
                 for _ in range(n_blocks*2)
             ])
 
@@ -173,11 +168,6 @@ class Architecture(nn.Module):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
-        if self.use_pos:
-            q_posemb = self.position_emb(q_embed_data)
-            q_embed_data = q_embed_data + q_posemb
-            qa_posemb = self.position_emb(qa_embed_data)
-            qa_embed_data = qa_embed_data + qa_posemb
         qa_pos_embed = qa_embed_data
         q_pos_embed = q_embed_data
 
@@ -203,7 +193,7 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same, use_monotonic):
+                 d_ff, n_heads, dropout,  kq_same):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
@@ -211,7 +201,7 @@ class TransformerLayer(nn.Module):
         kq_same = kq_same == 1
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same, use_monotonic=use_monotonic)
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -263,7 +253,7 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, use_monotonic=True):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
@@ -282,7 +272,6 @@ class MultiHeadAttention(nn.Module):
         self.out_proj = nn.Linear(d_model, d_model, bias=bias)
         self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
         torch.nn.init.xavier_uniform_(self.gammas)
-        self.use_monotonic = use_monotonic
 
         self._reset_parameters()
 
@@ -319,9 +308,8 @@ class MultiHeadAttention(nn.Module):
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
         gammas = self.gammas
-        use_monotonic = self.use_monotonic
         scores = attention(q, k, v, self.d_k,
-                           mask, self.dropout, zero_pad, gammas, use_monotonic)
+                           mask, self.dropout, zero_pad, gammas)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1, 2).contiguous()\
@@ -332,7 +320,7 @@ class MultiHeadAttention(nn.Module):
         return output
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, use_monotonic=True):
+def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     """
     This is called by Multi-head atention object to find the values.
     """
@@ -341,30 +329,29 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, use_monotonic=T
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
 
-    if use_monotonic:
-        x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
-        x2 = x1.transpose(0, 1).contiguous()
+    x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
+    x2 = x1.transpose(0, 1).contiguous()
 
-        with torch.no_grad():
-            scores_ = scores.masked_fill(mask == 0, -1e32)
-            scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
-            scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
-            distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
-            disttotal_scores = torch.sum(
-                scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
-            # print(f"distotal_scores: {disttotal_scores}")
-            position_effect = torch.abs(
-                x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
-            # bs, 8, sl, sl positive distance
-            dist_scores = torch.clamp(
-                (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
-            dist_scores = dist_scores.sqrt().detach()
-        m = nn.Softplus()
-        gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
-        # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
-        total_effect = torch.clamp(torch.clamp(
-            (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-        scores = scores * total_effect
+    with torch.no_grad():
+        scores_ = scores.masked_fill(mask == 0, -1e32)
+        scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
+        scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
+        distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
+        disttotal_scores = torch.sum(
+            scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
+        # print(f"distotal_scores: {disttotal_scores}")
+        position_effect = torch.abs(
+            x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
+        # bs, 8, sl, sl positive distance
+        dist_scores = torch.clamp(
+            (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
+        dist_scores = dist_scores.sqrt().detach()
+    m = nn.Softplus()
+    gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
+    # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
+    total_effect = torch.clamp(torch.clamp(
+        (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+    scores = scores * total_effect
 
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
