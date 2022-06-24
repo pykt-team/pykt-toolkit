@@ -295,10 +295,14 @@ class QueBaseModel(nn.Module):
        
         testf = os.path.join(data_config["dpath"], "test.csv")
         df = pd.read_csv(testf)
+        print("total sequence length is {}".format(len(df)))
+
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
             hist_q,hist_c,hist_r,cq_full,cc_full,cr_full,seq_len,start_index = self._parser_row(row,data_config=data_config,ob_portions=ob_portions)
+            if i%10==0:
+                print(f"predict step {i}")
 
             seq_y_pred_hist = [cr_full[start_index]]
             for i in range(start_index,seq_len):
@@ -347,11 +351,13 @@ class QueBaseModel(nn.Module):
         """
         testf = os.path.join(data_config["dpath"], "test.csv")
         df = pd.read_csv(testf)
+        print("total sequence length is {}".format(len(df)))
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
             hist_q,hist_c,hist_r,cq_full,cc_full,cr_full,seq_len,start_index = self._parser_row(row,data_config=data_config,ob_portions=ob_portions)
-           
+            if i%10==0:
+                print(f"predict step {i}")
             cq_list = []
             cc_list = []
             cr_list = []
@@ -404,9 +410,15 @@ class QueBaseModel(nn.Module):
         Returns:
             metrics: auc,acc
         """
-        if accumulative:
-            return self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
-        return self._evaluate_multi_ahead_help(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+        self.model.eval()
+        with torch.no_grad():
+            if accumulative:
+                print("predict use accumulative")
+                auc,acc = self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+            else:
+                print("predict use no accumulative")
+                auc,acc = self._evaluate_multi_ahead_help(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+        return {"auc":auc,"acc":acc}
         
  
 

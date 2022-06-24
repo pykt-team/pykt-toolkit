@@ -239,16 +239,19 @@ class IEKT(QueBaseModel):
                 h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
                 dim = 1)#equation10                
             out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)#equation11
-
-            ground_truth = data_new['cr'][:,seqi].squeeze(-1)
-
+            # print(f"data_new['cr'] is {data_new['cr']}")
+            ground_truth = data_new['cr'][:,seqi]
+            # print(f"ground_truth shape is {ground_truth.shape},ground_truth is {ground_truth}")
             flip_prob_emb = self.model.pi_sens_func(out_x)##equation12中的f_e
 
             m = Categorical(flip_prob_emb)
             emb_a = m.sample()
             emb = self.model.acq_matrix[emb_a,:]#equation12 s_t
-
+            # print(f"emb_a shape is {emb_a.shape}")
+            # print(f"emb shape is {emb.shape}")
+            
             h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))#equation13～14
+           
             uni_prob_list.append(prob.detach())
             
             emb_action_list.append(emb_a)#s_t 列表
