@@ -48,7 +48,7 @@ class AKT(nn.Module):
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
-
+        # self.position_emb = nn.Embedding(seq_len, emb_size)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, emb_type=self.emb_type)
@@ -60,6 +60,7 @@ class AKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
+        self.q_forget = nn.Embedding(self.n_question+1, embed_l)  # 不同技能有不同遗忘系数
         self.reset()
 
     def reset(self):
@@ -105,6 +106,11 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
+        qforget = self.q_forget(q_data)
+        pid_embed_data = pid_embed_data# + qforget
+
+        q_embed_data = q_embed_data + qforget
+        qa_embed_data = qa_embed_data + qforget
         d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
@@ -230,6 +236,31 @@ class TransformerLayer(nn.Module):
         return query
 
 
+class SeparableConv1D(nn.Module):
+    """This class implements separable convolution, i.e. a depthwise and a pointwise layer"""
+
+    def __init__(self, input_filters, output_filters, kernel_size):
+        super().__init__()
+        self.depthwise = nn.Conv1d(
+            input_filters,
+            input_filters,
+            kernel_size=kernel_size,
+            groups=input_filters,
+            padding=kernel_size // 2,
+            bias=False,
+        )
+        self.pointwise = nn.Conv1d(input_filters, output_filters, kernel_size=1, bias=False)
+        self.bias = nn.Parameter(torch.zeros(output_filters, 1))
+
+        self.depthwise.weight.data.normal_(mean=0.0, std=1)#config.initializer_range)
+        self.pointwise.weight.data.normal_(mean=0.0, std=1)#config.initializer_range)
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        x = self.depthwise(hidden_states)
+        x = self.pointwise(x)
+        x += self.bias
+        return x
+
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid"):
         super().__init__()
@@ -248,6 +279,32 @@ class MultiHeadAttention(nn.Module):
             # linear
             self.linear = nn.Linear(d_model, d_model, bias=bias)
             self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        elif emb_type.endswith("iformer"):
+            # iformer
+            self.conv = SeparableConv1D(input_filters=d_model, output_filters=d_model//2, kernel_size=1)
+
+            self.d_k = d_feature // 2
+            self.h = n_heads
+            self.kq_same = kq_same
+            self.v_linear = nn.Linear(d_model, d_model//2, bias=bias)
+            self.k_linear = nn.Linear(d_model, d_model//2, bias=bias)
+            if kq_same is False:
+                self.q_linear = nn.Linear(d_model, d_model//2, bias=bias)
+            self.dropout = nn.Dropout(dropout)
+            self.proj_bias = bias
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+            self.gammas = nn.Parameter(torch.zeros(n_heads, 1, 1))
+            torch.nn.init.xavier_uniform_(self.gammas)
+            self._reset_parameters()
+            # self.
+            # pass
+        # elif emb_type.endswith("mhpool"):
+        #     self.d_k = d_feature
+        #     self.h = n_heads
+        #     self.v_linear = nn.Linear(d_model, d_model, bias=bias)
+        #     pool_size = 3
+        #     self.pooling =  nn.AvgPool1d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
+        #     self.out_proj = nn.Linear(d_model, d_model, bias=bias)
         elif emb_type.startswith("qid"):
             self.d_k = d_feature
             self.h = n_heads
@@ -293,6 +350,33 @@ class MultiHeadAttention(nn.Module):
             scores = self.linear(v)
             concat = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
             # concat = concat.transpose(1,2)
+        elif self.emb_type.endswith("iformer"):
+            scores = self.conv(v.transpose(1,2)).transpose(1,2)
+            # print(f"scores: {scores.shape}")
+            concat1 = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
+
+            k = self.k_linear(k).view(bs, -1, self.h, self.d_k).transpose(1, 2)
+            if self.kq_same is False:
+                q = self.q_linear(q).view(bs, -1, self.h, self.d_k).transpose(1, 2)
+            else:
+                q = self.k_linear(q).view(bs, -1, self.h, self.d_k).transpose(1, 2)
+            v = self.v_linear(v).view(bs, -1, self.h, self.d_k).transpose(1, 2)
+            gammas = self.gammas
+            if self.emb_type.find("pdiff") == -1:
+                pdiff = None
+            scores = attention(q, k, v, self.d_k, mask, self.dropout, zero_pad, gammas, pdiff)
+            concat2 = scores.transpose(1, 2).contiguous().view(bs, -1, self.d_model//2)
+
+            concat = torch.cat([concat1, concat2], dim=-1)
+        # elif self.emb_type.endswith("mhpool"):
+        #     v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+        #     v = v.transpose(1, 2)
+        #     scores = []
+        #     for i in range(0, v.shape[0]):
+        #         scores.append(self.pooling(v[i]).reshape(1, v[i].shape[0], v[i].shape[1], v[i].shape[2])) # self.pool(v)#self.linear(v)#v#self.pool(v)
+        #     scores = torch.cat(scores)
+        #     scores = self.pad_zero(scores, bs, self.d_k, zero_pad, self.h)
+        #     concat = scores.transpose(1, 2).contiguous().view(bs, -1, self.d_model)
         elif self.emb_type.startswith("qid"):
             # perform linear operation and split into h heads
 
@@ -323,11 +407,15 @@ class MultiHeadAttention(nn.Module):
 
         return output
 
-    def pad_zero(self, scores, bs, dim, zero_pad):
+    def pad_zero(self, scores, bs, dim, zero_pad, head=0):
         if zero_pad:
-            # # need: torch.Size([64, 1, 200]), scores: torch.Size([64, 200, 200]), v: torch.Size([64, 200, 32])
-            pad_zero = torch.zeros(bs, 1, dim).to(device)
-            scores = torch.cat([pad_zero, scores[:, 0:-1, :]], dim=1) # 所有v后置一位
+            if head == 0:
+                # # need: torch.Size([64, 1, 200]), scores: torch.Size([64, 200, 200]), v: torch.Size([64, 200, 32])
+                pad_zero = torch.zeros(bs, 1, dim).to(device)
+                scores = torch.cat([pad_zero, scores[:, 0:-1, :]], dim=1) # 所有v后置一位
+            else:
+                pad_zero = torch.zeros(bs, head, 1, dim).to(device)
+                scores = torch.cat([pad_zero, scores[:, :, 0:-1, :]], dim=2) # 所有v后置一位
         return scores
 
 
@@ -378,6 +466,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
         pad_zero = torch.zeros(bs, head, 1, seqlen).to(device)
         scores = torch.cat([pad_zero, scores[:, :, 1:, :]], dim=2) # 第一行score置0
     # print(f"after zero pad scores: {scores}")
+    # print(f"scores: {scores.shape}, v: {v.shape}")
     scores = dropout(scores)
     output = torch.matmul(scores, v)
     # import sys
