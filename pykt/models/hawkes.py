@@ -18,11 +18,6 @@ class HawkesKT(nn.Module):
         self.time_log = time_log
         self.gpu = device
 
-        random_seed = 2019
-        torch.manual_seed(random_seed)
-        torch.cuda.manual_seed(random_seed)
-        np.random.seed(random_seed)
-        
         self.problem_base = torch.nn.Embedding(self.problem_num, 1)
         self.skill_base = torch.nn.Embedding(self.skill_num, 1)
 
