@@ -37,13 +37,13 @@ class DKTQue(QueBaseModel):
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device)
         self.model = self.model.to(device)
     
-    def train_one_step(self,data):
-        y,data_new = self.predict_one_step(data,return_details=True)
+    def train_one_step(self,data,process=True):
+        y,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
         return y,loss
 
-    def predict_one_step(self,data,return_details=False):
-        data_new = self.batch_to_device(data)
+    def predict_one_step(self,data,return_details=False,process=True):
+        data_new = self.batch_to_device(data,process=process)
         y = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long())
         y = (y * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
         if return_details:

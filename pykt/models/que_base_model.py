@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 import numpy as np
+import pandas as pd
 from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset
 from sklearn import metrics
 
 emb_type_map = {"iekt_qid":"qc_merge",
@@ -147,10 +149,10 @@ class QueBaseModel(nn.Module):
                 raise ValueError("Unknown Optimizer: " + self.optimizer)
         return optimizer
 
-    def train_one_step(self,data):
+    def train_one_step(self,data,process=True):
         raise NotImplemented()
 
-    def predict_one_step(self,data):
+    def predict_one_step(self,data,process=True):
         raise NotImplemented()
         
     def get_loss(self, ys,rshft,sm):
@@ -166,7 +168,9 @@ class QueBaseModel(nn.Module):
         net = torch.load(os.path.join(save_dir, self.emb_type+"_model.ckpt"))
         self.model.load_state_dict(net)
     
-    def batch_to_device(self,data):
+    def batch_to_device(self,data,process=True):
+        if not process:
+            return data
         dcur = data
         # q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
         # qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
@@ -188,7 +192,7 @@ class QueBaseModel(nn.Module):
         data_new['sm'] = dcur["smasks"]
         return data_new
 
-    def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,save_dir="tmp",save_model=False,patient=10,shuffle=True):
+    def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,save_dir="tmp",save_model=False,patient=10,shuffle=True,process=True):
         self.save_dir = save_dir
         os.makedirs(self.save_dir,exist_ok=True)
 
@@ -205,7 +209,7 @@ class QueBaseModel(nn.Module):
             for data in train_loader:
                 train_step += 1
                 self.model.train()
-                y,loss = self.train_one_step(data)
+                y,loss = self.train_one_step(data,process=process)
                 self.opt.zero_grad()
                 loss.backward()#compute gradients 
                 self.opt.step()#update model’s parameters
@@ -233,24 +237,144 @@ class QueBaseModel(nn.Module):
         return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch
 
 
-    def evaluate(self,dataset,batch_size,acc_throld=0.5):
+    def evaluate(self,dataset,batch_size,acc_threshold=0.5):
         ps,ts = self.predict(dataset,batch_size=batch_size)
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
-        prelabels = [1 if p >= acc_throld else 0 for p in ps]
+        prelabels = [1 if p >= acc_threshold else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
         # eval_result = {"auc":auc,"acc":acc}
         # return eval_result
         return auc,acc
 
+    def _evaluate_multi_ahead_accumulative(self,test_df,batch_size,train_ratio=0.5):
+       
+        auc,acc = -1,-1
+        return auc,acc
 
-    def predict(self,dataset,batch_size,return_ts=False):
+    def _get_multi_ahead_start_index(self,cc,ob_portions=0.5):
+        """_summary_
+
+        Args:
+            cc (str): the concept sequence
+            ob_portions (float, optional): _description_. Defaults to 0.5.
+
+        Returns:
+            _type_: _description_
+        """
+        filter_cc = [x for x in cc.split(",") if x != "-1"]
+        seq_len = len(filter_cc)
+        start_index = int(seq_len * ob_portions)
+        if start_index == 0:
+            start_index = 1
+        if start_index == seq_len:
+            start_index = seq_len - 1
+        return start_index,seq_len
+
+   
+
+    def _evaluate_multi_ahead_help(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5):
+        """generate multi-ahead dataset
+
+        Args:
+            data_config (_type_): data_config
+            ob_portions (float, optional): portions of observed student interactions. . Defaults to 0.5.
+
+        Returns:
+            dataset: new dataset for multi-ahead prediction
+        """
+        max_concepts = data_config["max_concepts"]
+        max_len = data_config["maxlen"]
+        testf = os.path.join(data_config["dpath"], "test.csv")
+        df = pd.read_csv(testf)
+        y_pred_list = []
+        y_true_list = []
+        for i, row in df.iterrows():
+            start_index,seq_len = self._get_multi_ahead_start_index(row['concepts'],ob_portions)
+            questions = [int(x) for x in row["questions"].split(",")]
+            responses = [int(x) for x in row["responses"].split(",")]
+            concept_list = []
+            for concept in row["concepts"].split(","):
+                if concept == "-1":
+                    skills = [-1] * max_concepts
+                else:
+                    skills = [int(_) for _ in concept.split("_")]
+                    skills = skills +[-1]*(max_concepts-len(skills))
+                concept_list.append(skills)
+            cq = torch.tensor(questions).to(self.device)
+            cc = torch.tensor(concept_list).to(self.device)
+            cr = torch.tensor(responses).to(self.device)
+
+            history_start_index = max(start_index - max_len,0)
+            hist_q = cq[history_start_index:start_index].unsqueeze(0)
+            hist_c = cc[history_start_index:start_index].unsqueeze(0)
+            hist_r = cr[history_start_index:start_index].unsqueeze(0)
+            print(f"hist_q shape is {hist_q.shape}")
+            cq_list = []
+            cc_list = []
+            cr_list = []
+            
+            for i in range(start_index,seq_len):
+                cur_q = cq[i:i+1].unsqueeze(0)
+                cur_c = cc[i:i+1].unsqueeze(0)
+                cur_r = cr[i:i+1].unsqueeze(0)
+                cq_list.append(torch.cat([hist_q,cur_q],axis=1))
+                cc_list.append(torch.cat([hist_c,cur_c],axis=1))
+                cr_list.append(torch.cat([hist_r,cur_r],axis=1))
+                y_true_list.append(cr[i].item())
+            # print(f"cq_list is {len(cq_list)}")
+            cq_ahead = torch.cat(cq_list,axis=0)
+            cc_ahead = torch.cat(cc_list,axis=0)
+            cr_ahead = torch.cat(cr_list,axis=0)
+            # print(f"cq_ahead shape is {cq_ahead.shape}")
+
+            tensor_dataset = TensorDataset(cq_ahead,cc_ahead,cr_ahead)
+            dataloader = DataLoader(dataset=tensor_dataset,batch_size=batch_size) 
+
+            for data in dataloader:
+                cq,cc,cr = [x.to(self.device) for x in data]#full sequence,[1,n]
+                q,c,r = [x[:,:-1].to(self.device) for x in data]#[0,n-1]
+                qshft,cshft,rshft = [x[:,1:].to(self.device) for x in data]#[1,n]
+                data = {"cq":cq,"cc":cc,"cr":cr,"q":q,"c":c,"r":r,"qshft":qshft,"cshft":cshft,"rshft":rshft}
+                y = self.predict_one_step(data,process=False)[:,-1].detach().cpu().numpy().flatten()
+                y_pred_list.extend(list(y))
+        
+        print(f"num of y_pred_list is {len(y_pred_list)}")
+        print(f"num of y_true_list is {len(y_true_list)}")
+
+        y_pred_list = np.array(y_pred_list)
+        y_true_list = np.array(y_true_list)
+        auc = metrics.roc_auc_score(y_true_list, y_pred_list)
+        acc = metrics.accuracy_score(y_true_list, [1 if p >= acc_threshold else 0 for p in y_pred_list])
+
+        return auc,acc
+
+    def evaluate_multi_ahead(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5,accumulative=False):
+        """Predictions in the multi-step ahead prediction scenario
+
+        Args:
+            data_config (_type_): data_config
+            batch_size (int): batch_size
+            ob_portions (float, optional): portions of observed student interactions. Defaults to 0.5.
+            accumulative (bool, optional): `True` for accumulative prediction and `False` for non-accumulative prediction. Defaults to False.
+            acc_threshold (float, optional): threshold for accuracy. Defaults to 0.5.
+
+        Returns:
+            metrics: auc,acc
+        """
+        if accumulative:
+            return self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+        return self._evaluate_multi_ahead_help(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+        
+ 
+
+    def predict(self,dataset,batch_size,return_ts=False,process=True):
         test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
         self.model.eval()
         with torch.no_grad():
             y_trues = []
             y_scores = []
             for data in test_loader:
-                new_data = self.batch_to_device(data)
+                new_data = self.batch_to_device(data,process=process)
                 y = self.predict_one_step(data)
                 y = torch.masked_select(y, new_data['sm']).detach().cpu()
                 t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
@@ -260,3 +384,5 @@ class QueBaseModel(nn.Module):
         ps = np.concatenate(y_scores, axis=0)
         print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
         return ps,ts
+
+
