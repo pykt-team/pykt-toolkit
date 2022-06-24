@@ -246,9 +246,63 @@ class QueBaseModel(nn.Module):
         # return eval_result
         return auc,acc
 
-    def _evaluate_multi_ahead_accumulative(self,test_df,batch_size,train_ratio=0.5):
+    def _evaluate_multi_ahead_accumulative(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5):
        
-        auc,acc = -1,-1
+        max_concepts = data_config["max_concepts"]
+        max_len = data_config["maxlen"]
+        testf = os.path.join(data_config["dpath"], "test.csv")
+        df = pd.read_csv(testf)
+        y_pred_list = []
+        y_true_list = []
+        for i, row in df.iterrows():
+            start_index,seq_len = self._get_multi_ahead_start_index(row['concepts'],ob_portions)
+            questions = [int(x) for x in row["questions"].split(",")]
+            responses = [int(x) for x in row["responses"].split(",")]
+            concept_list = []
+            for concept in row["concepts"].split(","):
+                if concept == "-1":
+                    skills = [-1] * max_concepts
+                else:
+                    skills = [int(_) for _ in concept.split("_")]
+                    skills = skills +[-1]*(max_concepts-len(skills))
+                concept_list.append(skills)
+            cq_full = torch.tensor(questions).to(self.device)
+            cc_full = torch.tensor(concept_list).to(self.device)
+            cr_full = torch.tensor(responses).to(self.device)
+
+            history_start_index = max(start_index - max_len,0)
+            hist_q = cq_full[history_start_index:start_index].unsqueeze(0)
+            hist_c = cc_full[history_start_index:start_index].unsqueeze(0)
+            hist_r = cr_full[history_start_index:start_index].unsqueeze(0)
+            # print(f"hist_q shape is {hist_q.shape}")
+           
+            y_last_pred = cr_full[start_index]
+            for i in range(start_index,seq_len):
+                cur_q = cq_full[start_index:start_index+i+1].unsqueeze(0)
+                cur_c = cc_full[start_index:start_index+i+1].unsqueeze(0)
+                cur_r = cr_full[start_index:start_index+i+1].unsqueeze(0)
+                cur_r[-1] = y_last_pred
+                cq = torch.cat([hist_q,cur_q],axis=1)
+                cc = torch.cat([hist_c,cur_c],axis=1)
+                cr = torch.cat([hist_r,cur_r],axis=1)
+                data = [cq,cc,cr]
+                cq,cc,cr = [x.to(self.device) for x in data]#full sequence,[1,n]
+                q,c,r = [x[:,:-1].to(self.device) for x in data]#[0,n-1]
+                qshft,cshft,rshft = [x[:,1:].to(self.device) for x in data]#[1,n]
+                data = {"cq":cq,"cc":cc,"cr":cr,"q":q,"c":c,"r":r,"qshft":qshft,"cshft":cshft,"rshft":rshft}
+                y_last_pred = self.predict_one_step(data,process=False)[:,-1][0]
+            
+                y_true_list.append(cr_full[i].item())
+                y_pred_list.append(y_last_pred.item())
+
+        print(f"num of y_pred_list is {len(y_pred_list)}")
+        print(f"num of y_true_list is {len(y_true_list)}")
+
+        y_pred_list = np.array(y_pred_list)
+        y_true_list = np.array(y_true_list)
+        auc = metrics.roc_auc_score(y_true_list, y_pred_list)
+        acc = metrics.accuracy_score(y_true_list, [1 if p >= acc_threshold else 0 for p in y_pred_list])
+
         return auc,acc
 
     def _get_multi_ahead_start_index(self,cc,ob_portions=0.5):
