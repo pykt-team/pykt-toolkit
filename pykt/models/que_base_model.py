@@ -117,7 +117,7 @@ class QueBaseModel(nn.Module):
         self.emb_path = emb_path
         self.pretrain_dim = pretrain_dim
         self.device = device
-        set_seed(seed)
+        # set_seed(seed)
 
     def compile(self, optimizer,lr=0.001,
                 loss='binary_crossentropy',
