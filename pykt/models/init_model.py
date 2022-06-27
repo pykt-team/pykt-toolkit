@@ -69,6 +69,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTRasch(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_interac=True).to(device)
     elif model_name == "akt_vector":
         model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "aktvec_raschx":
+        model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_rasch=True, rasch_x=True).to(device)
     elif model_name == "akt_norasch":
         model = AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_rasch=False).to(device)
     elif model_name == "akt_raschx":
