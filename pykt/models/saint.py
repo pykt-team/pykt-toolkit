@@ -21,6 +21,8 @@ class SAINT(nn.Module):
         self.emb_type = emb_type
 
         self.embd_pos = nn.Embedding(seq_len, embedding_dim = emb_size) 
+        # self.embd_pos = Parameter(torch.Tensor(seq_len-1, emb_size))
+        # kaiming_normal_(self.embd_pos)
 
         if emb_type.startswith("qid"):
             self.encoder = get_clones(Encoder_block(emb_size, num_attn_heads, num_q, num_c, seq_len, dropout), self.num_en)
@@ -50,7 +52,7 @@ class SAINT(nn.Module):
         ## pass through each decoder blocks in sequence
         start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(device)
         in_res = torch.cat((start_token, in_res), dim=-1)
-       
+        r = in_res
         first_block = True
         for i in range(self.num_de):
             if i >= 1:
@@ -87,8 +89,8 @@ class Encoder_block(nn.Module):
                 self.exercise_embed = Embedding.from_pretrained(embs)
                 self.linear = Linear(pretrain_dim, dim_model)
         if total_cat > 0:
-            self.emb_cat = nn.Embedding(total_cat, embedding_dim = dim_model)#positional embedding
-       
+            self.emb_cat = nn.Embedding(total_cat, embedding_dim = dim_model)
+        # self.embd_pos   = nn.Embedding(seq_len, embedding_dim = dim_model)                  #positional embedding
 
         self.multi_en = nn.MultiheadAttention(embed_dim = dim_model, num_heads = heads_en, dropout = dropout)
         self.layer_norm1 = nn.LayerNorm(dim_model)
@@ -103,13 +105,13 @@ class Encoder_block(nn.Module):
         ## todo create a positional encoding (two options numeric, sine)
         if first_block:
             embs = []
-            if self.total_ex > 0:#question embedding
+            if self.total_ex > 0:
                 if self.emb_path == "":
                     in_ex = self.embd_ex(in_ex)
                 else:
                     in_ex = self.linear(self.exercise_embed(in_ex))
                 embs.append(in_ex)
-            if self.total_cat > 0:#concept embedding
+            if self.total_cat > 0:
                 in_cat = self.emb_cat(in_cat)
                 embs.append(in_cat)
             out = embs[0]
