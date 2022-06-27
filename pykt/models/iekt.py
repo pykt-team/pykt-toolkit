@@ -28,7 +28,7 @@ class IEKTNet(nn.Module):
         self.gru_h = mygru(0, emb_size * 4, emb_size)
         self.concept_emb = nn.Parameter(torch.randn(self.concept_num, emb_size).to(self.device), requires_grad=True)#知识点表征
         self.sigmoid = torch.nn.Sigmoid()
-        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=f"{self.model_name}_{self.emb_type}",device=device,
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,model_name=self.model_name,device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
 
     def get_ques_representation(self, q, c):
@@ -139,7 +139,6 @@ class IEKT(QueBaseModel):
         for i in range(0, data_len):
             this_seq_len = seq_num[i]
             this_reward_list = reward_tensor[i]
-        
             this_cog_state = torch.cat([pre_state_tensor[i][0: this_seq_len],
                                     torch.zeros(1, pre_state_tensor[i][0].size()[0]).to(self.device)
                                     ], dim = 0)

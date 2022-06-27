@@ -8,11 +8,14 @@ from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 from sklearn import metrics
 
-emb_type_map = {"iekt_qid":"qc_merge",
-                "iekt_qc_merge":"qc_merge"}
+emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
+emb_type_map = {"iekt-qid":"qc_merge",
+                "iekt-qc_merge":"qc_merge",
+                "dkt_que-qid":"qaid_qc"
+                }
 
 class QueEmb(nn.Module):
-    def __init__(self,num_q,num_c,emb_size,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
+    def __init__(self,num_q,num_c,emb_size,model_name,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
         """_summary_
 
         Args:
@@ -30,17 +33,22 @@ class QueEmb(nn.Module):
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
-        emb_type = emb_type_map.get(emb_type,emb_type)
-        
+        #get emb type
+        tmp_emb_type = f"{model_name}-{emb_type}"
+        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}_",""))
         print(f"emb_type is {emb_type}")
 
         self.emb_type = emb_type
         self.emb_path = emb_path
         self.pretrain_dim = pretrain_dim
 
-        if "qc_merge" in emb_type:
+        if emb_type in ["qc_merge","qaid_qc"]:
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+        if emb_type  in ["qc_merge","qaid_qc"]:
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+
+        if emb_type =="qaid_c":
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
         if emb_type.startswith("qaid"):
@@ -83,7 +91,6 @@ class QueEmb(nn.Module):
             # print("qid")
         elif emb_type == "qid":
             xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
-
         elif emb_type == "qaid+qc_merge":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
@@ -93,6 +100,12 @@ class QueEmb(nn.Module):
         elif emb_type=="qc_merge":
             # print("qc_merge")
             xemb = que_c_emb
+        elif emb_type =="qaid_qc":
+            x = q + self.num_q * r
+            xemb = self.interaction_emb(x)
+            concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            xemb = torch.cat([xemb,concept_avg],dim=-1)
+            xemb = self.que_c_linear(xemb)
         return xemb
 
 from pykt.utils import set_seed
