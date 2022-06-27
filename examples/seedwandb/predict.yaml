@@ -1,8 +1,12 @@
-program: ../wandb_predict.py
+program: ./wandb_predict.py
 method: grid
 metric:
     goal: maximize
     name: testauc
 parameters:
     save_dir:
-        values: []
+        values: ["aktattn_pos_tiaocan_assist2009/assist2009_aktattn_pos_qid_aktattn_pos_tiaocan_assist2009_42_0_0.15_256_256_4_4_0.0001_1_1_46615c8b-abef-4c0c-abbc-6faaad263c6b",
+        "aktattn_pos_tiaocan_assist2009/assist2009_aktattn_pos_qid_aktattn_pos_tiaocan_assist2009_3407_1_0.2_256_512_4_4_0.0001_1_1_65d38b63-5e47-4328-aff1-72a9ad3dfa24",
+        "aktattn_pos_tiaocan_assist2009/assist2009_aktattn_pos_qid_aktattn_pos_tiaocan_assist2009_3407_2_0.2_512_512_4_4_0.0001_1_1_07257371-2402-4b80-b2b3-b3f8d0ba4807",
+        "aktattn_pos_tiaocan_assist2009/assist2009_aktattn_pos_qid_aktattn_pos_tiaocan_assist2009_3407_3_0.3_512_256_4_3_1e-05_1_1_a18a5373-0b18-415a-b072-537b01c2a732",
+        "aktattn_pos_tiaocan_assist2009/assist2009_aktattn_pos_qid_aktattn_pos_tiaocan_assist2009_42_4_0.3_256_256_4_4_0.0001_1_1_4d387486-07e1-4c71-ba17-011f005462fd"]

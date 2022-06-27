@@ -17,8 +17,8 @@ def read_data_from_csv(read_file, write_file, dq2c):
     stares = []
 
     df = pd.read_csv(read_file)
-    df["exercise"] = df["exercise"].apply(replace_text)
     df["topic"] = df["exercise"].apply(lambda q: "NANA" if q not in dq2c else dq2c[q])
+    df["exercise"] = df["exercise"].apply(replace_text)
     df["topic"] = df["topic"].apply(replace_text)
     df = df[df["topic"] != "NANA"]
 
