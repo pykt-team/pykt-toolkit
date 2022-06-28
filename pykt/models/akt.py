@@ -522,9 +522,9 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
     else: # bz * seqlen * 1 -> bz * 8 * seqlen * 1
         diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
         # diff = diff.sigmoid().exp()
-        # total_effect = torch.clamp(torch.clamp(
-        #     (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-        total_effect = diff#F.softmax(diff, dim=-1)
+        total_effect = torch.clamp(torch.clamp(
+            (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        # total_effect = diff#F.softmax(diff, dim=-1)
         
     scores = scores * total_effect
 
