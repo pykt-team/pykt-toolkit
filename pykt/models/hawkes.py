@@ -26,7 +26,7 @@ class HawkesKT(nn.Module):
         self.beta_inter_embeddings = torch.nn.Embedding(self.skill_num * 2, self.emb_size)
         self.beta_skill_embeddings = torch.nn.Embedding(self.skill_num, self.emb_size)
 
-        self.loss_function = torch.nn.BCELoss()
+        # self.loss_function = torch.nn.BCELoss()
         # self.init_weights()
         # print(self)
         # self.count = 0

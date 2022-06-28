@@ -48,7 +48,10 @@ def main(params):
     # model, testf, model_name, save_path="", use_pred=False, train_ratio=0.2
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
     testf = os.path.join(data_config["dpath"], "test.csv")
-    dfinal = evaluate_splitpred_question(model, data_config, testf, model_name, save_test_path, use_pred, ratio, atkt_pad)
+    if model_name == "iekt":
+        dfinal = model.evaluate_multi_ahead(data_config,batch_size=32,ob_portions=ratio,accumulative=use_pred)
+    else:
+        dfinal = evaluate_splitpred_question(model, data_config, testf, model_name, save_test_path, use_pred, ratio, atkt_pad)
     for key in dfinal:
         print(key, dfinal[key])
     dfinal.update(config["params"])

@@ -28,7 +28,7 @@ class IEKTNet(nn.Module):
         self.gru_h = mygru(0, emb_size * 4, emb_size)
         self.concept_emb = nn.Parameter(torch.randn(self.concept_num, emb_size).to(self.device), requires_grad=True)#知识点表征
         self.sigmoid = torch.nn.Sigmoid()
-        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=f"{self.model_name}_{self.emb_type}",device=device,
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,model_name=self.model_name,device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
 
     def get_ques_representation(self, q, c):
@@ -113,18 +113,18 @@ class IEKT(QueBaseModel):
         self.model = self.model.to(device)
         # self.step = 0
     
-    def train_one_step(self,data):
+    def train_one_step(self,data,process=True):
         # self.step+=1
         # debug_print(f"step is {self.step},data is {data}","train_one_step")
         # debug_print(f"step is {self.step}","train_one_step")
         BCELoss = torch.nn.BCEWithLogitsLoss()
         
-        data_new,emb_action_list,p_action_list,states_list,pre_state_list,reward_list,predict_list,ground_truth_list = self.predict_one_step(data,return_details=True)
+        data_new,emb_action_list,p_action_list,states_list,pre_state_list,reward_list,predict_list,ground_truth_list = self.predict_one_step(data,return_details=True,process=process)
         data_len = data_new['cc'].shape[0]
         seq_len = data_new['cc'].shape[1]
 
         #以下是强化学习部分内容
-        seq_num = data['smasks'].sum(axis=-1)+1
+        seq_num = torch.where(data['qseqs']!=0,1,0).sum(axis=-1)+1
         emb_action_tensor = torch.stack(emb_action_list, dim = 1)
         p_action_tensor = torch.stack(p_action_list, dim = 1)
         state_tensor = torch.stack(states_list, dim = 1)
@@ -139,7 +139,6 @@ class IEKT(QueBaseModel):
         for i in range(0, data_len):
             this_seq_len = seq_num[i]
             this_reward_list = reward_tensor[i]
-        
             this_cog_state = torch.cat([pre_state_tensor[i][0: this_seq_len],
                                     torch.zeros(1, pre_state_tensor[i][0].size()[0]).to(self.device)
                                     ], dim = 0)
@@ -199,9 +198,9 @@ class IEKT(QueBaseModel):
         loss = self.model.lamb * (loss_l / label_len) +  bce#equation21
         return y,loss
 
-    def predict_one_step(self,data,return_details=False):
+    def predict_one_step(self,data,return_details=False,process=True):
         sigmoid_func = torch.nn.Sigmoid()
-        data_new = self.batch_to_device(data)
+        data_new = self.batch_to_device(data,process)
         
         data_len = data_new['cc'].shape[0]
         seq_len = data_new['cc'].shape[1]
@@ -239,16 +238,19 @@ class IEKT(QueBaseModel):
                 h_v.mul((1-out_operate_logits).repeat(1, h_v.size()[-1]).float())],
                 dim = 1)#equation10                
             out_x = torch.cat([out_x_groundtruth, out_x_logits], dim = 1)#equation11
-
-            ground_truth = data_new['cr'][:,seqi].squeeze(-1)
-
+            # print(f"data_new['cr'] is {data_new['cr']}")
+            ground_truth = data_new['cr'][:,seqi]
+            # print(f"ground_truth shape is {ground_truth.shape},ground_truth is {ground_truth}")
             flip_prob_emb = self.model.pi_sens_func(out_x)##equation12中的f_e
 
             m = Categorical(flip_prob_emb)
             emb_a = m.sample()
             emb = self.model.acq_matrix[emb_a,:]#equation12 s_t
-
+            # print(f"emb_a shape is {emb_a.shape}")
+            # print(f"emb shape is {emb.shape}")
+            
             h = self.model.update_state(h, v, emb, ground_truth.unsqueeze(1))#equation13～14
+           
             uni_prob_list.append(prob.detach())
             
             emb_action_list.append(emb_a)#s_t 列表
