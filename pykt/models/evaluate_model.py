@@ -80,7 +80,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = y[:,1:]
             elif model_name in ["kqn", "sakt"]:
                 y = model(c.long(), r.long(), cshft.long())
-            elif model_name == "saint":
+            elif model_name in ["saint","saint++"]:
                 y = model(cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
             elif model_name == "akt":                                
@@ -135,7 +135,7 @@ def early_fusion(curhs, model, model_name):
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
-    elif model_name == "saint":
+    elif model_name in ["saint","saint++"]:
         p = model.out(model.dropout(curhs[0]))
         p = torch.sigmoid(p).squeeze(-1)
     elif model_name == "sakt":
@@ -175,7 +175,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes"]
+    hasearly = ["dkvmn", "skvmn", "akt", "saint","saint++", "sakt", "hawkes"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -217,7 +217,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     if cq.shape[1] == 0:
         cq = cc
 
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint","saint++", "sakt", "hawkes"]
     
     alldfs, drest = [], dict() # not predict infos!
     # print(f"real bz in group fusion: {rs.shape[0]}")
@@ -307,7 +307,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # dkvmn / akt / saint: give cur -> predict cur
     # sakt: give past+cur -> predict cur
     # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint","saint++", "sakt", "hawkes"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -349,7 +349,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name == "akt":
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
-            elif model_name == "saint":
+            elif model_name in ["saint","saint++"]:
                 y, h = model(cq.long(), cc.long(), r.long(), True)
                 y = y[:,1:]
             elif model_name == "sakt":
@@ -657,7 +657,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             cshft = torch.cat((cin[:,1:],curc), axis=1)
             y = model(cin.long(), rin.long(), cshft.long())
             pred = y[0][-1]
-        elif model_name == "saint":
+        elif model_name in ["saint","saint++"]:
             #### 输入有question！
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
@@ -910,7 +910,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = y[:,1:]
         elif model_name in ["kqn", "sakt"]:
             y = model(curc.long(), curr.long(), curcshft.long())
-        elif model_name == "saint":
+        elif model_name in ["saint","saint++"]:
             y = model(ccq.long(), ccc.long(), curr.long())
             y = y[:, 1:]
         elif model_name == "akt":                                
