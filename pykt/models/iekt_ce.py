@@ -61,16 +61,16 @@ class IEKTNet(nn.Module):
             c (_type_): _description_
             h (_type_): _description_
             x (_type_): _description_
-            emb (_type_): m_t
+            emb (_type_): m_t,
 
         Returns:
             _type_: _description_
         """
 
         #debug_print("start",fuc_name='obtain_v')
-        v = self.get_ques_representation(q,c)
-        predict_x = torch.cat([h, v], dim = 1)#equation4
-        h_v = torch.cat([h, v], dim = 1)#equation4 为啥要计算两次？
+        v = self.get_ques_representation(q,c)#(batch_size,emb_size*2)
+        predict_x = torch.cat([h, v], dim = 1)#equation4 #(batch_size,emb_size*3)
+        h_v = torch.cat([h, v], dim = 1)#equation4 为啥要计算两次？ #(batch_size,emb_size*3)
         prob = self.predictor(torch.cat([
             predict_x, emb
         ], dim = 1))#equation7
