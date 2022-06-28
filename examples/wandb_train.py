@@ -21,6 +21,34 @@ def save_config(train_config, model_config, data_config, params, save_dir):
     with open(save_path, "w") as fout:
         json.dump(d, fout)
 
+def addF2AKT(model, train_loader, valid_loader, test_loader):
+    def prepare(data, cs, rs, sms):
+        dcur = data
+        q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
+        qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+        m, sm = dcur["masks"], dcur["smasks"]
+        curcs = torch.cat([c[:, 0:1], cshft], dim=1)
+        currs = torch.cat([r[:, 0:1], rshft], dim=1)
+        cs = torch.cat([cs, curcs], dim=0)
+        rs = torch.cat([rs, currs], dim=0)
+        sms = torch.cat([sms, sm], dim=0)
+        return cs, rs, sms
+    cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
+    
+    for data in train_loader:
+        cs, rs, sms = prepare(data, cs, rs, sms)
+    
+    # cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
+    # model.calSkillF(cs.long(), rs.long(), sms.long(), istrain=True)
+    # for data in valid_loader:
+    #     cs, rs, sms = prepare(data, cs, rs, sms)
+    # for data in test_loader:
+    #     cs, rs, sms = prepare(data, cs, rs, sms)
+    model.calSkillF(cs.long(), rs.long(), sms.long())
+
+    print(f"cs: {cs.shape}, rs: {rs.shape}")
+    print(f"dF: {len(model.dF)}")
+
 def main(params):
     if "use_wandb" not in params:
         params['use_wandb'] = 1
@@ -84,6 +112,12 @@ def main(params):
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+    if model_name == "akt" and emb_type.find("sforget")!=-1:
+        print(f"start addF2AKT!")
+        addF2AKT(model, train_loader, valid_loader, test_loader)
+    # print(f"emb_type: {emb_type}, idx: {emb_type.find('sforget')}")
+    # assert False
+    
     if model_name == "hawkes":
         weight_p, bias_p = [], []
         for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):

@@ -60,13 +60,71 @@ class AKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
-        self.q_forget = nn.Embedding(self.n_question+1, embed_l)  # 不同技能有不同遗忘系数
+
+        # self.q_forget = nn.Embedding(self.n_question+1, embed_l)  # 不同技能有不同的遗忘向量
+        self.skill_difficult_param = nn.Embedding(self.n_question+1, 1) # 技能难度
+        self.skill_embed_diff = nn.Embedding(self.n_pid+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+        # self.skilla_embed_diff = nn.Embedding(2 * self.n_pid + 1, embed_l) # interaction emb, 同上
+        
         self.reset()
+        self.dF = dict()
+        self.avgf = 0
 
     def reset(self):
         for p in self.parameters():
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
+
+        # 计算每个技能的遗忘率
+    def calSkillF(self, cs, rs, sm):
+        dr2w, dr = dict(), dict()
+        concepts = set()
+        for i in range(cs.shape[0]): # batch
+            drs = dict()
+            for j in range(cs.shape[1]): # seqlen
+                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
+                # print(f"curc: {curc}")
+                if j != 0 and sm[i][j-1] != 1:
+                    break
+                
+                if curr == 1:
+                    dr.setdefault(curc, 0)
+                    dr[curc] += 1
+                elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
+                    dr2w.setdefault(curc, 0)
+                    dr2w[curc] += 1
+                drs.setdefault(curc, list())
+                drs[curc].append([curr, j])
+                concepts.add(curc)
+        print(f"dr2w: {dr2w}, dr: {dr}")
+        sum = 0
+        for c in dr:
+            if c not in dr2w:
+                self.dF[c] = 0
+            else:
+                self.dF[c] = dr2w[c] / dr[c]
+                sum += dr2w[c] / dr[c]
+        self.avgf = sum / len(dr)
+        print(f"dF: {self.dF}, avgf: {self.avgf}")
+
+    def calfseqs(self, cs):
+        css, fss = [], []
+        for i in range(cs.shape[0]): # batch
+            curfs = []
+            dlast = dict()
+            for j in range(cs.shape[1]): # seqlen
+                curc = cs[i][j].detach().cpu().item()
+                if curc not in dlast:
+                    curf = 1
+                else:
+                    delta = j - dlast[curc]
+                    curf = (1-self.dF.get(curc, self.avgf))**delta
+                curfs.append([curf])
+                dlast[curc] = j
+            # print(f"curfs: {curfs}")
+            fss.append(curfs)
+            # assert False
+        return torch.tensor(fss).float().to(device)
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
@@ -85,20 +143,26 @@ class AKT(nn.Module):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         pid_embed_data = None
+        sLeft = self.calfseqs(q_data)
         if self.n_pid > 0: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
-            qa_embed_diff_data = self.qa_embed_diff(
-                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-            if self.separate_qa:
-                qa_embed_data = qa_embed_data + pid_embed_data * \
-                    qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
-            else:
-                qa_embed_data = qa_embed_data + pid_embed_data * \
-                    (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+            # skill_embed_diff_data = self.skill_embed_diff(pid_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            # qid_embed_data = self.skill_difficult_param(q_data)  # us skill
+            # q_embed_data = q_embed_data + sLeft*qid_embed_data * \
+            #     skill_embed_diff_data  # us *d_qt + c_qt # question encoder
+
+            # qa_embed_diff_data = self.qa_embed_diff(
+            #     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+            # if self.separate_qa:
+            #     qa_embed_data = qa_embed_data + pid_embed_data * \
+            #         qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            # else:
+            #     qa_embed_data = qa_embed_data + pid_embed_data * \
+            #         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
             c_reg_loss = 0.
@@ -106,11 +170,15 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        qforget = self.q_forget(q_data)
-        pid_embed_data = pid_embed_data# + qforget
+        # qforget = self.q_forget(q_data)
+        
+        # print(f"qforget: {qforget.shape}, pid_embed_data: {pid_embed_data.shape}")
+        
+        # pid_embed_data = pid_embed_data# + qforget
 
-        q_embed_data = q_embed_data + qforget
-        qa_embed_data = qa_embed_data + qforget
+        # q_embed_data = q_embed_data + sLeft*qforget
+        # qa_embed_data = qa_embed_data + sLeft*qforget
+        pid_embed_data = sLeft
         d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
@@ -456,6 +524,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
         diff = diff.sigmoid().exp()
         total_effect = torch.clamp(torch.clamp(
             (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        # total_effect = pdiff
     scores = scores * total_effect
 
     scores.masked_fill_(mask == 0, -1e32)

@@ -20,7 +20,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["qid"]]:
+                for _type in [["qidfvecali"]]:
                     for fold in folds.split(","):
                         _type = [str(k) for k in _type]
                         fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
@@ -51,7 +51,7 @@ def main(params):
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--src_dir", type=str, default="../seedwandb/")
+    parser.add_argument("--src_dir", type=str, default="./seedwandb/")
     parser.add_argument("--project_name", type=str, default="kt_toolkits")
     parser.add_argument("--dataset_names", type=str, default="assist2015")
     parser.add_argument("--model_names", type=str, default="dkt")
