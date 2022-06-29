@@ -16,7 +16,7 @@ class Dim(IntEnum):
 
 class AKTVec(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
-            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False):
+            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None):
         super().__init__()
         """
         Input:
@@ -28,10 +28,12 @@ class AKTVec(nn.Module):
         """
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
+        self.emb_type = emb_type
         if self.use_rasch and not self.rasch_x:
             self.model_name = "akt_vector"
         elif self.use_rasch and self.rasch_x:
             self.model_name = "aktvec_raschx"
+
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -39,7 +41,7 @@ class AKTVec(nn.Module):
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
-        self.emb_type = emb_type
+
         embed_l = d_model
         if self.n_pid > 0:
             # self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
@@ -56,6 +58,17 @@ class AKTVec(nn.Module):
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
+
+        if emb_type.startswith("relation") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -92,11 +105,23 @@ class AKTVec(nn.Module):
         if emb_type == "qid":
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
+        if emb_type == "relation":
+            q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+            relation_q = self.qmatrix(pid_data) # lookup all the kcs
+            relation_q_emb = torch.einsum('bij, jk -> bik', relation_q, self.q_embed.weight)
+            relation_que = self.qmatrix_t(q_data)
+            relation_que_emb = torch.einsum('bij, jk -> bik', relation_que, self.que_embed.weight)
+
         if self.n_pid > 0 and self.use_rasch: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-            q_embed_data = q_embed_data + pid_embed_data + \
-                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+
+            if emb_type == "qid":
+                q_embed_data = q_embed_data + pid_embed_data + \
+                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+            elif emb_type == "relation":
+                q_embed_data = q_embed_data + pid_embed_data + \
+                    q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder        
 
             if not self.rasch_x:
                 qa_embed_diff_data = self.qa_embed_diff(

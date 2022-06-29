@@ -14,7 +14,7 @@ from .akt import AKT
 from .gkt import GKT
 from .gkt_utils import get_gkt_graph
 from .lpkt import LPKT
-# from .lpkt_utils import generate_qmatrix, generate_time2idx
+from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .dkt_rasch import DKTRasch
 from .akt_vector import AKTVec
@@ -68,7 +68,16 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "dkt_interac":
         model = DKTRasch(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_interac=True).to(device)
     elif model_name == "akt_vector":
-        model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        if emb_type == "relation":
+            qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
+            if os.path.exists(qmatrix_path):
+                q_matrix = torch.tensor(np.load(qmatrix_path, allow_pickle=True)['matrix']).float()
+            else:
+                q_matrix = generate_qmatrix(data_config)
+                q_matrix = torch.tensor(q_matrix).float()
+            model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], qmatrix=q_matrix).to(device)
+        elif emb_type == "qid":
+            model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "aktvec_raschx":
         model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_rasch=True, rasch_x=True).to(device)
     elif model_name == "akt_norasch":
