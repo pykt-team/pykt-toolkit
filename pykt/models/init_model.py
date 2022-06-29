@@ -58,8 +58,7 @@ def init_model(model_name, model_config, data_config, emb_type):
         if os.path.exists(qmatrix_path):
             q_matrix = torch.tensor(np.load(qmatrix_path, allow_pickle=True)['matrix']).float()
         else:
-            q_matrix = generate_qmatrix(data_config, gamma=0.03)
-            q_matrix = torch.tensor(q_matrix).float()
+            q_matrix = generate_qmatrix(data_config)
         model = LPKT(data_config["num_at"], data_config["num_it"], data_config["num_q"], data_config["num_c"], **model_config, q_matrix=q_matrix, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "skvmn":
         model = SKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)   
