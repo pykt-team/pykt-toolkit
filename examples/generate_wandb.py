@@ -9,8 +9,8 @@ def str2bool(str):
 
 # 生成启动sweep的脚本
 def main(params):
-    src_dir, project_name, dataset_names, model_names, folds, save_dir_suffix, all_dir, launch_file, generate_all = params["src_dir"], params["project_name"], params["dataset_names"], \
-    params["model_names"], params["folds"], params["save_dir_suffix"], params["all_dir"], params["launch_file"], params["generate_all"]
+    src_dir, project_name, dataset_names, model_names, folds, save_dir_suffix, all_dir, launch_file, generate_all, emb_types = params["src_dir"], params["project_name"], params["dataset_names"], \
+    params["model_names"], params["folds"], params["save_dir_suffix"], params["all_dir"], params["launch_file"], params["generate_all"], params["emb_types"]
     if not os.path.exists(all_dir):
         os.makedirs(all_dir)
     with open("../configs/wandb.json") as fin,\
@@ -20,7 +20,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["qid"]]:
+                for _type in [emb_types.split(",")]:
                     for fold in folds.split(","):
                         _type = [str(k) for k in _type]
                         fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
