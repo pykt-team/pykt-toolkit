@@ -84,6 +84,7 @@ def main(params):
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+    emb_type = model.emb_type
     if model_name == "hawkes":
         weight_p, bias_p = [], []
         for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):
@@ -112,7 +113,7 @@ def main(params):
     testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader, test_window_loader, save_model)
     
     if save_model:
-        best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+        best_model = model
         net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
         best_model.load_state_dict(net)
         # evaluate test

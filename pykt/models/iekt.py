@@ -131,6 +131,7 @@ class IEKT(QueBaseModel):
 
         self.model = self.model.to(device)
         self.abla_study_mode = self.model.abla_study_mode
+        self.emb_type = self.model.emb_type
        
     
     def train_one_step(self,data,process=True):
@@ -157,14 +158,14 @@ class IEKT(QueBaseModel):
         
         for i in range(0, data_len):
             this_seq_len = seq_num[i]
-            
+            this_reward_list = reward_tensor[i]
             
             #CE module
             if self.abla_study_mode in  ['nce','nck']:
                 #remove nce loss
                 pass
             else:
-                this_reward_list = reward_tensor[i]
+                
                 this_cog_state = torch.cat([pre_state_tensor[i][0: this_seq_len],
                                     torch.zeros(1, pre_state_tensor[i][0].size()[0]).to(self.device)
                                     ], dim = 0)
