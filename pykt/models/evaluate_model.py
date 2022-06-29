@@ -1,4 +1,4 @@
-gimport numpy as np
+import numpy as np
 import torch
 from torch import nn
 from torch.nn.functional import one_hot
