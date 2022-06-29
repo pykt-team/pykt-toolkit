@@ -1,5 +1,4 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 import torch
 from pykt.models.dkt_que import DKTQue
 from pykt.datasets.que_data_loader import KTQueDataset
@@ -26,12 +25,12 @@ test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
 
 model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
-               emb_size=128, device=device, emb_type='qaid',seed=10)
+               emb_size=128, device=device, emb_type='qid',seed=42)
 
 model.compile(optimizer='adam', lr=0.001)
 
 model.train(train_dataset, valid_dataset, batch_size=64,
-            num_epochs=300, patient=10, shuffle=True,save_model=True,save_dir='tmp/dkt')
+            num_epochs=300, patient=10, shuffle=False,save_model=True,save_dir='tmp/dkt_assist2009')
 
 model.load_model(model.save_dir)
 valid_result = model.evaluate(valid_dataset,batch_size=64)

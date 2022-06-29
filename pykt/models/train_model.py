@@ -86,7 +86,7 @@ def model_forward(model, data):
     elif model_name in ["kqn", "sakt"]:
         y = model(c.long(), r.long(), cshft.long())
         ys.append(y)
-    elif model_name in ["saint"]:
+    elif model_name in ["saint","saint++"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
     elif model_name == "akt":               

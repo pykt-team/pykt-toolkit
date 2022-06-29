@@ -15,14 +15,16 @@ class DKTQueNet(nn.Module):
         self.emb_size = emb_size
         self.hidden_size = emb_size
         self.emb_type = emb_type
-        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,model_name=self.model_name,device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
         self.lstm_layer = nn.LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = nn.Dropout(dropout)
         self.out_layer = nn.Linear(self.hidden_size, num_q)
         
+        
     def forward(self, q, c ,r):
         xemb = self.que_emb(q,c,r)
+        # print(f"xemb.shape is {xemb.shape}")
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
         y = self.out_layer(h)
@@ -37,13 +39,13 @@ class DKTQue(QueBaseModel):
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device)
         self.model = self.model.to(device)
     
-    def train_one_step(self,data):
-        y,data_new = self.predict_one_step(data,return_details=True)
+    def train_one_step(self,data,process=True):
+        y,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
         return y,loss
 
-    def predict_one_step(self,data,return_details=False):
-        data_new = self.batch_to_device(data)
+    def predict_one_step(self,data,return_details=False,process=True):
+        data_new = self.batch_to_device(data,process=process)
         y = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long())
         y = (y * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
         if return_details:
