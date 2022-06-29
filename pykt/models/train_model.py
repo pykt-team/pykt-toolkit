@@ -64,7 +64,7 @@ def model_forward(model, data):
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
     if model_name in ["lpkt"]:
-        # cat = torch.cat((dcur["utseqs"][:,0:1], dcur["shft_utseqs"]), dim=1)
+        cat = torch.cat((dcur["utseqs"][:,0:1], dcur["shft_utseqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
 
     if model_name in ["dkt"]:
@@ -112,7 +112,8 @@ def model_forward(model, data):
         ys.append(y)  
     # cal loss
     elif model_name == "lpkt":
-        y = model(cq.long(), cr.long(), cit.long())
+        cat = None
+        y = model(cq.long(), cr.long(), cat, cit.long())
         ys.append(y[:, 1:])  
     elif model_name == "hawkes":
         # ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)

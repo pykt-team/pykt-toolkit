@@ -3,7 +3,7 @@
 
 import torch
 import torch.nn as nn
-from torch.nn import Module, Parameter, Embedding, Linear, MaxPool1d, AvgPool1d, Dropout
+from torch.nn import Module, Parameter, Embedding, Linear, MaxPool1d, AvgPool1d, Dropout, LSTM
 from torch.nn.init import kaiming_normal_
 import torch.nn.functional as F
 import numpy as np
@@ -179,13 +179,14 @@ class SKVMN(Module):
         self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
         self.v_emb_layer = Embedding(self.dim_s * 2, self.dim_s)
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
-        self.hx = Parameter(torch.Tensor(1, self.dim_s))
-        self.cx = Parameter(torch.Tensor(1, self.dim_s))
-        kaiming_normal_(self.hx)
-        kaiming_normal_(self.cx)
+        # self.hx = Parameter(torch.Tensor(1, self.dim_s))
+        # self.cx = Parameter(torch.Tensor(1, self.dim_s))
+        # kaiming_normal_(self.hx)
+        # kaiming_normal_(self.cx)
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
-        self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
+        # self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
+        self.lstm_layer = LSTM(self.dim_s, self.dim_s, batch_first=True)
 
     def ut_mask(self, seq_len):
         return torch.triu(torch.ones(seq_len, seq_len), diagonal=0).to(dtype=torch.bool)
@@ -423,8 +424,7 @@ class SKVMN(Module):
         #Sequential dependencies
         idx_values = self.triangular_layer(w, bs) #[t,bs_n,t-lambda]
         # print(f"idx_values: {idx_values.shape}")
-        #Hop-LSTM
-        hidden_state, cell_state = [], []
+
         """
         >>> idx_values
         tensor([[3, 0, 1],
@@ -432,23 +432,62 @@ class SKVMN(Module):
         In 0th sequence, the identity in t3 is same to the ones in t1.
         In 1th sequence, the identity in t3 is same to the ones in t2.
         """
-        hx, cx = self.hx.repeat(bs, 1), self.cx.repeat(bs, 1)
-        for i in range(self.seqlen): # 逐个ex进行计算
-            for j in range(bs):
-                if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
-                    # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
-                    hx[j,:] = hidden_state[idx_values[0][2]][j]
-                    cx = cx.clone()
-                    cx[j,:] = cell_state[idx_values[0][2]][j]
-                    idx_values = idx_values[1:]
-            hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
-            hidden_state.append(hx) #记录中间层的h
-            cell_state.append(cx) #记录中间层的c
-        hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
-        cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
+        #Hop-LSTM
+        # original
 
-        p = self.p_layer(self.dropout_layer(hidden_state))
+        # hidden_state, cell_state = [], []
+        # hx, cx = self.hx.repeat(bs, 1), self.cx.repeat(bs, 1)
+        # for i in range(self.seqlen): # 逐个ex进行计算
+        #     for j in range(bs):
+        #         if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
+        #             # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
+        #             hx[j,:] = hidden_state[idx_values[0][2]][j]
+        #             cx = cx.clone()
+        #             cx[j,:] = cell_state[idx_values[0][2]][j]
+        #             idx_values = idx_values[1:]
+        #     hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
+        #     hidden_state.append(hx) #记录中间层的h
+        #     cell_state.append(cx) #记录中间层的c
+        # hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
+        # cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
+
+        # p = self.p_layer(self.dropout_layer(hidden_state))
+        # p = torch.sigmoid(p)
+        # p = p.squeeze(-1)
+        # return p
+
+        #时间优化
+        copy_ft = torch.repeat_interleave(ft, repeats=self.seqlen, dim=0).reshape(bs, self.seqlen, self.seqlen,-1)
+        mask = torch.tensor(np.eye(self.seqlen, self.seqlen)).to(device)
+        copy_mask = mask.repeat(bs,1,1)
+
+        for i in range(idx_values.shape[0]):
+            n = idx_values[i][1] # 第n个batch
+            t = idx_values[i][0] # 当前时刻t
+            t_a = idx_values[i][2] # 具有相同实体向量的历史时刻 t - lamda
+            copy_ft[n][t][t-t_a] = copy_ft[n][t][t]
+            if t_a + 1 != t:
+                copy_mask[n][t][t_a+1] = 1
+                copy_mask[n][t][t] = 0
+        # print(f"copy_mask: {copy_mask.shape}")
+        copy_ft_reshape = torch.reshape(copy_ft,(bs, self.seqlen * self.seqlen,-1))
+        h, _ = self.lstm_layer(copy_ft_reshape)
+        p = self.p_layer(self.dropout_layer(copy_ft_reshape))
         p = torch.sigmoid(p)
-        p = p.squeeze(-1)
+        p = torch.reshape(p.squeeze(-1),(bs, -1))
+        # print(f"p:{p.shape}")
+        copy_mask_reshape = torch.reshape(copy_mask, (bs,-1))
+        copy_mask_reshape = copy_mask_reshape.ge(1)
+        p = torch.masked_select(p, copy_mask_reshape).reshape(bs,-1)
+        # print(f"p:{p.shape}")
         return p
+
+
+
+
+
+
+
+
+
 

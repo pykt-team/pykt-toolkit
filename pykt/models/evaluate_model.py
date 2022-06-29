@@ -92,9 +92,10 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
             elif model_name == "lpkt":
-                # cat = torch.cat((dcur["utseqs"][:,0:1], dcur["shft_utseqs"]), dim=1)
+                cat = torch.cat((dcur["utseqs"][:,0:1], dcur["shft_utseqs"]), dim=1)
                 cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
-                y = model(cq.long(), cr.long(), cit.long())
+                cat = None
+                y = model(cq.long(), cr.long(), cat, cit.long())
                 y = y[:,1:]  
             elif model_name == "hawkes":
                 ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
