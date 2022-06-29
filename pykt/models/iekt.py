@@ -33,7 +33,6 @@ class IEKTNet(nn.Module):
             self.predictor = funcs(n_layer, emb_size * 5, 1, dropout)
             self.cog_matrix = nn.Parameter(torch.randn(cog_levels, emb_size * 2).to(self.device), requires_grad=True) 
             self.select_preemb = funcs(n_layer, emb_size * 3, cog_levels, dropout)#MLP
-
             self.acq_matrix = nn.Parameter(torch.randn(acq_levels, emb_size * 2).to(self.device), requires_grad=True)
             self.checker_emb = funcs(n_layer, emb_size * 12, acq_levels, dropout) 
         self.gru_h = mygru(0, emb_size * 4, emb_size)
@@ -161,7 +160,7 @@ class IEKT(QueBaseModel):
             this_reward_list = reward_tensor[i]
             
             #CE module
-            if self.abla_study_mode in  ['nce','nck']:
+            if self.abla_study_mode in  ['nce','nck','nrl']:
                 #remove nce loss
                 pass
             else:
@@ -184,9 +183,14 @@ class IEKT(QueBaseModel):
                 loss_cog = -torch.log(pi_a_cog) * advantage_cog#equation16
                 loss.append(torch.sum(loss_cog))
 
-            
+            this_prob = logits_tensor[i][0: this_seq_len]
+            this_groud_truth = ground_truth_tensor[i][0: this_seq_len]
+
+            tracat_logits.append(this_prob)
+            tracat_ground_truth.append(this_groud_truth)
+
             #KASE module
-            if self.abla_study_mode in  ['nkase','nck']:
+            if self.abla_study_mode in  ['nkase','nck','nrl']:
                 #remove nkase loss
                 pass
             else:
@@ -207,17 +211,9 @@ class IEKT(QueBaseModel):
                 loss_sens = - torch.log(pi_a_sens) * advantage_sens#equation18
                 loss.append(torch.sum(loss_sens))
             
-
-            this_prob = logits_tensor[i][0: this_seq_len]
-            this_groud_truth = ground_truth_tensor[i][0: this_seq_len]
-
-            tracat_logits.append(this_prob)
-            tracat_ground_truth.append(this_groud_truth)
-
         loss_c = BCELoss(torch.cat(tracat_logits, dim = 0), torch.cat(tracat_ground_truth, dim = 0))   
         
-
-        if self.abla_study_mode in  ['nck']:
+        if self.abla_study_mode in  ['nck','nrl']:
             #remove loss_ms
             loss = loss_c#equation21
         else:
