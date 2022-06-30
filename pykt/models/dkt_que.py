@@ -45,7 +45,7 @@ class DKTQue(QueBaseModel):
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device)
         
         self.model = self.model.to(device)
-        self.loss_mode,self.predict_mode = emb_type.split("|-|")[1:]
+        self.emb_type,self.loss_mode,self.predict_mode = emb_type.split("|-|")
         
     
     def train_one_step(self,data,process=True):
