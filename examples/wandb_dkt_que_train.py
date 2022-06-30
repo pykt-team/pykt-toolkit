@@ -39,6 +39,7 @@ def main(params):
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
         save_dir = save_dir+"_"+str(uuid.uuid4())
+    os.makedirs(save_dir,exist_ok=True)
        
     emb_type = f"qid|-|{params['loss_mode']}|-|{params['predict_mode']}"
    
