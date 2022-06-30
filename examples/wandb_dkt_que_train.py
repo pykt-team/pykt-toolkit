@@ -58,8 +58,8 @@ def main(params):
 
     print(f"auc: {auc}, acc: {acc}, auc_win: {auc_win}, acc_win: {acc_win}")
     
-    model_report = params
-    model_report.update({"testauc":auc,"testacc":acc,"window_testauc":auc_win,"window_testacc":acc_win,"save_dir":save_dir})
+    model_report = {"testauc":auc,"testacc":acc,"window_testauc":auc_win,"window_testacc":acc_win,"save_dir":save_dir}
+    
     
     if args.use_wandb==1:
         import wandb
