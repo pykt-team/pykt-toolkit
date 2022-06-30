@@ -28,6 +28,9 @@ def load_data(data_config,fold):
     return train_dataset, valid_dataset, test_dataset, test_win_dataset
 
 def main(params):
+    if args.use_wandb==1:
+        import wandb
+        wandb.init()
     print(params)
     print(f"params is {type(params)}")
     set_seed(params['seed'])
@@ -62,8 +65,6 @@ def main(params):
     
     
     if args.use_wandb==1:
-        import wandb
-        wandb.init()
         wandb.log(model_report)
 
 
