@@ -1,4 +1,5 @@
-program: ../wandb_predict.py
+name: iekt_as_32组
+program: wandb_predict.py
 method: grid
 metric:
     goal: maximize
