@@ -42,7 +42,7 @@ class DKTQueNet(nn.Module):
         elif self.emb_type == "qcaid_h":
             h_q = self.h_q_merge(torch.cat([h,emb_q],dim=-1))
             h_c = self.h_c_merge(torch.cat([h,emb_c],dim=-1))
-        else:
+        elif self.emb_type == "qid":
             h_q = h
             h_c = h
         y_question = torch.sigmoid(self.out_layer_question(h_q))
