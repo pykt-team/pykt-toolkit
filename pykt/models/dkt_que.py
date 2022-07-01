@@ -23,15 +23,30 @@ class DKTQueNet(nn.Module):
         self.dropout_layer = nn.Dropout(dropout)
         self.out_layer_question = nn.Linear(self.hidden_size, num_q)
         self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
+        if self.emb_type in ["qcaid","qcaid_h"]:
+            self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
+            self.h_c_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
         
         
     def forward(self, q, c ,r):
-        xemb = self.que_emb(q,c,r)
+        if self.emb_type in ["qcaid","qcaid_h"]:
+            xemb,emb_q,emb_c = self.que_emb(q,c,r)
+        else:
+            xemb = self.que_emb(q,c,r)
         # print(f"xemb.shape is {xemb.shape}")
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
-        y_question = torch.sigmoid(self.out_layer_question(h))
-        y_concept = torch.sigmoid(self.out_layer_concept(h))
+        if self.emb_type == "qcaid":
+            h_q = h
+            h_c = h
+        elif self.emb_type == "qcaid_h":
+            h_q = self.h_q_merge(torch.cat([h,emb_q],dim=-1))
+            h_c = self.h_c_merge(torch.cat([h,emb_c],dim=-1))
+        else:
+            h_q = h
+            h_c = h
+        y_question = torch.sigmoid(self.out_layer_question(h_q))
+        y_concept = torch.sigmoid(self.out_layer_concept(h_c))
         return y_question,y_concept
 
 class DKTQue(QueBaseModel):

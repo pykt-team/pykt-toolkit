@@ -44,7 +44,7 @@ def main(params):
         save_dir = save_dir+"_"+str(uuid.uuid4())
     os.makedirs(save_dir,exist_ok=True)
        
-    emb_type = f"qid|-|{params['loss_mode']}|-|{params['predict_mode']}"
+    emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}"
    
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
                    emb_size=params['emb_size'], device=device, emb_type=emb_type,
@@ -53,7 +53,7 @@ def main(params):
     model.compile(optimizer='adam', lr = params['learning_rate'])
 
     model.train(train_dataset, valid_dataset, batch_size=128,
-                num_epochs=200, patient=5, shuffle=False, save_model=True, save_dir=save_dir)
+                num_epochs=params['num_epochs'], patient=5, shuffle=False, save_model=True, save_dir=save_dir)
     model.load_model(model.save_dir)
 
     auc,acc = model.evaluate(test_dataset,batch_size=64)
@@ -79,6 +79,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--fold", type=int, default=0)
+    parser.add_argument("--num_epochs", type=int, default=200)
+    
+    
     parser.add_argument("--dropout", type=float, default=0.2)
     
     parser.add_argument("--emb_size", type=int, default=200)
