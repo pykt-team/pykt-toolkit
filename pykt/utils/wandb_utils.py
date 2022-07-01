@@ -154,6 +154,7 @@ class WandbUtils:
         Returns:
             dict: {"state":state,'df':df,"num_run":num_run}, state is 'RUNNING', 'CANCELED' or 'FINISHED',df is the df of the sweep, num_run is the num of sweep run, -1 mean the sweep is finished to save time we will not check it again.
         """
+        print(f"Start check {id}")
         sweep_id = self._get_sweep_id(id,input_type)
         sweep_status = self.get_sweep_status(sweep_id,input_type="sweep_id")
         df = None
@@ -170,10 +171,12 @@ class WandbUtils:
                 first_best_index = df[df[metric]==best_value]['run_index'].min()
                 not_improve_num = len(df[df['run_index'] >= first_best_index])
                 if not_improve_num > patience:#如果连续patience没有提高，则停止
-                    print(f"Run wandb sweep {self.user}/{self.project_name}/{sweep_id} --stop to cancel the sweep.")
+                    print(f"    Run `wandb sweep {self.user}/{self.project_name}/{sweep_id} --stop` to stop the sweep.")
                     state = True
                 else:
                     state = False
+        print(f"    details: {id} state is {state},num of runs is {num_run}")
+        print("-"*60+'\n')
         return {"state":state,'df':df,"num_run":num_run}
         
     def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100):
@@ -185,9 +188,14 @@ class WandbUtils:
             min_run_num (int, optional): the min run num to check. Defaults to 300.
             patience (int, optional): the patience to stop. Defaults to 100.
             
+        Returns:
+            list: the list of dict, each dict is {"id":id,"state":state,'df':df,"num_run":num_run}, state is 'RUNNING', 'CANCELED' or 'FINISHED',df is the df of the sweep, num_run is the num of sweep run, -1 mean the sweep is finished to save time we will not check it again.
         """
+        check_result_list = []
         for sweep_name in self.sweep_dict:
             if sweep_name.startswith(sweep_pattern):
                 check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
                         metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
-                print(f"{sweep_name} state is {check_result['state']},num of runs is {check_result['num_run']}")
+                check_result['sweep_name'] = sweep_name
+                check_result_list.append(check_result)
+        return check_result_list
