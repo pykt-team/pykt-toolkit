@@ -357,28 +357,28 @@ class SKVMN(Module):
 
         # modify 生成每道题对应的yt onehot向量
         # print(f"generate yt onehot start:{datetime.datetime.now()}")
-        if self.use_onehot:
-            r_onehot_array = []
-            for i in range(r.shape[0]):
-                for j in range(r.shape[1]):
-                    r_onehot = np.zeros(self.num_c)
-                    index = r[i][j]
-                    if index > 0:
-                        r_onehot[index] = 1
-                    r_onehot_array.append(r_onehot)
-            r_onehot_content = torch.cat([torch.Tensor(r_onehot_array[i]).unsqueeze(0) for i in range(len(r_onehot_array))], 0)
-            r_onehot_content = r_onehot_content.view(bs, r.shape[1], -1).long().to(device)
+        # if self.use_onehot:
+        #     r_onehot_array = []
+        #     for i in range(r.shape[0]):
+        #         for j in range(r.shape[1]):
+        #             r_onehot = np.zeros(self.num_c)
+        #             index = r[i][j]
+        #             if index > 0:
+        #                 r_onehot[index] = 1
+        #             r_onehot_array.append(r_onehot)
+        #     r_onehot_content = torch.cat([torch.Tensor(r_onehot_array[i]).unsqueeze(0) for i in range(len(r_onehot_array))], 0)
+        #     r_onehot_content = r_onehot_content.view(bs, r.shape[1], -1).long().to(device)
         #     print(f"r_onehot_content: {r_onehot_content.shape}")
         # print(f"generate yt onehot end:{datetime.datetime.now()}")
 
         # print(f"generate yt onehot start:{datetime.datetime.now()}")
-        # if self.use_onehot:
-        #     q_data = q.reshape(bs * self.seqlen, 1)
-        #     r_onehot = torch.zeros(bs * self.seqlen, self.num_c).long().to(device)
-        #     r_data = r.unsqueeze(2).expand(-1, -1, self.num_c).reshape(bs * self.seqlen, self.num_c)
-        #     r_onehot_content = r_onehot.scatter_(1, q_data, r_data).reshape(bs, self.seqlen, -1) 
-        #     # print(f"r_onehot_content_new: {r_onehot_content.shape}")
-        # # print(f"generate yt onehot end:{datetime.datetime.now()}")
+        if self.use_onehot:
+            q_data = q.reshape(bs * self.seqlen, 1)
+            r_onehot = torch.zeros(bs * self.seqlen, self.num_c).long().to(device)
+            r_data = r.unsqueeze(2).expand(-1, -1, self.num_c).reshape(bs * self.seqlen, self.num_c)
+            r_onehot_content = r_onehot.scatter_(1, q_data, r_data).reshape(bs, self.seqlen, -1) 
+            # print(f"r_onehot_content_new: {r_onehot_content.shape}")
+        # print(f"generate yt onehot end:{datetime.datetime.now()}")
 
         value_read_content_l = []
         input_embed_l = []
