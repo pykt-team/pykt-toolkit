@@ -39,7 +39,7 @@ class QueEmb(nn.Module):
         self.emb_size = emb_size
         #get emb type
         tmp_emb_type = f"{model_name}-{emb_type}"
-        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}_",""))
+        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}-",""))
         print(f"emb_type is {emb_type}")
 
         self.emb_type = emb_type
@@ -66,6 +66,11 @@ class QueEmb(nn.Module):
 
         if emb_type.startswith("qid"):
             self.q_emb = nn.Embedding(self.num_q, self.emb_size)
+
+        if emb_type == "qcid":#question_emb concat avg(concepts emb)
+            self.q_emb = nn.Embedding(self.num_q, self.emb_size)
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
         
         self.output_emb_dim = emb_size
 
@@ -113,9 +118,9 @@ class QueEmb(nn.Module):
             xemb = que_c_emb
         elif emb_type =="qaid_qc":
             x = q + self.num_q * r
-            xemb = self.interaction_emb(x)
-            concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
-            xemb = torch.cat([xemb,concept_avg],dim=-1)
+            emb_q = self.interaction_emb(x)
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            xemb = torch.cat([emb_q,emb_c],dim=-1)
             xemb = self.que_c_linear(xemb)
         elif emb_type in ["qcaid","qcaid_h"]:
             x_q = q + self.num_q * r
@@ -126,6 +131,13 @@ class QueEmb(nn.Module):
             xemb = torch.cat([emb_q,emb_c],dim=-1)
             xemb = self.que_c_linear(xemb)
             return xemb,emb_q,emb_c
+        elif emb_type in ["qcid","qaid_h"]:
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
+            que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+            xemb = self.que_c_linear(xemb)
+            return xemb,emb_q,emb_c
+
         return xemb
 
 from pykt.utils import set_seed
