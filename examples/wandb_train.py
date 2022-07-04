@@ -75,7 +75,7 @@ def main(params):
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    for remove_item in ['use_wandb','learning_rate','add_uuid']:
+    for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
     if model_name in ["saint","saint++", "sakt"]:
@@ -92,7 +92,7 @@ def main(params):
             else:
                 weight_p.append(p)
         optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
-        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=1e-5)
+        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
     elif model_name == "iekt":
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
     else:

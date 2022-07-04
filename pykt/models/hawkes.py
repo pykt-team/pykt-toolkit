@@ -80,11 +80,14 @@ class HawkesKT(nn.Module):
         if times.shape[1] > 0:
             times = times.double() / 1000
             delta_t = (times[:, :, None] - times[:, None, :]).abs().double()
+            # print(times.shape, delta_t)
+            # assert False
         else:
             # 1 if no timestamps
-            delta_t = torch.ones(skills.shape[0], skills.shape[1]).double()
+            delta_t = torch.ones(skills.shape[0], skills.shape[1], skills.shape[1]).double().to(device)
         delta_t = torch.log(delta_t + 1e-10) / np.log(self.time_log)
 
+        # print(f"alphas: {alphas.shape}, betas: {betas.shape}, delta_t: {delta_t.shape}")
         cross_effects = alphas * torch.exp(-betas * delta_t)
         # cross_effects = alphas * torch.exp(-self.beta * delta_t)
         # cross_effects = alphas
