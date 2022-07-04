@@ -84,7 +84,8 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         # loss = 0.5*loss1 + 0.5*loss2
 
         
-    elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    #elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -103,7 +104,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name == "akt":
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -145,7 +146,11 @@ def model_forward(model, data):
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, c] # first: yshft
-    elif model_name in ["dkt"]:
+    #elif model_name in ["dkt"]:
+    if model_name in ["lpkt"]:
+        # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
+        cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
+    if model_name in ["dkt"]:
         y = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
@@ -167,7 +172,7 @@ def model_forward(model, data):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name == "akt":               
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
@@ -183,16 +188,15 @@ def model_forward(model, data):
         # second loss
         pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
         adv_loss = cal_loss(model, [pred_res], r, rshft, sm)
-
         loss = loss + model.beta * adv_loss
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
         ys.append(y)  
     # cal loss
     elif model_name == "lpkt":
-        cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
-        cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1)
-        y = model(cq.long(), cr.long(), cat.long(), cit.long())
+
+        # y = model(cq.long(), cr.long(), cat, cit.long())
+        y = model(cq.long(), cr.long(), cit.long())
         ys.append(y[:, 1:])  
     elif model_name == "hawkes":
         # ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)

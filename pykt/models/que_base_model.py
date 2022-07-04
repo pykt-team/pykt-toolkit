@@ -11,6 +11,7 @@ from sklearn import metrics
 emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
 emb_type_map = {"iekt-qid":"qc_merge",
                 "iekt-qc_merge":"qc_merge",
+                "iekt_ce-qid":"qc_merge",
                 "dkt_que-qid":"qaid_qc"
                 }
 
