@@ -1,7 +1,10 @@
+from audioop import cross
+from multiprocessing import reduction
 import os, sys
+from re import L
 import torch
 import torch.nn as nn
-from torch.nn.functional import one_hot, binary_cross_entropy
+from torch.nn.functional import one_hot, binary_cross_entropy, cross_entropy
 import numpy as np
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
@@ -10,10 +13,78 @@ from ..utils.utils import debug_print
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# def polyloss(logits, labels, epsilon=1.0):
+#     # pt, CE, and Poly1 have shape [batch].
+#     pt = tf.reduce_sum(labels * tf.nn.softmax(logits), axis=-1)
+#     CE = tf.nn.softmax_cross_entropy_with_logits(labels, logits)
+#     Poly1 = CE + epsilon * (1 - pt)
+#     return Poly1
+
+def SoftMax(x, g=0, t=0.1):
+    # x = np.array(x).cpu()
+    log_x = (x + g) / t
+    exp_x = log_x.exp()
+    softmax_x = exp_x / torch.sum(exp_x)
+    return softmax_x
+
+def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
+    import torch.nn.functional as F
+    labels_onehot = F.one_hot(labels, num_classes=model.num_c).to(device=logits.device, dtype=logits.dtype)
+    pt = torch.sum(labels_onehot * SoftMax(F.softmax(logits, dim=-1)), dim=-1)
+    # pt = torch.sum(labels_onehot * SoftMax(logits), dim=-1)
+    CE = F.cross_entropy(input=logits, target=labels, reduction='none')
+    poly1 = CE + epsilon * (1 - pt)
+    if reduction == "mean":
+        poly1 = poly1.mean()
+    elif reduction == "sum":
+        poly1 = poly1.sum()
+    return poly1
+
+# def binary_polyloss(logits, labels, epsilon=1.0, reduction="mean"):
+#     # import torch.nn.functional as F
+#     # labels_onehot = F.one_hot(labels, num_classes=model.num_c).to(device=logits.device, dtype=logits.dtype)
+#     # pt = torch.sum(labels_onehot * F.softmax(logits, dim=-1), dim=-1)
+    
+#     pt = torch.sum(logits)
+#     CE = binary_cross_entropy(logits, labels, reduction="none")
+
+#     # CE = F.cross_entropy(input=logits, target=labels, reduction='none')
+#     poly1 = CE + epsilon * (1 - pt)
+#     if reduction == "mean":
+#         poly1 = poly1.mean()
+#     elif reduction == "sum":
+#         poly1 = poly1.sum()
+#     return poly1
+
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    if model_name in ["cdkt"]:
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        loss = binary_cross_entropy(y.double(), t.double())
+
+        # 1.2
+        # loss2 = 0
+        # mask = sm == 1
+        # loss2 = cross_entropy(ys[1][mask], ys[2][mask])
+        # loss = 0.5*loss1+0.5*loss2
+        
+        # # concept predict loss  ## 1.3
+        # loss2 = 0        
+        # # mask = sm == 1
+        # # # print(ys[1][mask][0:5])
+        # # # print(f"y: {y.shape}, ys[1][mask]: {ys[1][mask].shape}")
+        # # assert y.shape[0] == ys[1][mask].shape[0]
+        # # loss2 = polyloss(model, ys[1][mask], ys[2][mask])
+        # y2 = (ys[1] * one_hot(ys[2].long(), model.num_c)).sum(-1)
+        # y2 = torch.masked_select(y2, sm)
+        # t2 = torch.ones(y2.shape[0]).to(device)
+        # loss2 = binary_cross_entropy(y2.double(), t2.double())
+        # loss = 0.5*loss1 + 0.5*loss2
+
+        
+    elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -64,7 +135,17 @@ def model_forward(model, data):
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
 
-    if model_name in ["dkt"]:
+    # if model_name in ["cdkt"]: ## 1.3
+    #     y, y2 = model(c.long(), r.long(), train=True)
+    #     y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+    #     y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
+    #     ys = [y, y2] # first: yshft
+    if model_name in ["cdkt"]:
+        y, y2 = model(c.long(), r.long(), q.long(), train=True)
+        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
+        ys = [y, y2, c] # first: yshft
+    elif model_name in ["dkt"]:
         y = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft

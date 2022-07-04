@@ -69,7 +69,10 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cq = torch.cat((q[:,0:1], qshft), dim=1)
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
-            if model_name in ["dkt", "dkt+"]:
+            if model_name in ["cdkt"]:
+                y = model(c.long(), r.long(), q.long())
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
@@ -363,6 +366,9 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 start_hemb = torch.tensor([-1] * (ek.shape[0] * ek.shape[2])).reshape(ek.shape[0], 1, ek.shape[2]).to(device)
                 ek = torch.cat((start_hemb, ek), dim=1) # add the first hidden emb
                 es = torch.cat((start_hemb, es), dim=1) # add the first hidden emb  
+            elif model_name in ["cdkt"]:
+                y = model(c.long(), r.long(), q.long())
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -633,7 +639,10 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         cout, true = cc.long()[k], cr.long()[k] # 当前预测的是第k个
         qout = None if cq.shape[0] == 0 else cq.long()[k]
         tout = None if ct.shape[0] == 0 else ct.long()[k]
-        if model_name in ["dkt", "dkt+"]:
+        if model_name in ["cdkt"]:
+            y = model(cin.long(), rin.long(), qin.long())
+            y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        elif model_name in ["dkt", "dkt+"]:
             y = model(cin.long(), rin.long())
             # print(y)
             pred = y[0][-1][cout.item()]
@@ -899,7 +908,10 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
         ccr = torch.cat((curr[:,0:1], currshft), dim=1)
         cct = torch.cat((curt[:,0:1], curtshft), dim=1)
-        if model_name in ["dkt", "dkt+"]:
+        if model_name in ["cdkt"]:
+            y = model(curc.long(), curr.long(), curq.long())
+            y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+        elif model_name in ["cdkt", "dkt", "dkt+"]:
             y = model(curc.long(), curr.long())
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:

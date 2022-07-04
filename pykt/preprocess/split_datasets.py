@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import json, copy
 
-ALL_KEYS = ["fold", "uid", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
-ONE_KEYS = ["fold", "uid"]
+ALL_KEYS = ["fold", "uid", "flag", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
+ONE_KEYS = ["fold", "uid", "flag"]
 
 def read_data(fname, min_seq_len=3, response_set=[0,1]):
     effective_keys = set()
@@ -224,7 +224,7 @@ def generate_sequences(df, effective_keys, min_seq_len=3, maxlen = 200, pad_val 
             else:
                 dres[key].append(dcur[key])
         dres["selectmasks"].append(",".join(["1"] * rest + [str(pad_val)] * pad_dim))
-
+    print("in split!", dres.keys())
     # after preprocess data, report
     dfinal = dict()
     for key in ALL_KEYS:

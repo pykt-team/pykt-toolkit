@@ -5,7 +5,7 @@ from pykt.datasets.que_data_loader import KTQueDataset
 import json
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-data_config = json.load(open('../configs/data_config.json'))['assist2009']
+data_config = json.load(open('../configs/data_config.json'))['algebra2005']
 data_config
 
 all_folds = set(data_config["folds"])
