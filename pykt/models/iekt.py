@@ -23,11 +23,18 @@ class IEKTNet(nn.Module):
             self.predictor = funcs(n_layer, emb_size * 3, 1, dropout)
             self.acq_matrix = nn.Parameter(torch.randn(acq_levels, emb_size * 2).to(self.device), requires_grad=True)
             self.checker_emb = funcs(n_layer, emb_size * 12, acq_levels, dropout)
+
         elif self.abla_study_mode == "nkase":
             self.predictor = funcs(n_layer, emb_size * 5, 1, dropout)
             self.cog_matrix = nn.Parameter(torch.randn(cog_levels, emb_size * 2).to(self.device), requires_grad=True) 
             self.select_preemb = funcs(n_layer, emb_size * 3, cog_levels, dropout)#MLP
+           
         elif self.abla_study_mode == "nck":
+            self.predictor = funcs(n_layer, emb_size * 3, 1, dropout)
+
+        elif self.abla_study_mode in ["nckioh","nckoh"]:
+            self.predictor = funcs(n_layer, emb_size * 1, 1, dropout)
+        elif self.abla_study_mode == "nckih":
             self.predictor = funcs(n_layer, emb_size * 3, 1, dropout)
         else:
             self.predictor = funcs(n_layer, emb_size * 5, 1, dropout)
@@ -71,10 +78,13 @@ class IEKTNet(nn.Module):
             _type_: _description_
         """
         v = self.get_ques_representation(q,c)
-        predict_x = torch.cat([h, v], dim = 1)#equation4
+        if self.abla_study_mode in ["nckioh","nckoh"]:
+            predict_x = h
+        else:
+            predict_x = torch.cat([h, v], dim = 1)#equation4
         #debug_print("start",fuc_name='obtain_v')
         h_v = torch.cat([h, v], dim = 1)#equation4 为啥要计算两次？
-        if self.abla_study_mode in ["nce","nck"]:
+        if self.abla_study_mode in ["nce","nck","nckioh","nckoh","nckih"]:
             prob = self.predictor(predict_x)#equation7
         else:
             prob = self.predictor(torch.cat([
@@ -95,7 +105,7 @@ class IEKTNet(nn.Module):
             next_p_state {}: _description_
         """
         #equation 13
-        if self.abla_study_mode in ["nkase","nck"]:
+        if self.abla_study_mode in ["nkase","nck","nckioh","nckoh","nckih"]:
             # print(f"emb shape is {emb.shape}")
             inputs = torch.cat([
                     emb.mul(operate.repeat(1, self.emb_size * 2).float()),
@@ -160,7 +170,7 @@ class IEKT(QueBaseModel):
             this_reward_list = reward_tensor[i]
             
             #CE module
-            if self.abla_study_mode in  ['nce','nck','nrl']:
+            if self.abla_study_mode in  ['nce','nck','nrl',"nckioh","nckoh","nckih"]:
                 #remove nce loss
                 pass
             else:
@@ -190,7 +200,7 @@ class IEKT(QueBaseModel):
             tracat_ground_truth.append(this_groud_truth)
 
             #KASE module
-            if self.abla_study_mode in  ['nkase','nck','nrl']:
+            if self.abla_study_mode in  ['nkase','nck','nrl',"nckioh","nckoh","nckih"]:
                 #remove nkase loss
                 pass
             else:
@@ -213,7 +223,7 @@ class IEKT(QueBaseModel):
             
         loss_c = BCELoss(torch.cat(tracat_logits, dim = 0), torch.cat(tracat_ground_truth, dim = 0))   
         
-        if self.abla_study_mode in  ['nck','nrl']:
+        if self.abla_study_mode in  ['nck','nrl',"nckioh","nckoh","nckih"]:
             #remove loss_ms
             loss = loss_c#equation21
         else:
@@ -238,12 +248,15 @@ class IEKT(QueBaseModel):
         for seqi in range(0, seq_len):#序列长度
             #debug_print(f"start data_new, c is {data_new}",fuc_name='train_one_step')
             v_t = self.model.get_ques_representation(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi])
-            ques_h = torch.cat([v_t,h], dim = 1)#equation4
+            if self.abla_study_mode in ["nckioh"]:
+                ques_h = v_t
+            else:
+                ques_h = torch.cat([v_t,h], dim = 1)#equation4
             pre_state_list.append(ques_h)#上一个题目的状态
             # d = 64*3 [题目,知识点,h]
             
             #CE module
-            if self.abla_study_mode in  ['nce','nck']:
+            if self.abla_study_mode in  ['nce','nck',"nckioh","nckoh","nckih"]:
                 h_v, v, logits, rt_x = self.model.obtain_v(q=data_new['cq'][:,seqi], c=data_new['cc'][:,seqi], 
                                                             h=h, x=rt_x, emb=None)#equation 7
                 prob = sigmoid_func(logits)#equation 7 sigmoid
@@ -260,7 +273,7 @@ class IEKT(QueBaseModel):
             predict_list.append(logits.squeeze(1))
             out_operate_logits = torch.where(prob > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device))
             #KASE module
-            if self.abla_study_mode in  ['nkase','nck']:
+            if self.abla_study_mode in  ['nkase','nck',"nckioh","nckoh","nckih"]:
                 emb = v_t
                 #remove nkase
             else:
