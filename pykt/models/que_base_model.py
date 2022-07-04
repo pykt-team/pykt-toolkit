@@ -71,6 +71,12 @@ class QueEmb(nn.Module):
             self.q_emb = nn.Embedding(self.num_q, self.emb_size)
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+
+
+        if emb_type == "iekt":
+            self.q_emb = nn.Embedding(self.num_q, self.emb_size)
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
         
         self.output_emb_dim = emb_size
 
@@ -132,6 +138,12 @@ class QueEmb(nn.Module):
             xemb = self.que_c_linear(xemb)
             return xemb,emb_q,emb_c
         elif emb_type in ["qcid","qaid_h"]:
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
+            que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+            xemb = self.que_c_linear(xemb)
+            return xemb,emb_q,emb_c
+        elif emb_type == "iekt":
             emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
             que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
