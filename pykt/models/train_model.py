@@ -62,13 +62,13 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     if model_name in ["cdkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
-        loss = binary_cross_entropy(y.double(), t.double())
+        loss1 = binary_cross_entropy(y.double(), t.double())
 
         # 1.2
-        # loss2 = 0
-        # mask = sm == 1
-        # loss2 = cross_entropy(ys[1][mask], ys[2][mask])
-        # loss = 0.5*loss1+0.5*loss2
+        loss2 = 0
+        mask = sm == 1
+        loss2 = cross_entropy(ys[1][mask], ys[2][mask])
+        loss = 0.5*loss1+0.5*loss2
         
         # # concept predict loss  ## 1.3
         # loss2 = 0        

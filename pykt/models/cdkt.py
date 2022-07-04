@@ -38,7 +38,7 @@ class CDKT(Module):
             self.lstm_layer = LSTM(self.emb_size*3, self.hidden_size, batch_first=True)
             self.out_layer = Linear(self.hidden_size, self.num_c)
 
-        if self.emb_type.endswith("precurc"): # predict cur question' cur concept
+        if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
             self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             self.qdrop = Dropout(dropout)
@@ -132,6 +132,7 @@ class CDKT(Module):
             y2 = self.qclasifier(qh)
 
             # predict response
+            xemb = xemb + qh
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
