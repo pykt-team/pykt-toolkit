@@ -66,7 +66,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt"]:
+        if model_name in ["dkvmn", "sakt", "saint","saint++", "akt", "atkt", "lpkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -92,7 +92,7 @@ def main(params):
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
-        if not model_name in ['saint']:
+        if not model_name in ['saint','saint++']:
             params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
@@ -106,7 +106,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint", "sakt"]:
+    if model_name in ["saint","saint++", "sakt"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")

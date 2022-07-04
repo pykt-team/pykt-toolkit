@@ -3,10 +3,11 @@
 
 import torch
 import torch.nn as nn
-from torch.nn import Module, Parameter, Embedding, Linear, MaxPool1d, AvgPool1d, Dropout
+from torch.nn import Module, Parameter, Embedding, Linear, MaxPool1d, AvgPool1d, Dropout, LSTM
 from torch.nn.init import kaiming_normal_
 import torch.nn.functional as F
 import numpy as np
+import datetime
 # from models.utils import RobertaEncode
 
 
@@ -186,6 +187,7 @@ class SKVMN(Module):
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
         self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
+        # self.lstm_layer = LSTM(self.dim_s, self.dim_s, batch_first=True)
 
     def ut_mask(self, seq_len):
         return torch.triu(torch.ones(seq_len, seq_len), diagonal=0).to(dtype=torch.bool)
@@ -260,7 +262,8 @@ class SKVMN(Module):
          [ 2.,  6.,  8.,  8.,  5.],
          [ 2.,  6.,  8.,  8.,  5.]]])
         >>> iv_distances
-        tensor([[[0., 1., 6., 1., 1.],
+        tensor(
+        [[[0., 1., 6., 1., 1.],
          [1., 0., 3., 0., 2.],
          [6., 3., 0., 3., 9.],
          [1., 0., 3., 0., 2.],
@@ -353,18 +356,29 @@ class SKVMN(Module):
             #v = self.v_emb_layer(x)
 
         # modify 生成每道题对应的yt onehot向量
+        # print(f"generate yt onehot start:{datetime.datetime.now()}")
+        # if self.use_onehot:
+        #     r_onehot_array = []
+        #     for i in range(r.shape[0]):
+        #         for j in range(r.shape[1]):
+        #             r_onehot = np.zeros(self.num_c)
+        #             index = r[i][j]
+        #             if index > 0:
+        #                 r_onehot[index] = 1
+        #             r_onehot_array.append(r_onehot)
+        #     r_onehot_content = torch.cat([torch.Tensor(r_onehot_array[i]).unsqueeze(0) for i in range(len(r_onehot_array))], 0)
+        #     r_onehot_content = r_onehot_content.view(bs, r.shape[1], -1).long().to(device)
+        #     print(f"r_onehot_content: {r_onehot_content.shape}")
+        # print(f"generate yt onehot end:{datetime.datetime.now()}")
+
+        # print(f"generate yt onehot start:{datetime.datetime.now()}")
         if self.use_onehot:
-            r_onehot_array = []
-            for i in range(r.shape[0]):
-                for j in range(r.shape[1]):
-                    r_onehot = np.zeros(self.num_c)
-                    index = r[i][j]
-                    if index > 0:
-                        r_onehot[index] = 1
-                    r_onehot_array.append(r_onehot)
-            r_onehot_content = torch.cat([torch.Tensor(r_onehot_array[i]).unsqueeze(0) for i in range(len(r_onehot_array))], 0)
-            r_onehot_content = r_onehot_content.view(bs, r.shape[1], -1).long().to(device)
-            # print(f"r_onehot_content: {r_onehot_content.shape}")
+            q_data = q.reshape(bs * self.seqlen, 1)
+            r_onehot = torch.zeros(bs * self.seqlen, self.num_c).long().to(device)
+            r_data = r.unsqueeze(2).expand(-1, -1, self.num_c).reshape(bs * self.seqlen, self.num_c)
+            r_onehot_content = r_onehot.scatter_(1, q_data, r_data).reshape(bs, self.seqlen, -1) 
+            # print(f"r_onehot_content_new: {r_onehot_content.shape}")
+        # print(f"generate yt onehot end:{datetime.datetime.now()}")
 
         value_read_content_l = []
         input_embed_l = []
@@ -372,6 +386,7 @@ class SKVMN(Module):
         ft = []
 
         #每个时间步计算一次attn，更新memory key & memory value
+        # print(f"mem_value start:{datetime.datetime.now()}")
         mem_value = self.Mv0.unsqueeze(0).repeat(bs, 1, 1).to(device) #[bs, size_m, dim_s]
         # print(f"init_mem_value:{mem_value.shape}")
         for i in range(self.seqlen):
@@ -415,16 +430,20 @@ class SKVMN(Module):
             # print(f"write_embed: {write_embed}")
             new_memory_value = self.mem.write(correlation_weight, write_embed, mem_value)
             mem_value = new_memory_value
+        # print(f"mem_value end:{datetime.datetime.now()}")
 
+        # print(f"mem_key start:{datetime.datetime.now()}")
         w = torch.cat([correlation_weight_list[i].unsqueeze(1) for i in range(self.seqlen)], 1)
+        # print(f"mem_key end:{datetime.datetime.now()}")
         ft = torch.stack(ft, dim=0)
         # print(f"ft: {ft.shape}")
 
         #Sequential dependencies
+        # print(f"idx values start:{datetime.datetime.now()}")
         idx_values = self.triangular_layer(w, bs) #[t,bs_n,t-lambda]
+        # print(f"idx values end:{datetime.datetime.now()}")
         # print(f"idx_values: {idx_values.shape}")
-        #Hop-LSTM
-        hidden_state, cell_state = [], []
+
         """
         >>> idx_values
         tensor([[3, 0, 1],
@@ -432,7 +451,12 @@ class SKVMN(Module):
         In 0th sequence, the identity in t3 is same to the ones in t1.
         In 1th sequence, the identity in t3 is same to the ones in t2.
         """
+        #Hop-LSTM
+        # original
+
+        hidden_state, cell_state = [], []
         hx, cx = self.hx.repeat(bs, 1), self.cx.repeat(bs, 1)
+        # print(f"replace_hidden_start:{datetime.datetime.now()}")
         for i in range(self.seqlen): # 逐个ex进行计算
             for j in range(bs):
                 if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
@@ -441,14 +465,66 @@ class SKVMN(Module):
                     cx = cx.clone()
                     cx[j,:] = cell_state[idx_values[0][2]][j]
                     idx_values = idx_values[1:]
+            # print(f"replace_per_hidden_end:{datetime.datetime.now()}")
             hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
             hidden_state.append(hx) #记录中间层的h
             cell_state.append(cx) #记录中间层的c
+        # print(f"replace_all_hidden_end:{datetime.datetime.now()}")
         hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
+        # print(f"stack_hidden_state:{datetime.datetime.now()}")
         cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
+        # print(f"stack_cell_state:{datetime.datetime.now()}")
 
         p = self.p_layer(self.dropout_layer(hidden_state))
+        # print(f"dropout:{datetime.datetime.now()}")
         p = torch.sigmoid(p)
+        # print(f"sigmoid:{datetime.datetime.now()}")
         p = p.squeeze(-1)
         return p
+
+        #时间优化
+        # print(f"copy_ft_begin:{datetime.datetime.now()}")
+        # copy_ft = torch.repeat_interleave(ft, repeats=self.seqlen, dim=0).reshape(bs, self.seqlen, self.seqlen,-1)
+        # print(f"copy_ft_end:{datetime.datetime.now()}")
+        # mask = torch.tensor(np.eye(self.seqlen, self.seqlen)).to(device)
+        # print(f"mask_end:{datetime.datetime.now()}")
+        # copy_mask = mask.repeat(bs,1,1)
+        # print(f"copy_mask_end:{datetime.datetime.now()}")
+
+        # for i in range(idx_values.shape[0]):
+        #     n = idx_values[i][1] # 第n个batch
+        #     t = idx_values[i][0] # 当前时刻t
+        #     t_a = idx_values[i][2] # 具有相同实体向量的历史时刻 t - lamda
+        #     copy_ft[n][t][t-t_a] = copy_ft[n][t][t]
+        #     if t_a + 1 != t:
+        #         copy_mask[n][t][t_a+1] = 1
+        #         copy_mask[n][t][t] = 0
+        # print(f"replace_input_end:{datetime.datetime.now()}")
+        # # print(f"copy_mask: {copy_mask.shape}")
+        # copy_ft_reshape = torch.reshape(copy_ft,(bs, self.seqlen * self.seqlen,-1))
+        # print(f"copy_ft_reshape_end:{datetime.datetime.now()}")
+        # h, _ = self.lstm_layer(copy_ft_reshape)
+        # print(f"lstm_end:{datetime.datetime.now()}")
+        # p = self.p_layer(self.dropout_layer(copy_ft_reshape))
+        # print(f"dropout_end:{datetime.datetime.now()}")
+        # p = torch.sigmoid(p)
+        # print(f"sigmoid_end:{datetime.datetime.now()}")
+        # p = torch.reshape(p.squeeze(-1),(bs, -1))
+        # print(f"reshape_end:{datetime.datetime.now()}")
+        # copy_mask_reshape = torch.reshape(copy_mask, (bs,-1))
+        # print(f"copy_mask_reshape_end:{datetime.datetime.now()}")
+        # copy_mask_reshape = copy_mask_reshape.ge(1)
+        # print(f"copy_mask_reshape_end:{datetime.datetime.now()}")
+        # p = torch.masked_select(p, copy_mask_reshape).reshape(bs,-1)
+        # print(f"select_p_end:{datetime.datetime.now()}")
+        # return p
+
+
+
+
+
+
+
+
+
 
