@@ -44,7 +44,7 @@ def main(params):
         save_dir = save_dir+"_"+str(uuid.uuid4())
     os.makedirs(save_dir,exist_ok=True)
        
-    emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}"
+    emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}"
    
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
                    emb_size=params['emb_size'], device=device, emb_type=emb_type,
@@ -85,14 +85,16 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.2)
     
     parser.add_argument("--emb_size", type=int, default=200)
-    parser.add_argument("--loss_mode", type=str, default='q')
+    # parser.add_argument("--loss_mode", type=str, default='q')#keep same with predict_mode
     parser.add_argument("--predict_mode", type=str, default='q')
+    parser.add_argument("--output_mode", type=str, default='all',help="all/next")
+    
     parser.add_argument("--learning_rate", type=float, default=1e-3)
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
     
     args = parser.parse_args()
-
+    args.loss_mode = args.predict_mode
     params = vars(args)
     main(params)

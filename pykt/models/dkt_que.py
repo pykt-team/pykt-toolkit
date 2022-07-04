@@ -25,13 +25,14 @@ class MLP(nn.Module):
             x = F.relu(lin(x))
         return self.out(self.dropout(x))
 class DKTQueNet(nn.Module):
-    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu'):
+    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1):
         super().__init__()
         self.model_name = "dkt_que"
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
         self.hidden_size = emb_size
+        self.mlp_layer_num = mlp_layer_num
 
        
         self.emb_type,self.loss_mode,self.predict_mode,self.output_mode = emb_type.split("|-|")
@@ -53,18 +54,18 @@ class DKTQueNet(nn.Module):
 
         if self.predict_next:
             if self.emb_type in ["iekt"]:
-                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
-                self.out_layer_concept = MLP(1,self.hidden_size*3,num_c,dropout)
+                self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*3,1,dropout)
+                self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)
             else:
                 self.que_next_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type="qid",model_name="qid",device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)#qid is used to predict next question
                 #q_n 表示预测下一个题目而不是全部题目，知识点还是预测所有的
-                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
+                self.out_layer_question = nn.Linear(self.hidden_size, 1)
                 self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
         else:
             if self.emb_type in ["iekt"]:
-                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
-                self.out_layer_concept = MLP(1,self.hidden_size*3,num_c,dropout)
+                self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size,num_q,dropout)
+                self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
             else:
                 self.out_layer_question = nn.Linear(self.hidden_size, num_q)
                 self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
@@ -95,6 +96,7 @@ class DKTQueNet(nn.Module):
             else:
                 xemb_next = self.que_next_emb(data['qshft'],data['cshft'],data['rshft'])
                 h = self.h_q_merge(torch.cat([xemb_next,h],axis=-1))
+        
 
         if self.emb_type == "qcaid":
             h_q = h
@@ -108,20 +110,19 @@ class DKTQueNet(nn.Module):
         elif self.emb_type == "qid":
             h_q = h
             h_c = h
-
         y_question = torch.sigmoid(self.out_layer_question(h_q))
         y_concept = torch.sigmoid(self.out_layer_concept(h_c))
         return y_question,y_concept
 
 class DKTQue(QueBaseModel):
-    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0):
+    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1):
         model_name = "dkt_que"
        
         debug_print(f"emb_type is {emb_type}",fuc_name="DKTQue")
 
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
         self.model = DKTQueNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
-                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device)
+                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num)
         
         self.model = self.model.to(device)
         self.emb_type = self.model.emb_type
