@@ -79,6 +79,7 @@ class QueEmb(nn.Module):
         return concept_avg
 
     def forward(self,q,c,r=None):
+        print(f"emb_type: {self.emb_type}")
         emb_type = self.emb_type
         if "qc_merge" in emb_type:
             concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]

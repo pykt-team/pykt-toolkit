@@ -3,9 +3,11 @@ import torch
 from pykt.models.dkt_que import DKTQue
 from pykt.datasets.que_data_loader import KTQueDataset
 import json
+import sys
 
+dataset_name = sys.argv[1]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-data_config = json.load(open('../configs/data_config.json'))['algebra2005']
+data_config = json.load(open('../configs/data_config.json'))[dataset_name]
 data_config
 
 all_folds = set(data_config["folds"])
@@ -25,16 +27,16 @@ test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
 
 model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
-               emb_size=128, device=device, emb_type='qid',seed=42)
+               emb_size=300, device=device, emb_type='qid',seed=3407)
 
 model.compile(optimizer='adam', lr=0.001)
 
-model.train(train_dataset, valid_dataset, batch_size=64,
-            num_epochs=300, patient=10, shuffle=False,save_model=True,save_dir='tmp/dkt_assist2009')
+model.train(train_dataset, valid_dataset, batch_size=32,
+            num_epochs=200, patient=10, shuffle=False,save_model=True,save_dir='tmp/'+dataset_name)
 
 model.load_model(model.save_dir)
-valid_result = model.evaluate(valid_dataset,batch_size=64)
+valid_result = model.evaluate(valid_dataset,batch_size=32)
 print(f"valid_result is {valid_result}")
 
-test_result = model.evaluate(test_dataset,batch_size=64)
+test_result = model.evaluate(test_dataset,batch_size=32)
 print(f"test_result is {valid_result}")

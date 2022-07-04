@@ -146,7 +146,6 @@ def model_forward(model, data):
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, c] # first: yshft
-    #elif model_name in ["dkt"]:
     if model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
