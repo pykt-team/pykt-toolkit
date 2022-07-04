@@ -5,7 +5,25 @@ import torch.nn.functional as F
 import numpy as np
 from .que_base_model import QueBaseModel,QueEmb
 from pykt.utils import debug_print
+class MLP(nn.Module):
+    '''
+    classifier decoder implemented with mlp
+    '''
+    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
+        super().__init__()
 
+        self.lins = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim)
+            for _ in range(n_layer)
+        ])
+        self.dropout = nn.Dropout(p = dpo)
+        self.out = nn.Linear(hidden_dim, output_dim)
+        self.act = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        for lin in self.lins:
+            x = F.relu(lin(x))
+        return self.out(self.dropout(x))
 class DKTQueNet(nn.Module):
     def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu'):
         super().__init__()
@@ -15,49 +33,68 @@ class DKTQueNet(nn.Module):
         self.emb_size = emb_size
         self.hidden_size = emb_size
 
-        if "next" in emb_type:
-            self.predict_next = True
-        else:
-            self.predict_next = False#predict all question
-        emb_type = emb_type.replace("|-|next","")
-        
-        self.emb_type,self.loss_mode,self.predict_mode = emb_type.split("|-|")
+       
+        self.emb_type,self.loss_mode,self.predict_mode,self.output_mode = emb_type.split("|-|")
+        self.predict_next = self.output_mode == "next"#predict all question
 
         self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,model_name=self.model_name,device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
-        self.lstm_layer = nn.LSTM(self.emb_size, self.hidden_size, batch_first=True)
+
+        if self.emb_type in ["iekt"]:
+            self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
+        else:
+            self.lstm_layer = nn.LSTM(self.emb_size, self.hidden_size, batch_first=True)
+
         self.dropout_layer = nn.Dropout(dropout)
         
         if self.emb_type in ["qcaid","qcaid_h"]:
             self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
             self.h_c_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
+
         if self.predict_next:
-            self.que_next_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type="qid",model_name="qid",device=device,
+            if self.emb_type in ["iekt"]:
+                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
+                self.out_layer_concept = MLP(1,self.hidden_size*3,num_c,dropout)
+            else:
+                self.que_next_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type="qid",model_name="qid",device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)#qid is used to predict next question
-            
-            #q_n 表示预测下一个题目而不是全部题目，知识点还是预测所有的
-            self.out_layer_question = nn.Linear(self.hidden_size, 1)
-            self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
-            self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
+                #q_n 表示预测下一个题目而不是全部题目，知识点还是预测所有的
+                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
+                self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
         else:
-            self.out_layer_question = nn.Linear(self.hidden_size, num_q)
-            self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
+            if self.emb_type in ["iekt"]:
+                self.out_layer_question = MLP(1,self.hidden_size*3,1,dropout)
+                self.out_layer_concept = MLP(1,self.hidden_size*3,num_c,dropout)
+            else:
+                self.out_layer_question = nn.Linear(self.hidden_size, num_q)
+                self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
         
         
     def forward(self, q, c ,r,data=None):
         if self.emb_type in ["qcaid","qcaid_h"]:
             xemb,emb_q,emb_c = self.que_emb(q,c,r)
+        elif self.emb_type in ["iekt"]:
+            _,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q,c,r)
+            emb_qc_current = emb_qc[:,:-1,:]
+            emb_qc_shift = emb_qc[:,1:,:]
+            emb_qca_current = emb_qca[:,:-1,:]
+            emb_qca_shift = emb_qca[:,1:,:]
         else:
             xemb = self.que_emb(q,c,r)
 
-        
+        if self.emb_type in ["iekt"]:
+            h, _ = self.lstm_layer(emb_qca_current)
+        else:
         # print(f"xemb.shape is {xemb.shape}")
-        h, _ = self.lstm_layer(xemb)
+            h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
 
         if self.predict_next:
-            xemb_next = self.que_next_emb(data['qshft'],data['cshft'],data['rshft'])
-            h = self.h_q_merge(torch.cat([xemb_next,h],axis=-1))
+            if self.emb_type in ['iekt']:
+                h = torch.cat([emb_qc_shift,h],axis=-1)
+            else:
+                xemb_next = self.que_next_emb(data['qshft'],data['cshft'],data['rshft'])
+                h = self.h_q_merge(torch.cat([xemb_next,h],axis=-1))
 
         if self.emb_type == "qcaid":
             h_q = h
@@ -65,6 +102,9 @@ class DKTQueNet(nn.Module):
         elif self.emb_type == "qcaid_h":
             h_q = self.h_q_merge(torch.cat([h,emb_q],dim=-1))
             h_c = self.h_c_merge(torch.cat([h,emb_c],dim=-1))
+        elif self.emb_type == "iekt":
+            h_q = h#[batch_size,seq_len,hidden_size*3]
+            h_c = h#[batch_size,seq_len,hidden_size*3]
         elif self.emb_type == "qid":
             h_q = h
             h_c = h
@@ -84,6 +124,7 @@ class DKTQue(QueBaseModel):
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device)
         
         self.model = self.model.to(device)
+        self.emb_type = self.model.emb_type
        
 
     
@@ -101,7 +142,10 @@ class DKTQue(QueBaseModel):
 
     def predict_one_step(self,data,return_details=False,process=True):
         data_new = self.batch_to_device(data,process=process)
-        y_question,y_concept = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
+        if self.model.emb_type in ["iekt"]:
+            y_question,y_concept = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
+        else:
+            y_question,y_concept = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
         # print(y_question.shape,y_concept.shape)
         if self.model.predict_next:
             y_question = y_question.squeeze(-1)
