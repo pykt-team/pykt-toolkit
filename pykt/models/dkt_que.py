@@ -56,19 +56,23 @@ class DKTQueNet(nn.Module):
             if self.emb_type in ["iekt"]:
                 self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*3,1,dropout)
                 self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)
+                self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)#concept classifier predict the concepts in question
             else:
                 self.que_next_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type="qid",model_name="qid",device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)#qid is used to predict next question
                 #q_n 表示预测下一个题目而不是全部题目，知识点还是预测所有的
                 self.out_layer_question = nn.Linear(self.hidden_size, 1)
                 self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
+                self.out_concept_classifier = nn.Linear(self.hidden_size, num_c)
         else:
             if self.emb_type in ["iekt"]:
                 self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size,num_q,dropout)
                 self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
+                self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
             else:
                 self.out_layer_question = nn.Linear(self.hidden_size, num_q)
                 self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
+                self.out_concept_classifier = nn.Linear(self.hidden_size, num_c)
         
         
     def forward(self, q, c ,r,data=None):
@@ -112,7 +116,8 @@ class DKTQueNet(nn.Module):
             h_c = h
         y_question = torch.sigmoid(self.out_layer_question(h_q))
         y_concept = torch.sigmoid(self.out_layer_concept(h_c))
-        return y_question,y_concept
+        y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_q))
+        return y_question,y_concept,y_question_concepts
 
 class DKTQue(QueBaseModel):
     def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1):
@@ -127,31 +132,46 @@ class DKTQue(QueBaseModel):
         self.model = self.model.to(device)
         self.emb_type = self.model.emb_type
        
-
-    
     def train_one_step(self,data,process=True):
-        y_question,y_concept,data_new = self.predict_one_step(data,return_details=True,process=process)
+        y_question,y_concept,y_question_concepts,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss_question = self.get_loss(y_question,data_new['rshft'],data_new['sm'])#get loss
         loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#get loss
+        #知识点多分类 loss
+        concept_pred = y_question_concepts.flatten(0,1)
+        concept_target = data_new['cshft'].flatten(0,1)
+        concept_target_pad = torch.zeros((concept_pred.shape[0],concept_pred.shape[1]-concept_target.shape[1])).to(self.device)-1
+        concept_target = torch.cat([concept_target,concept_target_pad],axis=-1).long()
+        # print(f"concept_pred.shape is {concept_pred.shape},{concept_pred},concept_target.shape is {concept_target.shape},{concept_target}")
+        loss_question_concept = nn.MultiLabelMarginLoss()(concept_pred,concept_target)
+        # print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
+        
         if self.model.loss_mode=="c":
             loss = loss_concept
+        elif self.model.loss_mode=="c_cc":
+            loss = (loss_concept+loss_question_concept)/2
         elif self.model.loss_mode=="q":
             loss = loss_question
+        elif self.model.loss_mode=="q_cc":#concept classifier
+            loss = (loss_question+loss_question_concept)/2
         elif self.model.loss_mode=="qc":
             loss = (loss_question+loss_concept)/2
+        elif self.model.loss_mode=="qc_cc":#concept classifier
+            loss = (loss_question+loss_concept+loss_question_concept)/3
         return y_question,loss
 
     def predict_one_step(self,data,return_details=False,process=True):
         data_new = self.batch_to_device(data,process=process)
         if self.model.emb_type in ["iekt"]:
-            y_question,y_concept = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
+            y_question,y_concept,y_question_concepts = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
         else:
-            y_question,y_concept = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
+            y_question,y_concept,y_question_concepts = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
         # print(y_question.shape,y_concept.shape)
         if self.model.predict_next:
             y_question = y_question.squeeze(-1)
         else:
             y_question = (y_question * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
+
+        #get y_concept
         # print(y_question.shape,y_concept.shape)
         concept_mask = torch.where(data_new['cshft'].long()==-1,False,True)
         concept_index = F.one_hot(torch.where(data_new['cshft']!=-1,data_new['cshft'],0),self.model.num_c)
@@ -160,13 +180,12 @@ class DKTQue(QueBaseModel):
         y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
 
         if return_details:
-            return y_question,y_concept,data_new
+            return y_question,y_concept,y_question_concepts,data_new
         else:
             if self.model.predict_mode=="c":
                 y = y_concept
             elif self.model.predict_mode=="q":
                 y = y_question
-            elif self.model.predict_mode=="qc":
+            elif self.model.predict_mode in ["qc","qc_cc"]:
                 y = (y_question+y_concept)/2
-
             return y
