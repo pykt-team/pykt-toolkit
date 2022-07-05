@@ -121,6 +121,7 @@ class KTDataset(Dataset):
 
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         df = pd.read_csv(sequence_path)#[0:1000]
+        '''
         if len(folds) > 1:
             df = df[df["fold"].isin(folds)]
             allnews = []
@@ -131,7 +132,8 @@ class KTDataset(Dataset):
             print(folds, df.columns)
             df = df[df["fold"].isin(folds)]
             df = df[df["flag"]=="ori"]
-        # df = df[df["fold"].isin(folds)]
+        '''
+        df = df[df["fold"].isin(folds)]
         interaction_num = 0
         # seq_qidxs, seq_rests = [], []
         dqtest = {"qidxs": [], "rests":[], "orirow":[]}

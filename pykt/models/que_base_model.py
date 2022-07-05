@@ -12,7 +12,7 @@ emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
 emb_type_map = {"iekt-qid":"qc_merge",
                 "iekt-qc_merge":"qc_merge",
                 "iekt_ce-qid":"qc_merge",
-                "dkt_que-qid":"qaid_qc"
+                # "dkt_que-qid":"qaid_qc"
                 }
 
 class QueEmb(nn.Module):
@@ -36,16 +36,17 @@ class QueEmb(nn.Module):
         self.emb_size = emb_size
         #get emb type
         tmp_emb_type = f"{model_name}-{emb_type}"
-        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}_",""))
+        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}-",""))
         print(f"emb_type is {emb_type}")
 
         self.emb_type = emb_type
         self.emb_path = emb_path
         self.pretrain_dim = pretrain_dim
 
-        if emb_type in ["qc_merge","qaid_qc"]:
+        # if emb_type in ["qc_merge","qaid_qc"]:
+        if "qc_merge" in emb_type:
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
-        if emb_type  in ["qc_merge","qaid_qc"]:
+        # if emb_type  in ["qc_merge","qaid_qc"]:
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
@@ -79,7 +80,6 @@ class QueEmb(nn.Module):
         return concept_avg
 
     def forward(self,q,c,r=None):
-        print(f"emb_type: {self.emb_type}")
         emb_type = self.emb_type
         if "qc_merge" in emb_type:
             concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
@@ -93,7 +93,7 @@ class QueEmb(nn.Module):
             # print("qid")
         elif emb_type == "qid":
             xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
-        elif emb_type == "qaid+qc_merge":
+        elif emb_type.startswith("qaid+qc_merge"):
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
             que_c_emb = self.que_c_linear(que_c_emb)#[batch,max_len-1,emb_size]

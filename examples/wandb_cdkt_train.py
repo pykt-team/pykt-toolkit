@@ -10,6 +10,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=3407)
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--dropout", type=float, default=0.05)
+
+    parser.add_argument("--l1", type=float, default=0.5)
+    parser.add_argument("--l2", type=float, default=0.5)
     
     parser.add_argument("--emb_size", type=int, default=300)
     parser.add_argument("--learning_rate", type=float, default=1e-3)

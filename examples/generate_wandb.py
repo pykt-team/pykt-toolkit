@@ -2,7 +2,9 @@ import os, sys
 import json
 import argparse
 from tkinter.messagebox import YES
-WANDB_API_KEY = os.getenv("WANDB_API_KEY")
+with open("../configs/wandb.json") as fin:
+    config = json.load(fin)
+    WANDB_API_KEY = config["api_key"]
 
 def str2bool(str):
     return True if str.lower() == "true" else False
@@ -20,7 +22,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["qidfvecali"]]:
+                for _type in [["qidpredcurc"]]:
                     for fold in folds.split(","):
                         _type = [str(k) for k in _type]
                         fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"

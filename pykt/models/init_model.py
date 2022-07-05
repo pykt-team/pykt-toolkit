@@ -23,6 +23,7 @@ from .cdkt import CDKT
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 def init_model(model_name, model_config, data_config, emb_type):
+    print(f"in init_model, model_name: {model_name}")
     if model_name == "cdkt":
         model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt":
@@ -82,7 +83,7 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
     else:
-        print("The wrong model name: {model_name} was used...")
+        print(f"The wrong model name: {model_name} was used...")
         return None
     return model
 

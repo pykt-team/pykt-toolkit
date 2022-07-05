@@ -9,7 +9,7 @@ from .utils import transformer_FFN, ut_mask
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CDKT(Module):
-    def __init__(self, num_q, num_c, emb_size, dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, emb_size, dropout=0.1, emb_type='qid', l1=0.5,l2=0.5,emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
         self.num_q = num_q
@@ -39,6 +39,8 @@ class CDKT(Module):
             self.out_layer = Linear(self.hidden_size, self.num_c)
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
+            self.l1 = l1
+            self.l2 = l2
             self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
             self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             self.qdrop = Dropout(dropout)
