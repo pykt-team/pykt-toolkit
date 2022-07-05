@@ -66,9 +66,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
 
         # 1.2
         loss2 = 0
-        mask = sm == 1
-        loss2 = cross_entropy(ys[1][mask], ys[2][mask])
-        loss = model.l1*loss1+model.l2*loss2
+        if model.emb_type.endswith("predcurc"):
+            mask = sm == 1
+            loss2 = cross_entropy(ys[1][mask], ys[2][mask])
+            loss = model.l1*loss1+model.l2*loss2
+        else:
+            loss = loss1
         
         # # concept predict loss  ## 1.3
         # loss2 = 0        

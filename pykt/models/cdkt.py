@@ -45,6 +45,8 @@ class CDKT(Module):
             self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             self.qdrop = Dropout(dropout)
             self.qclasifier = Linear(self.hidden_size, self.num_c)
+            if self.emb_type.find("cemb") != -1:
+                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
         if self.emb_type.endswith("prednextc"): # predict next concept
             self.kc_drop = Dropout(dropout) ## 1.3
@@ -128,13 +130,18 @@ class CDKT(Module):
         elif emb_type.endswith("predcurc"): # predict current question' current concept
             # predict concept
             qemb = self.question_emb(q)
-            pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
-            chistory = torch.cat((pad, xemb[:,0:-1,:]), dim=1)
-            qh, _ = self.qlstm(qemb+chistory)
+            # pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
+            # chistory = torch.cat((pad, xemb[:,0:-1,:]), dim=1)
+            chistory = xemb
+            catemb = qemb + chistory
+            if emb_type.find("cemb") != -1:
+                cemb = self.concept_emb(c)
+                catemb += cemb
+            qh, _ = self.qlstm(catemb)
             y2 = self.qclasifier(qh)
 
             # predict response
-            xemb = xemb + qh
+            xemb = xemb + qh + cemb
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
