@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import json, copy
 
-ALL_KEYS = ["fold", "uid", "flag", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
-ONE_KEYS = ["fold", "uid", "flag"]
+ALL_KEYS = ["fold", "uid", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
+ONE_KEYS = ["fold", "uid"]
 
 def read_data(fname, min_seq_len=3, response_set=[0,1]):
     effective_keys = set()

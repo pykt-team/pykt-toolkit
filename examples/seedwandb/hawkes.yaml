@@ -18,6 +18,8 @@ parameters:
         values: [5e-3, 1e-3, 5e-4, 1e-4]
     l2:
         values: [1e-3, 1e-4, 1e-5, 1e-6, 0]
+    time_log:
+        values: [2, 5, 10]
     seed:
         values: [42, 224, 3407]
     fold:

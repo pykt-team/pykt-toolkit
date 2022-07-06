@@ -22,7 +22,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["qidpredcurc"]]:
+                for _type in [["qid"]]:#"qidcembpredcurc"]]:
                     for fold in folds.split(","):
                         _type = [str(k) for k in _type]
                         fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
