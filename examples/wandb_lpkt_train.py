@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("--d_a", type=int, default=50)
     parser.add_argument("--d_e", type=int, default=128)
     parser.add_argument("--d_k", type=int, default=128)
-    parser.add_argument("--gamma", type=int, default=0.03)
+    parser.add_argument("--gamma", type=float, default=0.03)
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
