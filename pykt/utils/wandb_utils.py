@@ -158,26 +158,31 @@ class WandbUtils:
         sweep_id = self._get_sweep_id(id,input_type)
         sweep_status = self.get_sweep_status(sweep_id,input_type="sweep_id")
         df = None
+        report = {"stop_cmd":""}
         if sweep_status in ['CANCELED','FINISHED']:
-            state = True
-            num_run = -1
+            report['state'] = True
+            report['num_run'] = -1
         else:
             num_run = self.get_sweep_run_num(sweep_id,input_type="sweep_id")#get sweep run num
+            report['num_run'] = num_run
             if num_run<min_run_num:
-                state = False
+                report['state'] = False
             else:
                 df = self.get_df(sweep_id,input_type="sweep_id")#get sweep result
+                report['df'] = df
                 best_value = df[metric].max() if metric_type == "max" else df[metric].min()#get best value
                 first_best_index = df[df[metric]==best_value]['run_index'].min()
                 not_improve_num = len(df[df['run_index'] >= first_best_index])
                 if not_improve_num > patience:#如果连续patience没有提高，则停止
-                    print(f"    Run `wandb sweep {self.user}/{self.project_name}/{sweep_id} --stop` to stop the sweep.")
-                    state = True
+                    stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --stop"
+                    print(f"    Run `{stop_cmd}` to stop the sweep.")
+                    report['state'] = True
+                    report['stop_cmd'] = stop_cmd
                 else:
-                    state = False
-        print(f"    details: {id} state is {state},num of runs is {num_run}")
+                    report['state'] = False
+        print(f"    details: {id} state is {report['state']},num of runs is {report['num_run']}")
         print("-"*60+'\n')
-        return {"state":state,'df':df,"num_run":num_run}
+        return report
         
     def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100):
         """Check sweeps by pattern
@@ -193,7 +198,7 @@ class WandbUtils:
         """
         check_result_list = []
         for sweep_name in self.sweep_dict:
-            if sweep_name.startswith(sweep_pattern):
+            if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
                         metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
                 check_result['sweep_name'] = sweep_name
