@@ -14,6 +14,46 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
+class bernoulli():
+    def pmf(x,p):
+        """
+        概率质量函数        
+        """
+        f = p**x*(1-p)**(1-x)
+        return f
+    
+    def mean(p):
+        """
+        随机变量的期望值
+        """
+        return p
+    
+    def var(p):
+        """
+        随机变量的方差
+        """
+        return p*(1-p)
+    
+    def std(p):
+        """
+        随机变量的标准差
+        """
+        return bernoulli.var(p)**(1/2)
+    
+    def rvs(p,size=1):
+        """
+        随机变量
+        """
+        rvs = np.array([])
+        for i in range(0,size):
+            if np.random.rand() <= p:
+                a=1
+                rvs = np.append(rvs,a)
+            else:
+                a=0
+                rvs = np.append(rvs,a)
+        return rvs
+
 class AKTVec(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None):
@@ -46,12 +86,13 @@ class AKTVec(nn.Module):
         if self.n_pid > 0:
             # self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
+            # self.difficult_kc = nn.Embedding(self.n_question+1, embed_l)
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             # self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
-        if emb_type.startswith("qid") and self.use_rasch:
+        if emb_type.startswith("qid") and self.use_rasch or emb_type == "raschy":
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
@@ -69,6 +110,42 @@ class AKTVec(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
             self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
             self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
+            self.q_linear = nn.Sequential(
+            nn.Linear(embed_l * 2,
+                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+                    )
+            self.kc_linear = nn.Sequential(
+            nn.Linear(embed_l * 2,
+                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+                    )
+            # self.linear3 = nn.Linear(embed_l * 2, embed_l)
+
+
+        if emb_type.startswith("bayesian") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.mastery = nn.Embedding(self.n_question + 1, 1)
+            self.guess = nn.Embedding(self.n_question + 1, embed_l)
+            # self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            self.sigmoid = nn.Sigmoid()
+
+        if emb_type.startswith("bernoulli") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            # self.mastery = nn.Embedding(self.n_question + 1, 1)
+            self.guess = nn.Embedding(self.n_question + 1, embed_l)
+            self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            self.bernoulli = bernoulli()
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -102,28 +179,41 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type == "qid":
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if emb_type == "relation":
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
             relation_q = self.qmatrix(pid_data) # lookup all the kcs
+            relation_q = torch.nn.functional.softmax(relation_q,-1)
             relation_q_emb = torch.einsum('bij, jk -> bik', relation_q, self.q_embed.weight)
+            # print(f"relation_q_emb: {relation_q_emb.shape}")
             relation_que = self.qmatrix_t(q_data)
+            relation_que = torch.nn.functional.softmax(relation_que,-1)
             relation_que_emb = torch.einsum('bij, jk -> bik', relation_que, self.que_embed.weight)
+            # print(f"relation_q_emb: {relation_q_emb.shape}")
+            # relation_emb = torch.cat([relation_que_emb, relation_q_emb], dim=2)
+            # relation_emb = self.linear3(relation_emb)
+            
 
         if self.n_pid > 0 and self.use_rasch: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
-            if emb_type == "qid":
+            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             elif emb_type == "relation":
-                q_embed_data = q_embed_data + pid_embed_data + \
-                    q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder        
+                # q_embed_data = q_embed_data + pid_embed_data + \
+                #     q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder
+                kc_diff = self.difficult_kc(q_data) 
 
-            if not self.rasch_x:
+                q_embed_data = self.kc_linear(torch.cat([q_embed_data, relation_q_emb], dim=2))
+                q_embed_diff_data = self.q_linear(torch.cat([q_embed_diff_data, relation_que_emb], dim=2))
+                q_embed_data = q_embed_data + kc_diff + pid_embed_data + \
+                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
+
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -132,7 +222,23 @@ class AKTVec(nn.Module):
                 else:
                     qa_embed_data = qa_embed_data + pid_embed_data + \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
-                        
+            
+            elif not self.rasch_x and emb_type in ["bayesian"]:
+                qa_embed_diff_data = self.qa_embed_diff(
+                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                kc_mastery = self.mastery(q_data)
+                # kc_slipping = self.slipping(q_data)
+                kc_guess = self.guess(q_data)
+                if self.separate_qa:
+                    qa_embed_data = qa_embed_data + pid_embed_data + \
+                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+                else:
+                    pid_embed_data = self.sigmoid(pid_embed_data + kc_mastery * kc_guess)
+                    qa_embed_data = qa_embed_data + pid_embed_data + (qa_embed_diff_data+q_embed_diff_data)
+                    # qa_embed_data = qa_embed_data + pid_embed_data + \
+                    #     (qa_embed_diff_data+q_embed_diff_data) + kc_mastery * (1 - kc_slipping) + (1 - kc_mastery) * kc_guess  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+
+
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
             c_reg_loss = 0.
@@ -144,8 +250,46 @@ class AKTVec(nn.Module):
         d_output = self.model(q_embed_data, qa_embed_data)
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
-        m = nn.Sigmoid()
-        preds = m(output)
+        if emb_type not in ["bernoulli"]:
+            m = nn.Sigmoid()
+            preds = m(output)
+        else:
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_guess = self.guess(q_data)
+            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
+            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
+            preds = m(output)
+        if not qtest:
+            return preds, c_reg_loss
+        else:
+            return preds, c_reg_loss, concat_q
+
+        if emb_type is not startswith("bernoulli"):
+            m = nn.Sigmoid()
+            preds = m(output)
+        elif emb_type in ["bernoulli"]:
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_guess = self.guess(q_data)
+            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
+            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
+            preds = m(output)
+        elif emb_type in ["bernoulli_v2"]:
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_guess = self.guess(q_data)
+            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
+            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
+            preds = m(output)
+
+            # bernoulli
+            ber_preds = []
+            for i in range(preds.shape[0]):
+                for j in range(preds.shape[1]):
+                    ber_preds.append(self.bernoulli(preds[i][j]))
+            ber_preds = torch.tensor(ber_preds).to(device) 
+            ber_preds = torch.reshape(ber_preds, [batch_size, -1])       
         if not qtest:
             return preds, c_reg_loss
         else:
