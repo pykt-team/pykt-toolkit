@@ -76,7 +76,7 @@ def init_model(model_name, model_config, data_config, emb_type):
                 q_matrix = generate_qmatrix(data_config)
                 q_matrix = torch.tensor(q_matrix).float()
             model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], qmatrix=q_matrix).to(device)
-        elif emb_type == "qid":
+        elif emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy"]:
             model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "aktvec_raschx":
         model = AKTVec(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_rasch=True, rasch_x=True).to(device)

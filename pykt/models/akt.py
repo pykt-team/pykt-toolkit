@@ -126,9 +126,12 @@ class AKT(nn.Module):
         
         if emb_type == "relation":
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+            print(f"relation")
             relation_q = self.qmatrix(pid_data) # lookup all the kcs
+            relation_q = torch.nn.functional.softmax(relation_q,-1)
             relation_q_emb = torch.einsum('bij, jk -> bik', relation_q, self.q_embed.weight)
             relation_que = self.qmatrix_t(q_data)
+            relation_que = torch.nn.functional.softmax(relation_que,-1)
             relation_que_emb = torch.einsum('bij, jk -> bik', relation_que, self.que_embed.weight)
 
         if self.use_rasch and self.n_pid > 0: # have problem id
@@ -139,6 +142,7 @@ class AKT(nn.Module):
                     q_embed_data = q_embed_data + pid_embed_data * \
                         q_embed_diff_data  # uq *d_ct + c_ct # question encoder
                 elif emb_type == "relation":
+                    print(f"relation_que_emb: {relation_que_emb.shape}")
                     q_embed_data = q_embed_data + pid_embed_data * \
                         q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder                    
             if not self.rasch_x:
