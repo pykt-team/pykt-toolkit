@@ -100,7 +100,7 @@ class AKTVec(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
 
-        if emb_type.startswith("relation") and self.use_rasch:
+        if emb_type in ["relation"] and self.use_rasch:
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
             self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
@@ -118,6 +118,7 @@ class AKTVec(nn.Module):
             nn.Linear(embed_l * 2,
                       embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
                     )
+                    
             # self.linear3 = nn.Linear(embed_l * 2, embed_l)
 
 
@@ -145,7 +146,28 @@ class AKTVec(nn.Module):
             # self.mastery = nn.Embedding(self.n_question + 1, 1)
             self.guess = nn.Embedding(self.n_question + 1, embed_l)
             self.slipping = nn.Embedding(self.n_question + 1, embed_l)
-            self.bernoulli = bernoulli()
+
+
+        if emb_type in ["relation_bernoulli"] and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
+            self.q_linear = nn.Sequential(
+            nn.Linear(embed_l * 2,
+                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+                    )
+            self.kc_linear = nn.Sequential(
+            nn.Linear(embed_l * 2,
+                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+                    )
+            self.guess = nn.Embedding(self.n_question + 1, embed_l)
+            self.slipping = nn.Embedding(self.n_question + 1, embed_l)
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -179,10 +201,10 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy"]:
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bernoulli"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
-        if emb_type == "relation":
+        if emb_type.startswith("relation"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
             relation_q = self.qmatrix(pid_data) # lookup all the kcs
             relation_q = torch.nn.functional.softmax(relation_q,-1)
@@ -203,17 +225,17 @@ class AKTVec(nn.Module):
             if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-            elif emb_type == "relation":
+            elif emb_type.startswith("relation"):
                 # q_embed_data = q_embed_data + pid_embed_data + \
                 #     q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder
-                kc_diff = self.difficult_kc(q_data) 
+                # kc_diff = self.difficult_kc(q_data) 
 
                 q_embed_data = self.kc_linear(torch.cat([q_embed_data, relation_q_emb], dim=2))
                 q_embed_diff_data = self.q_linear(torch.cat([q_embed_diff_data, relation_que_emb], dim=2))
-                q_embed_data = q_embed_data + kc_diff + pid_embed_data + \
+                q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
 
-            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy"]:
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "relation_bernoulli"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -250,25 +272,11 @@ class AKTVec(nn.Module):
         d_output = self.model(q_embed_data, qa_embed_data)
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
-        if emb_type not in ["bernoulli"]:
-            m = nn.Sigmoid()
-            preds = m(output)
-        else:
-            m = nn.Sigmoid()
-            kc_slipping = self.slipping(q_data)
-            kc_guess = self.guess(q_data)
-            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
-            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
-            preds = m(output)
-        if not qtest:
-            return preds, c_reg_loss
-        else:
-            return preds, c_reg_loss, concat_q
 
-        if emb_type is not startswith("bernoulli"):
+        if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bernoulli"]:
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type in ["bernoulli"]:
+        elif emb_type in ["bernoulli", "relation_bernoulli"]:
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)
             kc_guess = self.guess(q_data)
@@ -287,7 +295,8 @@ class AKTVec(nn.Module):
             ber_preds = []
             for i in range(preds.shape[0]):
                 for j in range(preds.shape[1]):
-                    ber_preds.append(self.bernoulli(preds[i][j]))
+                    ber = bernoulli.rvs(preds[i][j])
+                    ber_preds.append(ber)
             ber_preds = torch.tensor(ber_preds).to(device) 
             ber_preds = torch.reshape(ber_preds, [batch_size, -1])       
         if not qtest:

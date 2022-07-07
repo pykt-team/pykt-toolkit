@@ -68,7 +68,7 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "dkt_interac":
         model = DKTRasch(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], use_interac=True).to(device)
     elif model_name == "akt_vector":
-        if emb_type == "relation":
+        if emb_type in ["relation", "relation_bernoulli"]:
             qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
             if os.path.exists(qmatrix_path):
                 q_matrix = torch.tensor(np.load(qmatrix_path, allow_pickle=True)['matrix']).float()
