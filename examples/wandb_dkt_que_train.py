@@ -31,6 +31,7 @@ def main(params):
     if args.use_wandb==1:
         import wandb
         wandb.init()
+
     print(params)
     print(f"params is {type(params)}")
     set_seed(params['seed'])
@@ -46,9 +47,10 @@ def main(params):
        
     emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}|-|no_attention"
    
+    other_config = {"qc_predict_mode_lambda":params['qc_predict_mode_lambda'],"qc_loss_mode_lambda":params['qc_loss_mode_lambda']}
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
                    emb_size=params['emb_size'], device=device, emb_type=emb_type,
-                   dropout=params['dropout'])
+                   dropout=params['dropout'],other_config=other_config)
 
     model.compile(optimizer='adam', lr = params['learning_rate'])
 
