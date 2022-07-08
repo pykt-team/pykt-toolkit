@@ -83,7 +83,7 @@ class DKTQueNet(nn.Module):
                     if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
                         self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
                     else:
-                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),num_c,dropout)#concept classifier predict the concepts in 
+                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)#concept classifier predict the concepts in 
             else:
                 self.que_next_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type="qid",model_name="qid",device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)#qid is used to predict next question
@@ -144,9 +144,6 @@ class DKTQueNet(nn.Module):
                     attn_output, attn_output_weights = self.multihead_attn(emb_qc, emb_qc, emb_qca,attn_mask=attn_mask)
                     # attn_output_weights = attn_output_weights[:,1:,:]
                     attn_output = attn_output[:,1:,:]
-                    # print(attn_output_weights[0][1:3])
-                    # print(f"attn_output shape is {attn_output.shape},{attn_output[0][:2]}")  # [batch_size,seq_len,emb_size*2]
-                    # print(f"emb_qc_shift shape is {emb_qc_shift.shape},{emb_qc_shift}")  # [batch_size,seq_len,emb_size*2]
                     h = torch.cat([emb_qc_shift*torch.sigmoid(attn_output),h],axis=-1)
                 else:
                     h = torch.cat([emb_qc_shift,h],axis=-1)
@@ -172,7 +169,8 @@ class DKTQueNet(nn.Module):
         if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
             y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_ccs))
         else:
-            y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_q))
+            #emb_q[:,1:,:]
+            y_question_concepts = torch.sigmoid(self.out_concept_classifier(emb_q[:,1:,:]))
         return y_question,y_concept,y_question_concepts
 
 class DKTQue(QueBaseModel):
