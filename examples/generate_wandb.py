@@ -20,7 +20,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [emb_types.split(",")]:
+                for _type in emb_types.split(","):
                     for fold in folds.split(","):
                         _type = [str(k) for k in _type]
                         fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
@@ -42,12 +42,12 @@ def main(params):
                         if not generate_all:
                             fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
         
-                if generate_all:
-                    files = os.listdir(all_dir)
-                    files = sorted(files)
-                    for f in files:
-                        fpath = os.path.join(all_dir, f)
-                        fallsh.write(pre + fpath + " -p {}".format(project_name)  + "\n")
+        if generate_all:
+            files = os.listdir(all_dir)
+            files = sorted(files)
+            for f in files:
+                fpath = os.path.join(all_dir, f)
+                fallsh.write(pre + fpath + " -p {}".format(project_name)  + "\n")
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
