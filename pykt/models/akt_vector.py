@@ -190,6 +190,20 @@ class AKTVec(nn.Module):
             self.lstm_que = LSTM(embed_l, embed_l//2, batch_first=True, bidirectional=True)
             self.lstm_kc = LSTM(embed_l, embed_l//2, batch_first=True, bidirectional=True)
 
+        if emb_type in ["lstmy"] and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            # self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            # self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
+            # self.guess = nn.Embedding(self.n_question + 1, 1)
+            # self.slipping = nn.Embedding(self.n_question + 1, 1)
+            self.lstm_qa = LSTM(embed_l, embed_l, batch_first=True)
+
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -223,7 +237,7 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss", "lstm"]:
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss", "lstm", "lstmy"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if emb_type.startswith("relation"):
@@ -244,7 +258,7 @@ class AKTVec(nn.Module):
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
-            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2"] :
+            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "lstmy"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             elif emb_type in ["relation", "relation_bayesian", "relation_bayesian_loss"]:
@@ -272,6 +286,16 @@ class AKTVec(nn.Module):
                 else:
                     qa_embed_data = qa_embed_data + pid_embed_data + \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+            elif not self.rasch_x and emb_type in ["lstmy"]:
+                qa_embed_data, (h,c) = self.lstm_qa(qa_embed_data)
+                qa_embed_diff_data = self.qa_embed_diff(
+                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                if self.separate_qa:
+                    qa_embed_data = qa_embed_data + pid_embed_data + \
+                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+                else:
+                    qa_embed_data = qa_embed_data + pid_embed_data + \
+                        (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）                
             
             # elif not self.rasch_x and emb_type in ["bayesian"]:
             #     qa_embed_diff_data = self.qa_embed_diff(
