@@ -101,6 +101,6 @@ if __name__ == "__main__":
     parser.add_argument("--add_uuid", type=int, default=1)
     
     args = parser.parse_args()
-    args.loss_mode = f"{args.predict_mode}"
+    args.loss_mode = f"{args.predict_mode}_cc"
     params = vars(args)
     main(params)
