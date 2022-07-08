@@ -59,36 +59,31 @@ def main(params):
     window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
     print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
-    # question_testauc, question_testacc = -1, -1
-    # question_window_testauc, question_window_testacc = -1, -1
-  
+    question_testauc, question_testacc = -1, -1
+    question_window_testauc, question_window_testacc = -1, -1
+    if "test_question_file" in data_config:
+        save_test_question_path = os.path.join(save_dir, model.emb_type+"_test_question_predictions.txt")
+        q_testaucs, q_testaccs = evaluate_question(model, test_question_loader, model_name, fusion_type, save_test_question_path)
+    
+    if "test_question_window_file" in data_config:
+        save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
+        qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path)
+    print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    print(f"question_testauc: {question_testauc}, question_testacc: {question_testacc}, question_window_testauc: {question_window_testauc}, question_window_testacc: {question_window_testacc}")
+    
     dres = {
         "testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc,
     }  
-
-    q_testaucs, q_testaccs = -1,-1
-    qw_testaucs, qw_testaccs = -1,-1
-    if "test_question_file" in data_config and not test_question_loader is None:
-        save_test_question_path = os.path.join(save_dir, model.emb_type+"_test_question_predictions.txt")
-        q_testaucs, q_testaccs = evaluate_question(model, test_question_loader, model_name, fusion_type, save_test_question_path)
+    if "test_question_file" in data_config:
         for key in q_testaucs:
             dres["oriauc"+key] = q_testaucs[key]
         for key in q_testaccs:
             dres["oriacc"+key] = q_testaccs[key]
-            
-    if "test_question_window_file" in data_config and not test_question_window_loader is None:
-        save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
-        qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path)
+    if "test_question_window_file" in data_config:
         for key in qw_testaucs:
             dres["windowauc"+key] = qw_testaucs[key]
         for key in qw_testaccs:
             dres["windowacc"+key] = qw_testaccs[key]
-
-        
-    # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
-    # print(f"question_testauc: {question_testauc}, question_testacc: {question_testacc}, question_window_testauc: {question_window_testauc}, question_window_testacc: {question_window_testacc}")
-    
-    print(dres)
     raw_config = json.load(open(os.path.join(save_dir,"config.json")))
     dres.update(raw_config['params'])
 
@@ -99,7 +94,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--bz", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="saved_model")
-    parser.add_argument("--fusion_type", type=str, default="late_fusion")
+    parser.add_argument("--fusion_type", type=str, default="early_fusion,late_fusion")
     parser.add_argument("--use_wandb", type=int, default=1)
 
     args = parser.parse_args()
