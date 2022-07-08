@@ -110,14 +110,14 @@ class AKTVec(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
             self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
             self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
-            self.q_linear = nn.Sequential(
-            nn.Linear(embed_l * 2,
-                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
-                    )
-            self.kc_linear = nn.Sequential(
-            nn.Linear(embed_l * 2,
-                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
-                    )
+            # self.q_linear = nn.Sequential(
+            # nn.Linear(embed_l * 2,
+            #           embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+            #         )
+            # self.kc_linear = nn.Sequential(
+            # nn.Linear(embed_l * 2,
+            #           embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+            #         )
                     
             # self.linear3 = nn.Linear(embed_l * 2, embed_l)
 
@@ -144,11 +144,12 @@ class AKTVec(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
             # self.mastery = nn.Embedding(self.n_question + 1, 1)
-            self.guess = nn.Embedding(self.n_question + 1, embed_l)
-            self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            # self.guess = nn.Embedding(self.n_question + 1, embed_l)
+            # self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
 
-
-        if emb_type in ["relation_bernoulli"] and self.use_rasch:
+        if emb_type in ["relation_bayesian", "relation_bayesian_loss"] and self.use_rasch:
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
             self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
@@ -158,16 +159,8 @@ class AKTVec(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
             self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
             self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
-            self.q_linear = nn.Sequential(
-            nn.Linear(embed_l * 2,
-                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
-                    )
-            self.kc_linear = nn.Sequential(
-            nn.Linear(embed_l * 2,
-                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
-                    )
-            self.guess = nn.Embedding(self.n_question + 1, embed_l)
-            self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -201,7 +194,7 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bernoulli"]:
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if emb_type.startswith("relation"):
@@ -225,17 +218,17 @@ class AKTVec(nn.Module):
             if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-            elif emb_type.startswith("relation"):
-                # q_embed_data = q_embed_data + pid_embed_data + \
-                #     q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder
+            elif emb_type in ["relation", "relation_bayesian", "relation_bayesian_loss"]:
+                q_embed_data = q_embed_data + pid_embed_data + \
+                    q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder
                 # kc_diff = self.difficult_kc(q_data) 
 
-                q_embed_data = self.kc_linear(torch.cat([q_embed_data, relation_q_emb], dim=2))
-                q_embed_diff_data = self.q_linear(torch.cat([q_embed_diff_data, relation_que_emb], dim=2))
-                q_embed_data = q_embed_data + pid_embed_data + \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
+                # q_embed_data = self.kc_linear(torch.cat([q_embed_data, relation_q_emb], dim=2))
+                # q_embed_diff_data = self.q_linear(torch.cat([q_embed_diff_data, relation_que_emb], dim=2))
+                # q_embed_data = q_embed_data + pid_embed_data + \
+                #     q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
 
-            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "relation_bernoulli"]:
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -245,18 +238,18 @@ class AKTVec(nn.Module):
                     qa_embed_data = qa_embed_data + pid_embed_data + \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
             
-            elif not self.rasch_x and emb_type in ["bayesian"]:
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                kc_mastery = self.mastery(q_data)
-                # kc_slipping = self.slipping(q_data)
-                kc_guess = self.guess(q_data)
-                if self.separate_qa:
-                    qa_embed_data = qa_embed_data + pid_embed_data + \
-                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
-                else:
-                    pid_embed_data = self.sigmoid(pid_embed_data + kc_mastery * kc_guess)
-                    qa_embed_data = qa_embed_data + pid_embed_data + (qa_embed_diff_data+q_embed_diff_data)
+            # elif not self.rasch_x and emb_type in ["bayesian"]:
+            #     qa_embed_diff_data = self.qa_embed_diff(
+            #         target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+            #     kc_mastery = self.mastery(q_data)
+            #     # kc_slipping = self.slipping(q_data)
+            #     kc_guess = self.guess(q_data)
+            #     if self.separate_qa:
+            #         qa_embed_data = qa_embed_data + pid_embed_data + \
+            #             qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            #     else:
+            #         pid_embed_data = self.sigmoid(pid_embed_data + kc_mastery * kc_guess)
+            #         qa_embed_data = qa_embed_data + pid_embed_data + (qa_embed_diff_data+q_embed_diff_data)
                     # qa_embed_data = qa_embed_data + pid_embed_data + \
                     #     (qa_embed_diff_data+q_embed_diff_data) + kc_mastery * (1 - kc_slipping) + (1 - kc_mastery) * kc_guess  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
@@ -273,13 +266,30 @@ class AKTVec(nn.Module):
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
-        if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bernoulli"]:
+        if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian"]:
+            # print("not add guess/sliping into mastery")
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type in ["bernoulli", "relation_bernoulli"]:
+            # print(f"preds: {preds.shape}")
+            if emb_type in ["relation_bayesian_loss"]:
+                kc_slipping = self.slipping(q_data)
+                kc_slipping = m(kc_slipping)
+                kc_slipping = torch.squeeze(kc_slipping)
+                # print(f"kc_slipping: {kc_slipping.shape}")
+                kc_guess = self.guess(q_data)
+                kc_guess = m(kc_guess)
+                kc_guess = torch.squeeze(kc_guess)
+                # print(f"kc_guess: {kc_guess.shape}")
+                d_ones = torch.ones(1, 1).expand_as(preds).to(device)
+                # print(f"d_ones: {d_ones.shape}")
+                preds = preds * (1 - kc_slipping) + (d_ones - preds) * kc_guess
+
+        elif emb_type in ["bernoulli", "relation_bayesian"]:
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)
+            kc_slipping = m(kc_slipping)
             kc_guess = self.guess(q_data)
+            kc_guess = m(kc_guess)
             d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
             preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
             preds = m(output)
