@@ -66,10 +66,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
 
         # 1.2
         loss2 = 0
-        if model.emb_type.endswith("predcurc"):
+        if model.emb_type.find("predcurc") != -1:
             mask = sm == 1
             loss2 = cross_entropy(ys[1][mask], ys[2][mask])
             loss = model.l1*loss1+model.l2*loss2
+        elif model.emb_type.endswith("addcc"):
+            loss = model.l1*loss1+model.l2*ys[1]
         else:
             loss = loss1
         
@@ -145,7 +147,7 @@ def model_forward(model, data):
     #     y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
     #     ys = [y, y2] # first: yshft
     if model_name in ["cdkt"]:
-        y, y2 = model(c.long(), r.long(), q.long(), train=True)
+        y, y2 = model(c.long(), r.long(), q.long(), sm.long(), train=True)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, c] # first: yshft

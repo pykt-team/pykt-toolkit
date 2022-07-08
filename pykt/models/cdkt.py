@@ -3,13 +3,14 @@ import os
 import pandas as pd
 import torch
 
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm
-from .utils import transformer_FFN, ut_mask
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer
+from .utils import transformer_FFN, ut_mask, pos_encode
+from .cdkt_cc import generate_postives, Network
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CDKT(Module):
-    def __init__(self, num_q, num_c, emb_size, dropout=0.1, emb_type='qid', l1=0.5,l2=0.5,emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', l1=0.5, l2=0.5, emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
         self.num_q = num_q
@@ -29,7 +30,25 @@ class CDKT(Module):
             self.concept_emb = Embedding.from_pretrained(dvec)
             for param in self.concept_emb.parameters():
                 param.requires_grad = True
-    
+
+        if self.emb_type.endswith("pretrainqc"): # use pretrained qemb and cemb from cc
+            cvec = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_cvec.pkl")
+            qvec = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_qvecnorm.pkl")
+            self.pretrain_qemb = Embedding.from_pretrained(qvec)
+            self.pretrain_cemb = Embedding.from_pretrained(cvec)
+            self.qlinear = Linear(qvec.shape[1], self.emb_size)
+            self.clinear = Linear(cvec.shape[1], self.emb_size)
+            for param in self.pretrain_qemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_cemb.parameters():
+                param.requires_grad = False
+            if self.emb_type.find("predcurc") != -1:
+                self.l1 = l1
+                self.l2 = l2
+                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+                self.qdrop = Dropout(dropout)
+                self.qclasifier = Linear(self.hidden_size, self.num_c)
+                
         if self.emb_type.endswith("addcemb"): # xemb += cemb
             self.concept_emb = Embedding(self.num_c, self.emb_size)
 
@@ -48,6 +67,12 @@ class CDKT(Module):
             if self.emb_type.find("cemb") != -1:
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
+            # concat response
+            if self.emb_type.find("catr") != -1:
+                self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
+            if self.emb_type.find("addr") != -1:
+                self.response_emb = Embedding(2, self.emb_size)
+
         if self.emb_type.endswith("prednextc"): # predict next concept
             self.kc_drop = Dropout(dropout) ## 1.3
             self.kc_layer = Linear(self.hidden_size, self.num_c)
@@ -55,6 +80,24 @@ class CDKT(Module):
             self.kc_layer_norm = LayerNorm(self.emb_size)
             if self.emb_type.find("addpc"): 
                 self.concept_emb = Embedding(self.num_c, self.emb_size)
+
+        if self.emb_type.endswith("addcc"): # add cc loss
+            self.l1 = l1
+            self.l2 = l2
+            self.interaction_emb = Embedding((self.num_c+1) * 2+1, self.emb_size)
+            if self.emb_type.find("bilstm") != -1:
+                self.seqmodel = LSTM(self.emb_size, self.hidden_size, batch_first=True, bidirectional=True)
+                self.net = Network(self.seqmodel, "lstm", self.hidden_size*2, self.emb_size, num_c, dropout)
+            elif self.emb_type.find("transformer") != -1:
+                self.position_embedding = Embedding(seq_len, emb_size)
+                encoder_layer = TransformerEncoderLayer(self.hidden_size, nhead=5)
+                self.seqmodel = TransformerEncoder(encoder_layer, num_layers=2)
+                self.net = Network(self.seqmodel, "transformer", self.hidden_size, self.emb_size, num_c, dropout)
+
+                # encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8)
+                # transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
+                # src = torch.rand(10, 32, 512)
+                # out = transformer_encoder(src)
 
         self.dF = dict()
         self.avgf = 0
@@ -75,7 +118,7 @@ class CDKT(Module):
             # assert False
         return torch.tensor(fss).float().to(device)
 
-    def forward(self, c, r, q, train=False): ## F * xemb
+    def forward(self, c, r, q, sm=None, train=False): ## F * xemb
         y2 = None
 
         emb_type = self.emb_type
@@ -87,7 +130,33 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("addcc"): # add cc
+            # 需要构造数据做cc任务
+            if train:
+                # padsm = torch.ones(c.shape[0], 1).to(device)
+                # sm = torch.cat([padsm, sm], dim=-1)
+                cs1, rs1, sm1 = generate_postives(c, r, sm, self.num_c)
+                cs2, rs2, sm2 = generate_postives(c, r, sm, self.num_c)
+                cs1, rs1, cs2, rs2 = cs1.to(device), rs1.to(device), cs2.to(device), rs2.to(device)
+                # pad a cls token
+                padc = torch.tensor([[(self.num_c+1)*2]] * c.shape[0]).to(device)
+                padr = torch.tensor([[0]] * c.shape[0]).to(device)
+                # print(f"cs1: {cs1.shape}, padc: {padc.shape}")
+                # print(f"rs1: {rs1.shape}, padr: {padr.shape}")
+                cs1, rs1 = torch.cat([padc, cs1], dim=-1), torch.cat([padr, rs1], dim=-1)
+                cs2, rs2 = torch.cat([padc, cs2], dim=-1), torch.cat([padr, rs2], dim=-1)
+                xemb1 = self.interaction_emb(cs1 + (self.num_c+1) * rs1)
+                xemb2 = self.interaction_emb(cs2 + (self.num_c+1) * rs2)
+                
+                posemb = self.position_embedding(pos_encode(xemb1.shape[1]))
+                xemb1, xemb2 = xemb1 + posemb, xemb2 + posemb
+                y2 = self.net(xemb1, xemb2) # ccloss
 
+            x = c + (self.num_c+1) * r
+            xemb = self.interaction_emb(x)
+            h, _ = self.lstm_layer(xemb)
+            h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h))
         elif emb_type.endswith("addcembr"):
             cemb = self.concept_emb(c)
             xemb = torch.cat([xemb, cemb], dim=-1)
@@ -109,6 +178,25 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("pretrainqc"): # pretrained qc from cc
+            cemb = self.clinear(self.pretrain_cemb(c))
+            qemb = self.qlinear(self.pretrain_qemb(q))
+            if emb_type.find("predcurc") != -1:
+                chistory = xemb
+                catemb = qemb + chistory
+                if emb_type.find("cemb") != -1:
+                    catemb += cemb
+                qh, _ = self.qlstm(catemb)
+                y2 = self.qclasifier(qh)
+                xemb = xemb + qh + cemb + qemb
+            else:
+                xemb = xemb + cemb + qemb
+
+            # predict response
+            h, _ = self.lstm_layer(xemb)
+            h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h))
+
         elif emb_type.endswith("hforget"): # (1-F)*h
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
@@ -142,6 +230,18 @@ class CDKT(Module):
 
             # predict response
             xemb = xemb + qh + cemb
+            if emb_type.find("catr") != -1:
+                remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
+                xemb = torch.cat([xemb, remb], dim=-1)
+                # remb = torch.tensor([0]).unsqueeze(1).expand_as(xemb).to(device)
+                # kc_response = torch.cat((xemb,remb), 2)
+                # response_kc = torch.cat((remb,xemb), 2)
+                # r = r.unsqueeze(2).expand_as(kc_response)
+                # xemb = torch.where(r == 1, kc_response, response_kc)
+            if emb_type.find("addr") != -1:
+                remb = self.response_emb(r)
+                xemb = xemb + remb
+
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
@@ -171,53 +271,6 @@ class CDKT(Module):
             return y, y2
         else:
             return y
-
-
-
-        
-
-        # x = c + self.num_c * r
-        # xemb = self.interaction_emb(x)
-        # # xemb = fs.exp() * xemb
-        # h, _ = self.lstm_layer(xemb)
-        # h = self.dropout_layer(h)
-        # fs = self.getfseqs(c)
-        # y = self.out_layer(fs*h)
-        # y = torch.sigmoid(y)
-        # # y = fs * y
-        # if train:
-        #     return y, None
-        # else:
-        #     return y
-
-    # def forward(self, c, r, q, train=False): ## 
-    #     sLeft = self.calfseqs(c) # 计算当前forget序列
-
-    #     x = c + self.num_c * r
-    #     xemb = self.interaction_emb(x)
-
-    #     h, _ = self.lstm_layer(xemb)
-    #     # # print(f"sLeft: {sLeft.shape}, h: {h.shape}")
-    #     # mask = ut_mask(seq_len = c.shape[1])
-    #     # sLeft = sLeft.squeeze(-1).unsqueeze(1).expand(sLeft.shape[0],sLeft.shape[1],sLeft.shape[1])
-    #     # sLeft = sLeft.masked_fill(mask, -1e32)
-    #     # scores = torch.softmax(sLeft, dim=-1)
-    #     # # print(f"scores: {scores}, h: {h.shape}")
-    #     # hsum = torch.bmm(scores, h)
-    #     # hcum = torch.cumsum(hsum, dim=1)-hsum
-
-    #     # hcum = hcum+h
-
-    #     hcum = sLeft * h
-
-    #     h = self.dropout_layer(hcum)
-    #     print(f"h: {h.shape}")
-    #     y = self.out_layer(h)
-    #     y = torch.sigmoid(y)     
-    #     if train:   
-    #         return y, None
-    #     else:
-    #         return y
 
     # 计算每个技能的遗忘率
     def calSkillF(self, cs, rs, sm):
@@ -270,55 +323,4 @@ class CDKT(Module):
             # assert False
         return torch.tensor(fss).float().to(device)
 
-    # def forward(self, c, r, q, train=False): ## 1.2
-    #     # xemb
-    #     x = c + self.num_c * r
-    #     xemb = self.interaction_emb(x)
 
-    #     # predict concept
-    #     qemb = self.question_emb(q)
-    #     pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
-    #     chistory = torch.cat((pad, xemb[:,0:-1,:]), dim=1)
-    #     qh, _ = self.qlstm(qemb+chistory)
-    #     # print(f"qh: {qh.shape}")
-    #     predcs = self.qclasifier(qh)
-
-    #     # predict response
-    #     xemb = xemb + qh
-    #     h, _ = self.lstm_layer(xemb)
-    #     h = self.dropout_layer(h)
-    #     y = self.out_layer(h)
-    #     y = torch.sigmoid(y)
-    #     if train:
-    #         return y, predcs
-    #     return y
-        
-
-    # def forward(self, c, r, q, train=False): ## 1.3
-    #     x = c + self.num_c * r
-    #     xemb = self.interaction_emb(x)
-    #     h, _ = self.lstm_layer(xemb)
-
-    #     h = self.dropout_layer(h)
-    #     y = self.out_layer(self.layer_norm(xemb+h))
-    #     y = torch.sigmoid(y)
-
-    #     if train:
-    #         y2 = None
-    #         h2 = self.kc_drop(h)
-    #         y2 = self.kc_layer(self.kc_layer_norm(xemb+h2))
-    #         y2 = torch.sigmoid(y2)
-
-    #         # predl = torch.argmax(y2, dim=-1)
-    #         # h3 = self.qemb(predl)
-    #         # h3, _ = self.lstm_layer(h3)
-
-    #         # h = self.dropout_layer(h)
-    #         # h = xemb + h + h3
-    #         # h = self.layer_norm(h)
-    #         # y = self.out_layer(h)
-    #         # y = torch.sigmoid(y)
-
-    #         return y, y2
-    #     else:
-    #         return y
