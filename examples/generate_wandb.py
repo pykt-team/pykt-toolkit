@@ -20,10 +20,9 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in emb_types.split(","):
+                for _type in emb_types.split(","):            
                     for fold in folds.split(","):
-                        _type = [str(k) for k in _type]
-                        fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
+                        fname = dataset_name + "_" + m + "_" + _type.replace("linear", "") + "_" + str(fold) + ".yaml"
                         ftarget = os.path.join(all_dir, fname)
                         fpath = m + ".yaml"
                         fpath = os.path.join(src_dir, fpath)
