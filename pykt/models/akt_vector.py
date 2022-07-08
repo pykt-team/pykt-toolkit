@@ -6,6 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
+from torch.nn import LSTM
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -174,6 +175,22 @@ class AKTVec(nn.Module):
             self.guess = nn.Embedding(self.n_question + 1, 1)
             self.slipping = nn.Embedding(self.n_question + 1, 1)
 
+        if emb_type in ["lstm"] and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            # self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            # self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
+            # self.guess = nn.Embedding(self.n_question + 1, 1)
+            # self.slipping = nn.Embedding(self.n_question + 1, 1)
+            self.lstm_que = LSTM(embed_l, embed_l//2, batch_first=True, bidirectional=True)
+            self.lstm_kc = LSTM(embed_l, embed_l//2, batch_first=True, bidirectional=True)
+
+
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
@@ -206,7 +223,7 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss"]:
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss", "lstm"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if emb_type.startswith("relation"):
@@ -239,8 +256,14 @@ class AKTVec(nn.Module):
                 # q_embed_diff_data = self.q_linear(torch.cat([q_embed_diff_data, relation_que_emb], dim=2))
                 # q_embed_data = q_embed_data + pid_embed_data + \
                 #     q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
+            elif emb_type in ["lstm"]:
+                std_kc_emb, (h,c) = self.lstm_kc(q_embed_data)
+                que_emb = self.que_embed(pid_data) 
+                std_que_emb, (h,c) = self.lstm_kc(que_emb)
+                q_embed_data = q_embed_data + pid_embed_data + \
+                    q_embed_diff_data + std_que_emb
 
-            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "bayesian", "relation_bayesian", "relation_bayesian_loss"]:
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "bayesian", "relation_bayesian", "relation_bayesian_loss", "lstm"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
