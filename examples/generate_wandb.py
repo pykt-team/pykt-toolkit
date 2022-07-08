@@ -42,12 +42,12 @@ def main(params):
                         if not generate_all:
                             fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
         
-        if generate_all:
-            files = os.listdir(all_dir)
-            files = sorted(files)
-            for f in files:
-                fpath = os.path.join(all_dir, f)
-                fallsh.write(pre + fpath + " -p {}".format(project_name)  + "\n")
+                if generate_all:
+                    files = os.listdir(all_dir)
+                    files = sorted(files)
+                    for f in files:
+                        fpath = os.path.join(all_dir, f)
+                        fallsh.write(pre + fpath + " -p {}".format(project_name)  + "\n")
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
