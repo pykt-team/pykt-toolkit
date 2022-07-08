@@ -122,18 +122,18 @@ class AKTVec(nn.Module):
             # self.linear3 = nn.Linear(embed_l * 2, embed_l)
 
 
-        if emb_type.startswith("bayesian") and self.use_rasch:
-            # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
-            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
-            self.mastery = nn.Embedding(self.n_question + 1, 1)
-            self.guess = nn.Embedding(self.n_question + 1, embed_l)
-            # self.slipping = nn.Embedding(self.n_question + 1, embed_l)
-            self.sigmoid = nn.Sigmoid()
+        # if emb_type.startswith("bayesian") and self.use_rasch:
+        #     # n_question+1 ,d_model
+        #     self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+        #     self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+        #     if self.separate_qa: 
+        #         self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+        #     else: # false default
+        #         self.qa_embed = nn.Embedding(2, embed_l)
+        #     self.mastery = nn.Embedding(self.n_question + 1, 1)
+        #     self.guess = nn.Embedding(self.n_question + 1, embed_l)
+        #     # self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+        #     self.sigmoid = nn.Sigmoid()
 
         if emb_type.startswith("bernoulli") and self.use_rasch:
             # n_question+1 ,d_model
@@ -144,8 +144,20 @@ class AKTVec(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
             # self.mastery = nn.Embedding(self.n_question + 1, 1)
-            # self.guess = nn.Embedding(self.n_question + 1, embed_l)
-            # self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            self.guess = nn.Embedding(self.n_question + 1, embed_l)
+            self.slipping = nn.Embedding(self.n_question + 1, embed_l)
+            # self.guess = nn.Embedding(self.n_question + 1, 1)
+            # self.slipping = nn.Embedding(self.n_question + 1, 1)
+
+        if emb_type.startswith("bayesian") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            # self.mastery = nn.Embedding(self.n_question + 1, 1)
             self.guess = nn.Embedding(self.n_question + 1, 1)
             self.slipping = nn.Embedding(self.n_question + 1, 1)
 
@@ -228,7 +240,7 @@ class AKTVec(nn.Module):
                 # q_embed_data = q_embed_data + pid_embed_data + \
                 #     q_embed_diff_data  # uq *d_ct + c_ct # question encoder 
 
-            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss"]:
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "bayesian", "relation_bayesian", "relation_bayesian_loss"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -266,7 +278,7 @@ class AKTVec(nn.Module):
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
-        if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian"]:
+        if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian", "bayesian"]:
             # print("not add guess/sliping into mastery")
             m = nn.Sigmoid()
             preds = m(output)
@@ -284,7 +296,7 @@ class AKTVec(nn.Module):
                 # print(f"d_ones: {d_ones.shape}")
                 preds = preds * (1 - kc_slipping) + (d_ones - preds) * kc_guess
 
-        elif emb_type in ["bernoulli", "relation_bayesian"]:
+        elif emb_type in ["bernoulli", "bayesian", "relation_bayesian"]:
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)
             kc_slipping = m(kc_slipping)
