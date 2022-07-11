@@ -45,7 +45,7 @@ def main(params):
         save_dir = save_dir+"_"+str(uuid.uuid4())
     os.makedirs(save_dir,exist_ok=True)
        
-    emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}|-|no_attention"
+    emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}|-|{params['attention_mode']}"
    
     other_config = {"qc_predict_mode_lambda":params['qc_predict_mode_lambda'],"qc_loss_mode_lambda":params['qc_loss_mode_lambda']}
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
@@ -91,8 +91,10 @@ if __name__ == "__main__":
     # parser.add_argument("--loss_mode", type=str, default='q')#keep same with predict_mode
     parser.add_argument("--predict_mode", type=str, default='q')
     parser.add_argument("--output_mode", type=str, default='all',help="all/next")
+    parser.add_argument("--attention_mode", type=str, default="no_attention",help="no_attention/attention")
     parser.add_argument("--qc_predict_mode_lambda", type=float, default=1)
     parser.add_argument("--qc_loss_mode_lambda", type=float, default=1)
+    
 
     
     parser.add_argument("--learning_rate", type=float, default=1e-3)
