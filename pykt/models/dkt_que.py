@@ -40,6 +40,7 @@ class DKTQueNet(nn.Module):
         self.other_config = other_config
         self.qc_predict_mode_lambda = self.other_config.get('qc_predict_mode_lambda',1)
         self.qc_loss_mode_lambda = self.other_config.get('qc_loss_mode_lambda',1)
+        self.loss_question_concept_lambda = self.other_config.get('loss_question_concept_lambda',1)
 
         
        
@@ -196,7 +197,7 @@ class DKTQue(QueBaseModel):
         if self.model.loss_mode=="c":
             loss = loss_concept
         elif self.model.loss_mode in ["c_cc","c_ccs"]:
-            loss = (loss_concept+loss_question_concept)/2
+            loss = (loss_concept+self.model.loss_question_concept_lambda*loss_question_concept)/(1+self.model.loss_question_concept_lambda)
         elif self.model.loss_mode=="q":
             loss = loss_question
         elif self.model.loss_mode in ["q_cc","q_ccs"]:#concept classifier
@@ -247,7 +248,6 @@ class DKTQue(QueBaseModel):
     #         y_pred_raw = y_question_concepts[i]
     #         # y_qc_pred.append(tuple(defalut_index[y_pred_raw > 0.5]))
     #         y_qc_pred.append(tuple([y_pred_raw.argmax()]))
-
     #     return y_qc_pred, y_qc_true
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
