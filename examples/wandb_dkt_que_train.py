@@ -57,9 +57,12 @@ def main(params):
     model.train(train_dataset, valid_dataset, batch_size=128,
                 num_epochs=params['num_epochs'], patient=5, shuffle=False, save_model=True, save_dir=save_dir)
     model.load_model(model.save_dir)
+    eval_result = model.evaluate(test_dataset,batch_size=64)
+    auc,acc = eval_result['auc'],eval_result['acc']
+    win_eval_result = model.evaluate(test_win_dataset,batch_size=64)
+    auc_win,acc_win = win_eval_result['auc'],win_eval_result['acc']
 
-    auc,acc = model.evaluate(test_dataset,batch_size=64)
-    auc_win,acc_win = model.evaluate(test_win_dataset,batch_size=64)
+    
 
     print(f"auc: {auc}, acc: {acc}, auc_win: {auc_win}, acc_win: {acc_win}")
     
