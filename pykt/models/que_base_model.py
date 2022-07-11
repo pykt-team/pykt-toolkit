@@ -277,8 +277,9 @@ class QueBaseModel(nn.Module):
                 loss_mean.append(loss.detach().cpu().numpy())
                
             loss_mean = np.mean(loss_mean)
-            auc, acc = self.evaluate(valid_dataset,batch_size=valid_batch_size)
-           
+            eval_result = self.evaluate(valid_dataset,batch_size=valid_batch_size)
+            auc, acc = eval_result['auc'],eval_result['acc']
+            print(f"eval_result is {eval_result}")
             if auc > max_auc:
                 if save_model:
                     self._save_model()

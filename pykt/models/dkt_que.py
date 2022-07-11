@@ -5,6 +5,9 @@ import torch.nn.functional as F
 import numpy as np
 from .que_base_model import QueBaseModel,QueEmb
 from pykt.utils import debug_print
+from sklearn import metrics
+from torch.utils.data import DataLoader
+
 class MLP(nn.Module):
     '''
     classifier decoder implemented with mlp
@@ -49,7 +52,7 @@ class DKTQueNet(nn.Module):
         if self.emb_type in ["iekt"]:
             self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
             if self.attention_mode in ["attention"]:
-                self.multihead_attn = nn.MultiheadAttention(self.hidden_size*2, 1,batch_first=True,kdim=self.hidden_size*2, vdim=self.hidden_size*4)
+                self.multihead_attn = nn.MultiheadAttention(self.hidden_size, 1,batch_first=True,kdim=self.hidden_size, vdim=self.hidden_size)
                 #保持输出的维度和query的维度一致
         else:
             self.lstm_layer = nn.LSTM(self.emb_size, self.hidden_size, batch_first=True)
@@ -71,12 +74,12 @@ class DKTQueNet(nn.Module):
         if self.predict_next:
             if self.emb_type in ["iekt"]:
                 if self.attention_mode in ["attention"]:
-                    self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),1,dropout)
-                    self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),num_c,dropout)
+                    self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),1,dropout)
+                    self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),num_c,dropout)
                     if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
                         self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
                     else:
-                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),num_c,dropout)#concept classifier predict the concepts in
+                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)#concept classifier predict the concepts in
                 else:
                     self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),1,dropout)
                     self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),num_c,dropout)
@@ -140,11 +143,11 @@ class DKTQueNet(nn.Module):
                     nopeek_mask = np.triu(np.ones((seq_len, seq_len)), k=0)
                     attn_mask = torch.from_numpy(nopeek_mask).to(self.device)
                     attn_mask = attn_mask + attn_mask*(-100000)#-100000 is used to mask the attention not use -inf to avoid nan value
-
-                    attn_output, attn_output_weights = self.multihead_attn(emb_qc, emb_qc, emb_qca,attn_mask=attn_mask)
+                   
+                    attn_output, attn_output_weights = self.multihead_attn(emb_c, emb_c, emb_c,attn_mask=attn_mask)
                     # attn_output_weights = attn_output_weights[:,1:,:]
                     attn_output = attn_output[:,1:,:]
-                    h = torch.cat([emb_qc_shift*torch.sigmoid(attn_output),h],axis=-1)
+                    h = torch.cat([emb_qc_shift,attn_output,h],axis=-1)
                 else:
                     h = torch.cat([emb_qc_shift,h],axis=-1)
             else:
@@ -170,7 +173,10 @@ class DKTQueNet(nn.Module):
             y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_ccs))
         else:
             #emb_q[:,1:,:]
-            y_question_concepts = torch.sigmoid(self.out_concept_classifier(emb_q[:,1:,:]))
+            # 知识点分类当作多标签分类
+            # y_question_concepts = torch.sigmoid(self.out_concept_classifier(emb_q[:,1:,:]))
+            # 知识点分类当作多标签分类
+            y_question_concepts = torch.softmax(self.out_concept_classifier(emb_q[:,1:,:]),axis=-1)
         return y_question,y_concept,y_question_concepts
 
 class DKTQue(QueBaseModel):
@@ -186,19 +192,7 @@ class DKTQue(QueBaseModel):
         self.model = self.model.to(device)
         self.emb_type = self.model.emb_type
        
-    def train_one_step(self,data,process=True):
-        y_question,y_concept,y_question_concepts,data_new = self.predict_one_step(data,return_details=True,process=process)
-        loss_question = self.get_loss(y_question,data_new['rshft'],data_new['sm'])#get loss
-        loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#get loss
-        #知识点多分类 loss
-        concept_pred = y_question_concepts.flatten(0,1)
-        concept_target = data_new['cshft'].flatten(0,1)
-        concept_target_pad = torch.zeros((concept_pred.shape[0],concept_pred.shape[1]-concept_target.shape[1])).to(self.device)-1
-        concept_target = torch.cat([concept_target,concept_target_pad],axis=-1).long()
-        # print(f"concept_pred.shape is {concept_pred.shape},{concept_pred},concept_target.shape is {concept_target.shape},{concept_target}")
-        loss_question_concept = nn.MultiLabelMarginLoss()(concept_pred,concept_target)
-        # print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
-        
+    def get_merge_loss(self,loss_question,loss_concept,loss_question_concept):
         if self.model.loss_mode=="c":
             loss = loss_concept
         elif self.model.loss_mode in ["c_cc","c_ccs"]:
@@ -207,11 +201,116 @@ class DKTQue(QueBaseModel):
             loss = loss_question
         elif self.model.loss_mode in ["q_cc","q_ccs"]:#concept classifier
             loss = (loss_question+loss_question_concept)/2
+        elif self.model.loss_mode in ["cc"]:#concept classifier
+            loss = loss_question_concept
         elif self.model.loss_mode=="qc":
             loss = (loss_question+loss_concept*self.model.qc_loss_mode_lambda)/(1+self.model.qc_loss_mode_lambda)
         elif self.model.loss_mode in ["qc_cc","qc_ccs"]:#concept classifier
             loss = (loss_question+loss_concept+loss_question_concept)/3
-        return y_question,loss
+        return loss
+
+    def train_one_step(self,data,process=True,return_all=False):
+        y,y_question,y_concept,y_question_concepts,y_qc_predict,qc_target,data_new = self.predict_one_step(data,return_details=True,process=process)
+        # print(f"y_question_concepts shape is {y_question_concepts.shape}")
+        loss_question = self.get_loss(y_question,data_new['rshft'],data_new['sm'])#get loss
+        loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#get loss
+        
+        #知识点分类当作多分类
+        loss_question_concept = nn.CrossEntropyLoss()(y_qc_predict,qc_target)
+
+        print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
+        
+        loss = self.get_merge_loss(loss_question,loss_concept,loss_question_concept)
+        if return_all:
+            return y_question,y_concept,y_question_concepts,loss
+        else:
+            return y_question,loss
+
+    # def get_qc_hot(self,y_question_concepts, concept_target):
+    #知识点分类当作多标签分类
+    #     # print(f"y_question_concepts is {y_question_concepts}")
+    #     y_question_concepts = y_question_concepts.flatten(
+    #         0, 1).detach().cpu().numpy()
+    #     concept_target = concept_target.flatten(0, 1).detach().cpu().numpy()
+
+    #     y_qc_pred = []
+    #     y_qc_true = []
+    #     defalut_index = np.arange(self.model.num_c)
+    #     for i in range(y_question_concepts.shape[0]):
+    #         y_true_raw = concept_target[i]
+    #         if y_true_raw.mean() == -1:
+    #             # skip all padding
+    #             continue
+    #         y_qc_true.append(tuple(y_true_raw[y_true_raw != -1]))
+
+    #         # predict value
+    #         y_pred_raw = y_question_concepts[i]
+    #         # y_qc_pred.append(tuple(defalut_index[y_pred_raw > 0.5]))
+    #         y_qc_pred.append(tuple([y_pred_raw.argmax()]))
+
+    #     return y_qc_pred, y_qc_true
+
+    def predict(self,dataset,batch_size,return_ts=False,process=True):
+        test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
+        self.model.eval()
+        with torch.no_grad():
+            y_trues = []
+            y_scores = []
+            y_qc_true_list = []
+            y_qc_pred_list =[]
+            for data in test_loader:
+                new_data = self.batch_to_device(data,process=process)
+                y,y_question,y_concept,y_question_concepts,y_qc_predict,qc_target,data_new = self.predict_one_step(data,return_details=True)
+                y = torch.masked_select(y, new_data['sm']).detach().cpu()
+                t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
+                y_trues.append(t.numpy())
+                y_scores.append(y.numpy())
+                 #知识点分类当作多标签分类
+                # y_qc_pred, y_qc_true = self.get_qc_hot(y_question_concepts,concept_target=new_data['cshft'])
+                # y_qc_true_list.extend(y_qc_true)
+                # y_qc_pred_list.extend(y_qc_pred)
+                y_qc_true_list.append(qc_target.detach().cpu().numpy())
+                y_qc_pred_list.append(y_qc_predict.detach().cpu().numpy().argmax(axis=-1))
+
+                
+        ts = np.concatenate(y_trues, axis=0)
+        ps = np.concatenate(y_scores, axis=0)
+        kc_ts = np.concatenate(y_qc_true_list, axis=0)
+        kc_ps = np.concatenate(y_qc_pred_list, axis=0)
+
+
+        #知识点多标签分类 loss
+        # concept_pred = y_question_concepts.flatten(0,1)
+        # concept_target = data_new['cshft'].flatten(0,1)
+        # concept_target_pad = torch.zeros((concept_pred.shape[0],concept_pred.shape[1]-concept_target.shape[1])).to(self.device)-1
+        # concept_target = torch.cat([concept_target,concept_target_pad],axis=-1).long()
+        # print(f"concept_pred.shape is {concept_pred.shape},{concept_pred},concept_target.shape is {concept_target.shape},{concept_target}")
+        # loss_question_concept = nn.MultiLabelSoftMarginLoss()(concept_pred,concept_target)
+        
+        #知识点分类当作多标签分类
+        # # map
+        # mlb = MultiLabelBinarizer()
+        # mlb.fit(y_qc_true_list+y_qc_pred_list)
+
+        # # fit
+        # y_qc_true_hot = mlb.transform(y_qc_true_list)
+        # y_qc_pred_hot = mlb.transform(y_qc_pred_list)
+        # print(f"y_qc_pred is {y_qc_pred}")
+        # print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
+        #知识点分类当作多分类
+        
+        # return ps,ts,y_qc_true_hot, y_qc_pred_hot
+        return ps,ts,kc_ts, kc_ps
+
+    def evaluate(self,dataset,batch_size,acc_threshold=0.5):
+        ps,ts,y_qc_true_hot, y_qc_pred_hot = self.predict(dataset,batch_size=batch_size)
+        kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
+        prelabels = [1 if p >= acc_threshold else 0 for p in ps]
+        kt_acc = metrics.accuracy_score(ts, prelabels)
+        kc_em_acc = metrics.accuracy_score(y_qc_true_hot, y_qc_pred_hot)
+        eval_result = {"auc":kt_auc,"acc":kt_acc,"kc_em_acc":kc_em_acc}
+        return eval_result
+        
 
     def predict_one_step(self,data,return_details=False,process=True):
         data_new = self.batch_to_device(data,process=process)
@@ -233,13 +332,29 @@ class DKTQue(QueBaseModel):
         concept_sum = concept_sum*concept_mask
         y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
 
+
+        #知识点多标签分类 loss
+        # concept_pred = y_question_concepts.flatten(0,1)
+        # concept_target = data_new['cshft'].flatten(0,1)
+        # concept_target_pad = torch.zeros((concept_pred.shape[0],concept_pred.shape[1]-concept_target.shape[1])).to(self.device)-1
+        # concept_target = torch.cat([concept_target,concept_target_pad],axis=-1).long()
+        # print(f"concept_pred.shape is {concept_pred.shape},{concept_pred},concept_target.shape is {concept_target.shape},{concept_target}")
+        # loss_question_concept = nn.MultiLabelSoftMarginLoss()(concept_pred,concept_target)
+
+        #知识点分类当作多分类
+        concept_target = data_new['cshft'][:,:,0].flatten(0,1)
+        y_question_concepts = y_question_concepts.flatten(0,1)
+        qc_target = concept_target[concept_target!=-1]
+        y_qc_predict = y_question_concepts[concept_target!=-1,:]
+
+
+        if self.model.predict_mode=="c":
+            y = y_concept
+        elif self.model.predict_mode=="q":
+            y = y_question
+        elif self.model.predict_mode in ["qc","qc_cc"]:
+            y = (y_question+y_concept*self.model.qc_predict_mode_lambda)/(1+self.model.qc_predict_mode_lambda)
         if return_details:
-            return y_question,y_concept,y_question_concepts,data_new
+            return y,y_question,y_concept,y_question_concepts,y_qc_predict,qc_target,data_new
         else:
-            if self.model.predict_mode=="c":
-                y = y_concept
-            elif self.model.predict_mode=="q":
-                y = y_question
-            elif self.model.predict_mode in ["qc","qc_cc"]:
-                y = (y_question+y_concept*self.model.qc_predict_mode_lambda)/(1+self.model.qc_predict_mode_lambda)
             return y
