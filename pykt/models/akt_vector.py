@@ -93,7 +93,7 @@ class AKTVec(nn.Module):
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
-        if emb_type.startswith("qid") and self.use_rasch or emb_type == "raschy":
+        if emb_type.startswith("qid") and self.use_rasch or emb_type in ["raschy", "bayesian_loss"]:
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
@@ -203,8 +203,9 @@ class AKTVec(nn.Module):
             # self.guess = nn.Embedding(self.n_question + 1, 1)
             # self.slipping = nn.Embedding(self.n_question + 1, 1)
             self.lstm_qa = LSTM(embed_l, embed_l, batch_first=True)
-            self.guess = nn.Embedding(self.n_question + 1, 1)
-            self.slipping = nn.Embedding(self.n_question + 1, 1)
+            if emb_type in ["lstmy_bayesian"]:
+                self.guess = nn.Embedding(self.n_question + 1, 1)
+                self.slipping = nn.Embedding(self.n_question + 1, 1)
 
         if emb_type in ["relation_lstmy_bayesian"] and self.use_rasch:
             # n_question+1 ,d_model
@@ -252,7 +253,7 @@ class AKTVec(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         # Batch First
-        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss", "lstm", "lstmy", "lstmy_bayesian", "relation_lstmy_bayesian"]:
+        if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "raschy", "relation_bayesian", "relation_bayesian_loss", "lstm", "lstmy", "lstmy_bayesian", "relation_lstmy_bayesian", "bayesian_loss"]:
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if emb_type.startswith("relation"):
@@ -273,7 +274,7 @@ class AKTVec(nn.Module):
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
-            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "lstmy", "lstmy_bayesian"] :
+            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "lstmy", "lstmy_bayesian", "bayesian_loss"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             elif emb_type in ["relation", "relation_bayesian", "relation_bayesian_loss", "relation_lstmy_bayesian"]:
@@ -292,7 +293,7 @@ class AKTVec(nn.Module):
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data + std_que_emb
 
-            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "bayesian", "relation_bayesian", "relation_bayesian_loss", "lstm"]:
+            if not self.rasch_x and emb_type in ["qid", "relation", "bernoulli", "bernoulli_v2", "raschy", "bayesian", "relation_bayesian", "relation_bayesian_loss", "lstm", "bayesian_loss"]:
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -345,7 +346,7 @@ class AKTVec(nn.Module):
             m = nn.Sigmoid()
             preds = m(output)
             # print(f"preds: {preds.shape}")
-            if emb_type in ["relation_bayesian_loss"]:
+            if emb_type in ["relation_bayesian_loss", "bayesian_loss"]:
                 kc_slipping = self.slipping(q_data)
                 kc_slipping = m(kc_slipping)
                 kc_slipping = torch.squeeze(kc_slipping)
