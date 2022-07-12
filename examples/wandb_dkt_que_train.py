@@ -90,7 +90,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--emb_size", type=int, default=200)
     parser.add_argument("--mlp_layer_num", type=int, default=1)
-    # parser.add_argument("--loss_mode", type=str, default='q')#keep same with predict_mode
+    parser.add_argument("--loss_mode", type=str, default='q')#keep same with predict_mode
     parser.add_argument("--predict_mode", type=str, default='q')
     parser.add_argument("--output_mode", type=str, default='all',help="all/next")
     parser.add_argument("--attention_mode", type=str, default="no_attention",help="no_attention/attention")
