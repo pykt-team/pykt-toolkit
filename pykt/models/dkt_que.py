@@ -7,6 +7,7 @@ from .que_base_model import QueBaseModel,QueEmb
 from pykt.utils import debug_print
 from sklearn import metrics
 from torch.utils.data import DataLoader
+from .loss import Loss
 
 class MLP(nn.Module):
     '''
@@ -217,7 +218,8 @@ class DKTQue(QueBaseModel):
         loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#get loss
         
         #知识点分类当作多分类
-        loss_question_concept = nn.CrossEntropyLoss()(y_qc_predict,qc_target)
+        # loss_question_concept = nn.CrossEntropyLoss()(y_qc_predict,qc_target)
+        loss_question_concept = Loss("ce").get_loss(y_qc_predict,qc_target)
 
         print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
         
