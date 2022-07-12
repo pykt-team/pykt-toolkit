@@ -47,7 +47,13 @@ def main(params):
        
     emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}|-|{params['attention_mode']}"
    
-    other_config = {"qc_predict_mode_lambda":params['qc_predict_mode_lambda'],"qc_loss_mode_lambda":params['qc_loss_mode_lambda']}
+
+    other_config = {"qc_predict_mode_lambda":params['qc_predict_mode_lambda'],
+                    "qc_loss_mode_lambda":params['qc_loss_mode_lambda'],
+                    "loss_type":params['loss_type'],
+                    "epsilon":params['epsilon'],
+                    "gamma":params['gamma']}
+
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
                    emb_size=params['emb_size'], device=device, emb_type=emb_type,
                    dropout=params['dropout'],other_config=other_config)
@@ -97,6 +103,10 @@ if __name__ == "__main__":
     parser.add_argument("--attention_mode", type=str, default="no_attention",help="no_attention/attention")
     parser.add_argument("--qc_predict_mode_lambda", type=float, default=1)
     parser.add_argument("--qc_loss_mode_lambda", type=float, default=1)
+    #知识点分类loss
+    parser.add_argument("--loss_type", type=str, default="ce")
+    parser.add_argument("--epsilon", type=float, default=1.0)
+    parser.add_argument("--gamma", type=float, default=2)
     
 
     
@@ -106,6 +116,6 @@ if __name__ == "__main__":
     parser.add_argument("--add_uuid", type=int, default=1)
     
     args = parser.parse_args()
-    args.loss_mode = f"{args.predict_mode}_cc"
+    # args.loss_mode = f"{args.predict_mode}_cc"
     params = vars(args)
     main(params)

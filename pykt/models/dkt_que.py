@@ -215,8 +215,10 @@ class DKTQue(QueBaseModel):
         loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#get loss
         
         #知识点分类当作多分类
-        # loss_question_concept = nn.CrossEntropyLoss()(y_qc_predict,qc_target)
-        loss_question_concept = Loss("ce").get_loss(y_qc_predict,qc_target)
+        loss_func = Loss(self.model.other_config.get("loss_type","ce"),
+                        epsilon=self.model.other_config.get("epsilon",1.0),
+                        gamma=self.model.other_config.get("gamma",2)).get_loss
+        loss_question_concept = loss_func(y_qc_predict,qc_target)
 
         print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
         
