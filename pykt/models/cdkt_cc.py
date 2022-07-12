@@ -1,5 +1,5 @@
 import random
-def generate_postives(qss, rss, sms, num_q, probs={"mask": 0.2, "crop": 0.5, "permute": 0.5}):    
+def generate_postives(qss, rss, sms, num_q, probs={"mask": 0.2, "crop": 0.2, "permute": 0.2}):    
     totallen = qss.shape[1]
     finalqs, finalrs, finalsm = [], [], []
     # 也可以选一部分长度长的序列做对比学习
@@ -9,6 +9,8 @@ def generate_postives(qss, rss, sms, num_q, probs={"mask": 0.2, "crop": 0.5, "pe
         currs = torch.masked_select(rs, sm).tolist()
         cursm = torch.masked_select(sm, sm).tolist()
         curlen = len(curqs)
+        if curlen < 30: # 
+            continue
         # rand select
         flag = random.choice(list(probs.keys()))
         prob = probs[flag]
@@ -90,7 +92,7 @@ class Network(nn.Module):
         self.instance_loss = InstanceLoss(instance_temp)
         self.cluster_loss = ClusterLoss(class_num, cluster_temp)
 
-    def forward(self, x_i, x_j):
+    def forward(self, x_i, x_j, sm_i, sm_j):
         # x_i : bz * channel * width * higth
         # 输入是一个bz的样本经过不同数据增强方式得到的两种增强结果
         # 新: [id1, id2.....], [id1, id2.....]
@@ -99,8 +101,9 @@ class Network(nn.Module):
             h_j, _ = self.net(x_j)
             h_i, h_j = h_i[:,-1,:], h_j[:,-1,:]
         elif self.net_type == "transformer":
-            h_i = self.net(x_i)
-            h_j = self.net(x_j)
+            h_i = self.net(x_i.transpose(0,1), sm_i).transpose(0,1)
+            h_j = self.net(x_j.transpose(0,1), sm_j).transpose(0,1)
+            # print(f"h_i: {h_i.shape}")
             h_i, h_j = h_i[:,0,:], h_j[:,0,:]
 #         print(f"h_i: {h_i}")
 #         print(f"h_j: {h_j}")
@@ -122,6 +125,48 @@ class Network(nn.Module):
         c = self.cluster_projector(h)
         c = torch.argmax(c, dim=1)
         return c
+
+class WWWNetwork(nn.Module):
+    # change to real www!
+    def __init__(self, qnet, xnet, net_type, net_out_dim, feature_dim, class_num, drop_rate=0.1, instance_temp=0.5, cluster_temp=1):
+        super(WWWNetwork, self).__init__()
+        self.qnet = qnet
+        self.xnet = xnet
+        self.net_type = net_type
+        self.feature_dim = feature_dim
+        # self.pooling = 
+        self.instance_projector = nn.Sequential(
+            nn.Linear(net_out_dim, net_out_dim),
+            nn.ReLU(),
+            nn.Linear(net_out_dim, self.feature_dim),
+        )
+        self.qloss = InstanceLoss(instance_temp)
+        self.xloss = InstanceLoss(instance_temp)
+
+    def forward(self, q_i, q_j, x_i, x_j, sm_i, sm_j):
+        # x_i : bz * channel * width * higth
+        # 输入是一个bz的样本经过不同数据增强方式得到的两种增强结果
+        # 新: [id1, id2.....], [id1, id2.....]
+        def geth(x_i, x_j, sm_i, sm_j, net):
+            if self.net_type == "lstm":
+                h_i, _ = net(x_i)
+                h_j, _ = net(x_j)
+                h_i, h_j = h_i[:,-1,:], h_j[:,-1,:]
+            elif self.net_type == "transformer":
+                h_i = net(x_i.transpose(0,1), sm_i).transpose(0,1)
+                h_j = net(x_j.transpose(0,1), sm_j).transpose(0,1)
+                # print(f"h_i: {h_i.shape}")
+                h_i, h_j = h_i[:,0,:], h_j[:,0,:]
+            z_i = normalize(self.instance_projector(h_i), dim=1)
+            z_j = normalize(self.instance_projector(h_j), dim=1)
+            return z_i, z_j
+        zq_i, zq_j = geth(q_i, q_j, sm_i, sm_j, self.qnet)
+        zx_i, zx_j = geth(x_i, x_j, sm_i, sm_j, self.xnet)
+        qloss = self.qloss(zq_i, zq_j)
+        xloss = self.xloss(zx_i, zx_j)
+        loss = qloss+xloss
+
+        return loss
 
 import torch
 import torch.nn as nn
@@ -168,6 +213,9 @@ class InstanceLoss(nn.Module):
 
         labels = torch.zeros(N).to(positive_samples.device).long()
         logits = torch.cat((positive_samples, negative_samples), dim=1)
+        # print(f"positive_samples: {positive_samples.shape}, negative_samples: {negative_samples.shape}, logits: {logits.shape}, labels: {labels.shape}, labels: {labels.tolist()}")
+        # print(logits)
+        # assert False
         loss = self.criterion(logits, labels)
         loss /= N
 

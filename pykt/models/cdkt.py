@@ -1,3 +1,4 @@
+from curses.ascii import EM
 import os
 
 import pandas as pd
@@ -5,7 +6,7 @@ import torch
 
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer
 from .utils import transformer_FFN, ut_mask, pos_encode
-from .cdkt_cc import generate_postives, Network
+from .cdkt_cc import generate_postives, Network, WWWNetwork
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -84,20 +85,36 @@ class CDKT(Module):
         if self.emb_type.endswith("addcc"): # add cc loss
             self.l1 = l1
             self.l2 = l2
-            self.interaction_emb = Embedding((self.num_c+1) * 2+1, self.emb_size)
+            if self.emb_type.find("dktxemb") != -1:
+                self.interaction_emb = Embedding((self.num_c+1) * 2+1, self.emb_size)
+            elif self.emb_type.find("seperate") != -1:
+                self.concept_emb = Embedding(self.num_c+2, self.emb_size)
+                self.response_emb = Embedding(2, self.emb_size)
+            else:
+                self.interaction_emb = Embedding((self.num_c+1) * 2+1, self.emb_size)
+                self.concept_emb = Embedding(self.num_c+2, self.emb_size)
+                self.response_emb = Embedding(2, self.emb_size)
             if self.emb_type.find("bilstm") != -1:
                 self.seqmodel = LSTM(self.emb_size, self.hidden_size, batch_first=True, bidirectional=True)
-                self.net = Network(self.seqmodel, "lstm", self.hidden_size*2, self.emb_size, num_c, dropout)
+                if self.emb_type.find("www") != -1:
+                    # need change!
+                    self.xseqmodel = LSTM(self.emb_size, self.hidden_size, batch_first=True, bidirectional=True)
+                    self.net = WWWNetwork(self.seqmodel, self.xseqmodel, "lstm", self.hidden_size*2, self.emb_size, num_c, dropout)
+                else:
+                    self.net = Network(self.seqmodel, "lstm", self.hidden_size*2, self.emb_size, num_c, dropout)
             elif self.emb_type.find("transformer") != -1:
                 self.position_embedding = Embedding(seq_len, emb_size)
-                encoder_layer = TransformerEncoderLayer(self.hidden_size, nhead=5)
-                self.seqmodel = TransformerEncoder(encoder_layer, num_layers=2)
-                self.net = Network(self.seqmodel, "transformer", self.hidden_size, self.emb_size, num_c, dropout)
-
-                # encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8)
-                # transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
-                # src = torch.rand(10, 32, 512)
-                # out = transformer_encoder(src)
+                self.nhead = 5
+                encoder_layer = TransformerEncoderLayer(self.hidden_size, nhead=self.nhead)
+                encoder_norm = LayerNorm(self.hidden_size)
+                self.seqmodel = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
+                if self.emb_type.find("www") != -1:
+                    xencoder_layer = TransformerEncoderLayer(self.hidden_size, nhead=self.nhead)
+                    xencoder_norm = LayerNorm(self.hidden_size)
+                    self.xseqmodel = TransformerEncoder(xencoder_layer, num_layers=1, norm=xencoder_norm)
+                    self.net = WWWNetwork(self.seqmodel, self.xseqmodel, "transformer", self.hidden_size, self.emb_size, num_c, dropout)
+                else:
+                    self.net = Network(self.seqmodel, "transformer", self.hidden_size, self.emb_size, num_c, dropout)
 
         self.dF = dict()
         self.avgf = 0
@@ -138,22 +155,58 @@ class CDKT(Module):
                 cs1, rs1, sm1 = generate_postives(c, r, sm, self.num_c)
                 cs2, rs2, sm2 = generate_postives(c, r, sm, self.num_c)
                 cs1, rs1, cs2, rs2 = cs1.to(device), rs1.to(device), cs2.to(device), rs2.to(device)
+                sm1, sm2 = sm1.to(device), sm2.to(device)
                 # pad a cls token
-                padc = torch.tensor([[(self.num_c+1)*2]] * c.shape[0]).to(device)
-                padr = torch.tensor([[0]] * c.shape[0]).to(device)
+                if emb_type.find("dktxemb") != -1:
+                    padc = torch.tensor([[(self.num_c+1)*2]] * cs1.shape[0]).to(device)
+                else:
+                    padc = torch.tensor([[self.num_c+1]] * cs1.shape[0]).to(device)
+                padr = torch.tensor([[0]] * rs1.shape[0]).to(device)
+                pads = torch.tensor([[1]] * sm1.shape[0]).to(device)
                 # print(f"cs1: {cs1.shape}, padc: {padc.shape}")
                 # print(f"rs1: {rs1.shape}, padr: {padr.shape}")
                 cs1, rs1 = torch.cat([padc, cs1], dim=-1), torch.cat([padr, rs1], dim=-1)
                 cs2, rs2 = torch.cat([padc, cs2], dim=-1), torch.cat([padr, rs2], dim=-1)
-                xemb1 = self.interaction_emb(cs1 + (self.num_c+1) * rs1)
-                xemb2 = self.interaction_emb(cs2 + (self.num_c+1) * rs2)
-                
-                posemb = self.position_embedding(pos_encode(xemb1.shape[1]))
-                xemb1, xemb2 = xemb1 + posemb, xemb2 + posemb
-                y2 = self.net(xemb1, xemb2) # ccloss
+                sm1, sm2 = torch.cat([pads, sm1], dim=-1), torch.cat([pads, sm2], dim=-1)
+                posemb = self.position_embedding(pos_encode(cs1.shape[1]))
+                if emb_type.find("dktxemb") != -1:
+                    xemb1 = self.interaction_emb(cs1 + (self.num_c+1) * rs1)
+                    xemb2 = self.interaction_emb(cs2 + (self.num_c+1) * rs2)
+                    xemb1, xemb2 = xemb1 + posemb, xemb2 + posemb
+                elif emb_type.find("seperate") != -1:
+                    cemb1, remb1 = self.concept_emb(cs1), self.response_emb(rs1)
+                    cemb2, remb2 = self.concept_emb(cs2), self.response_emb(rs2)
+                    xemb1, xemb2 = cemb1 + remb1 + posemb, cemb2 + remb2 + posemb
+                else:
+                    cemb1, remb1 = self.concept_emb(cs1), self.response_emb(rs1)
+                    cemb2, remb2 = self.concept_emb(cs2), self.response_emb(rs2)
+                    xemb1, xemb2 = self.interaction_emb(cs1 + (self.num_c+1) * rs1), self.interaction_emb(cs2 + (self.num_c+1) * rs2)
+                    xemb1, xemb2 = xemb1 + posemb, xemb2 + posemb
 
-            x = c + (self.num_c+1) * r
-            xemb = self.interaction_emb(x)
+                # change mask, 
+                def get_attn_pad_mask(sm):
+                    batch_size, l = sm.size()
+                    pad_attn_mask = sm.data.eq(0).unsqueeze(1)
+                    pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
+                    return pad_attn_mask.repeat(self.nhead, 1, 1)
+                sm1, sm2 = get_attn_pad_mask(sm1), get_attn_pad_mask(sm2)
+                # print(f"xemb1: {xemb1.shape}, c: {c.shape}")
+                if emb_type.find("www") == -1:
+                    y2 = self.net(xemb1, xemb2, sm1, sm2) # ccloss
+                else:
+                    y2 = self.net(cemb1, cemb2, xemb1, xemb2, sm1, sm2)
+
+            if emb_type.find("dktxemb") != -1:
+                x = c + (self.num_c+1) * r
+                xemb = self.interaction_emb(x)
+            elif emb_type.find("seperate") != -1:
+                cemb, remb = self.concept_emb(c), self.response_emb(r)
+                xemb = cemb + remb
+            else:
+                x = c + (self.num_c+1) * r
+                xemb = self.interaction_emb(x)
+                cemb, remb = self.concept_emb(c), self.response_emb(r)
+                xemb += cemb+remb
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))

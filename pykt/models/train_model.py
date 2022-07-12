@@ -71,7 +71,8 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             loss2 = cross_entropy(ys[1][mask], ys[2][mask])
             loss = model.l1*loss1+model.l2*loss2
         elif model.emb_type.endswith("addcc"):
-            loss = model.l1*loss1+model.l2*ys[1]
+            # print(f"loss1: {loss1}, loss2: {ys[1]}")
+            loss = model.l1*loss1+model.l2*0.05*ys[1]
         else:
             loss = loss1
         

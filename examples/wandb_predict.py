@@ -29,7 +29,7 @@ def main(params):
                 del model_config[remove_item]    
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
-        if model_name in ["saint", "sakt"]:
+        if model_name in ["saint", "sakt", "cdkt"]:
             train_config = config["train_config"]
             seq_len = train_config["seq_len"]
             model_config["seq_len"] = seq_len   
