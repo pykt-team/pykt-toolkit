@@ -190,6 +190,7 @@ class DKTQue(QueBaseModel):
        
         self.model = self.model.to(device)
         self.emb_type = self.model.emb_type
+        self.eval_result = {}
        
     def get_merge_loss(self,loss_question,loss_concept,loss_question_concept):
         if self.model.loss_mode=="c":
@@ -206,6 +207,15 @@ class DKTQue(QueBaseModel):
             loss = (loss_question+loss_concept*self.model.qc_loss_mode_lambda)/(1+self.model.qc_loss_mode_lambda)
         elif self.model.loss_mode in ["qc_cc","qc_ccs"]:#concept classifier
             loss = (loss_question+loss_concept+loss_question_concept)/3
+        elif self.model.loss_mode in ['c_dyn']:
+            acc_kt = self.eval_result.get("acc",1)
+            acc_kc = self.eval_result.get("kc_em_acc",1)
+            c_dyn_a = self.model.other_config.get("c_dyn_a",0)
+            c_dyn_b = self.model.other_config.get("c_dyn_b",0)
+            alpha_kt = (acc_kc+c_dyn_a)/(acc_kt+acc_kc+c_dyn_a+c_dyn_b)
+            alpha_kc = (acc_kt+c_dyn_b)/(acc_kt+acc_kc+c_dyn_a+c_dyn_b)
+            print(f"acc_kt={acc_kt},acc_kc={acc_kc},alpha_kt={alpha_kt},alpha_kc={alpha_kc},c_dyn_a={c_dyn_a},c_dyn_b={c_dyn_b}")
+            loss = alpha_kt*loss_concept + alpha_kc*loss_question_concept
         return loss
 
     def train_one_step(self,data,process=True,return_all=False):
@@ -263,6 +273,7 @@ class DKTQue(QueBaseModel):
         kt_acc = metrics.accuracy_score(ts, prelabels)
         kc_em_acc = metrics.accuracy_score(y_qc_true_hot, y_qc_pred_hot)
         eval_result = {"auc":kt_auc,"acc":kt_acc,"kc_em_acc":kc_em_acc}
+        self.eval_result = eval_result
         return eval_result
         
 

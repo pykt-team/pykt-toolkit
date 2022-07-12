@@ -1,7 +1,6 @@
 examples/__pycache__/
 examples/all_bestmodel/
 examples/all_start.sh
-examples/all_wandbs/
 examples/pkls/
 examples/pred_wandbs/
 examples/saved_model/

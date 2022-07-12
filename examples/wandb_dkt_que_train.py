@@ -47,16 +47,9 @@ def main(params):
        
     emb_type = f"{params['emb_type']}|-|{params['loss_mode']}|-|{params['predict_mode']}|-|{params['output_mode']}|-|{params['attention_mode']}"
    
-
-    other_config = {"qc_predict_mode_lambda":params['qc_predict_mode_lambda'],
-                    "qc_loss_mode_lambda":params['qc_loss_mode_lambda'],
-                    "loss_type":params['loss_type'],
-                    "epsilon":params['epsilon'],
-                    "gamma":params['gamma']}
-
     model = DKTQue(num_q=data_config['num_q'], num_c=data_config['num_c'],
                    emb_size=params['emb_size'], device=device, emb_type=emb_type,
-                   dropout=params['dropout'],other_config=other_config)
+                   dropout=params['dropout'],other_config=params)
 
     model.compile(optimizer='adam', lr = params['learning_rate'])
 
@@ -108,6 +101,10 @@ if __name__ == "__main__":
     parser.add_argument("--epsilon", type=float, default=1.0)
     parser.add_argument("--gamma", type=float, default=2)
     
+    #dynamic loss
+    parser.add_argument("--c_dyn_a", type=float, default=0.0)
+    parser.add_argument("--c_dyn_b", type=float, default=0.0)
+   
 
     
     parser.add_argument("--learning_rate", type=float, default=1e-3)
