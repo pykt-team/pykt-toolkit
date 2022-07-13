@@ -244,9 +244,9 @@ class AKTVec(nn.Module):
         )
         self.reset()
         if emb_type.startswith("yplus") or emb_type.startswith("relation"):
-            if emb_type in ["yplus_que"]:
+            if emb_type in ["yplus_que"] or emb_type.startswith("relation"):
                 self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
-            if emb_type in ["yplus_kc"]:
+            if emb_type in ["yplus_kc"]  or emb_type.startswith("relation"):
                 self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
         
     def reset(self):
