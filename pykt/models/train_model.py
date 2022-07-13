@@ -59,9 +59,10 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["cdkt"]:
+    if model_name in ["cdkt", "cakt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
+        # print(f"loss1: {y.shape}")
         loss1 = binary_cross_entropy(y.double(), t.double())
 
         # 1.2
@@ -73,8 +74,13 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         elif model.emb_type.endswith("addcc"):
             # print(f"loss1: {loss1}, loss2: {ys[1]}")
             loss = model.l1*loss1+model.l2*0.05*ys[1]
+        elif model.emb_type.endswith("seq2seq"):
+            loss = model.l1*loss1+model.l2*ys[1]
         else:
             loss = loss1
+
+        if model_name == "cakt":
+            loss = loss + preloss[0]
         
         # # concept predict loss  ## 1.3
         # loss2 = 0        
@@ -148,11 +154,16 @@ def model_forward(model, data):
     #     y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
     #     ys = [y, y2] # first: yshft
     if model_name in ["cdkt"]:
-        y, y2 = model(c.long(), r.long(), q.long(), sm.long(), train=True)
+        # is_repeat = dcur["is_repeat"]
+        y, y2 = model(dcur, train=True)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, c] # first: yshft
-    if model_name in ["lpkt"]:
+    elif model_name in ["cakt"]:
+        y, reg_loss, y2 = model(cc.long(), cr.long(), cq.long(), train=True)
+        ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
+        preloss.append(reg_loss)
+    elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
     if model_name in ["dkt"]:

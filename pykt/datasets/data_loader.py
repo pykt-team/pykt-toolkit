@@ -31,6 +31,9 @@ class KTDataset(Dataset):
             processed_data = file_path + folds_str + "_qtest.pkl"
         else:
             processed_data = file_path + folds_str + ".pkl"
+        dpath = "/".join(file_path.split("/")[0:-1])
+        self.dq2c = pd.read_pickle(os.path.join(dpath, "dq2c.pkl"))
+        # print(self.dq2c)
 
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
@@ -78,17 +81,31 @@ class KTDataset(Dataset):
         dcur = dict()
         mseqs = self.dori["masks"][index]
         for key in self.dori:
-            if key in ["masks", "smasks"]:
+            if key in ["masks", "smasks", "orics", "orisms"]:
                 continue
             if len(self.dori[key]) == 0:
                 dcur[key] = self.dori[key]
                 dcur["shft_"+key] = self.dori[key]
+                continue
+            if key == "oriqs":
+                cursm = self.dori["orisms"][index]
+                dcur[key] = self.dori[key][index][:-1] * cursm
+                dcur["shft_"+key] = self.dori[key][index][1:] * cursm
                 continue
             # print(f"key: {key}, len: {len(self.dori[key])}")
             seqs = self.dori[key][index][:-1] * mseqs
             shft_seqs = self.dori[key][index][1:] * mseqs
             dcur[key] = seqs
             dcur["shft_"+key] = shft_seqs
+        # if index == 30:
+        #     print(f"qs: {dcur['qseqs']}")
+        #     print(f"oriqs: {dcur['oriqs']}")
+        #     assert False
+        
+        dcur["orics"] = self.dori["orics"][index][:-1]
+        dcur["shft_orics"] = self.dori["orics"][index][1:]
+        dcur["orisms"] = self.dori["orisms"][index]
+
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
         # print("tseqs", dcur["tseqs"])
@@ -117,8 +134,13 @@ class KTDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": []}
 
+        allcs = set()
+        for q in self.dq2c:
+            allcs |= self.dq2c[q]
+        numc = len(allcs) 
+        print(f"numc: {numc}")
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         df = pd.read_csv(sequence_path)#[0:1000]
         '''
@@ -147,6 +169,39 @@ class KTDataset(Dataset):
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
                 dori["utseqs"].append([int(_) for _ in row["usetimes"].split(",")])
+            if "is_repeat" in row:
+                dori["is_repeat"].append([int(_) for _ in row["is_repeat"].split(",")])
+
+            # ccs = []
+            # for q, c in zip(dori["qseqs"][-1], dori["cseqs"][-1]):
+            #     if q != -1:
+            #         curcs = list(self.dq2c[q]) + [-1]*(10-len(self.dq2c[q]))
+            #     else:
+            #         curcs = [-1]*10
+            #     ccs.append(curcs)
+            seqlen = len(dori["cseqs"][-1])
+            cqs, ccs = [], []
+
+            curoqs = [int(_) for _ in row["questions"].split(",")]
+            curocs = [int(_) for _ in row["concepts"].split(",")]
+            is_repeat = [int(_) for _ in row["is_repeat"].split(",")]
+            i = 0
+            for q, r in zip(curoqs, is_repeat):
+                if (i > 0 and r == 1) or q == -1:
+                    continue
+                cqs.append(q)
+                i += 1
+            sms = [1] * (len(cqs)-1) + [0] * (seqlen - len(cqs))
+            cqs = cqs + [-1] * (seqlen - len(cqs))
+            for q in cqs:
+                if q != -1:
+                    curcs = list(self.dq2c[q]) + [-1]*(10-len(self.dq2c[q]))
+                else:
+                    curcs = [-1]*10
+                ccs.append(curcs)
+            dori["oriqs"].append(cqs)
+            dori["orics"].append(ccs)
+            dori["orisms"].append(sms)
                 
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])

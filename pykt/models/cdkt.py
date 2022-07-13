@@ -1,10 +1,12 @@
 from curses.ascii import EM
 import os
+from tkinter import N
 
 import pandas as pd
 import torch
 
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer
+from torch import nn
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss
 from .utils import transformer_FFN, ut_mask, pos_encode
 from .cdkt_cc import generate_postives, Network, WWWNetwork
 
@@ -14,6 +16,7 @@ class CDKT(Module):
     def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', l1=0.5, l2=0.5, emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
+        print(f"qnum: {num_q}, cnum: {num_c}")
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
@@ -116,6 +119,36 @@ class CDKT(Module):
                 else:
                     self.net = Network(self.seqmodel, "transformer", self.hidden_size, self.emb_size, num_c, dropout)
 
+        if self.emb_type.endswith("seq2seq"):
+            self.l1 = l1
+            self.l2 = l2
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)
+            self.question_emb = Embedding(self.num_q, self.emb_size)
+            if self.emb_type.find("addr") != -1:
+                self.response_emb = Embedding(2, self.emb_size)
+            
+            self.nhead = 5
+            # if self.emb_type.find("linear") != -1:
+            #     self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+            #     d_model = self.hidden_size 
+            # else:
+            d_model = self.hidden_size*2
+            encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
+            encoder_norm = LayerNorm(d_model)
+            self.net = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
+
+            # self.qclasifier = nn.Linear(self.hidden_size, self.num_c)
+            self.qnet = nn.Sequential(
+                nn.Linear(d_model,
+                        self.hidden_size), nn.ReLU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size, self.emb_size), nn.ReLU(
+                ), nn.Dropout(dropout)
+            )
+            self.qclasifier = nn.Linear(self.emb_size, self.num_c)
+
+            
+            self.closs = MultiLabelMarginLoss()
+
         self.dF = dict()
         self.avgf = 0
 
@@ -135,7 +168,61 @@ class CDKT(Module):
             # assert False
         return torch.tensor(fss).float().to(device)
 
-    def forward(self, c, r, q, sm=None, train=False): ## F * xemb
+    def generate_oriqcs(self, q, c, sm, is_repeat):
+        dq2c = dict()
+        for i in range(0, q.shape[0]):
+            for j in range(0, q[i].shape[0]):
+                cq, cc = q[i][j].item(), c[i][j].item()
+                dq2c.setdefault(cq, set())
+                dq2c[cq].add(cc)
+        qs, cs, sms = [], [], []
+        for i in range(0, q.shape[0]):
+            
+            ### TODO, 去除之前pad的-1!!
+            # actualq = q[i][sm[i]==1]
+            # flag = is_repeat[i][sm[i]==1]==0
+            # newq = actualq[flag].tolist()
+            # sms.append([1]*len(newq)+[0]*(q.shape[1]-len(newq)))
+            # newq = newq + [0] * (q.shape[1]-len(newq))
+            newq = q[i].tolist()
+            # maxc: 10
+            curcs = []
+            for cq in newq:
+                ccs = list(dq2c[cq]) + [-1] * (self.num_c-len(dq2c[cq]))
+                curcs.append(ccs)
+
+            qs.append(newq)
+            cs.append(curcs)
+        qs = torch.LongTensor(qs).to(device)
+        cs = torch.LongTensor(cs).to(device)
+        sms = sm#torch.BoolTensor(sms).to(device)
+        # print(f"qs: {qs.shape}, cs: {cs.shape}, sm: {sm.shape}")
+        # assert False
+        return qs, cs, sms
+
+    def get_avg_skill_emb(self, c):
+        # add zero for padding
+        concept_emb_cat = torch.cat(
+            [torch.zeros(1, self.emb_size).to(device), 
+            self.concept_emb], dim=0)
+        # shift c
+        related_concepts = (c+1).long()
+        #[batch_size, seq_len, emb_dim]
+        concept_emb_sum = concept_emb_cat[related_concepts, :].sum(
+            axis=-2).to(device)
+
+        #[batch_size, seq_len,1]
+        concept_num = torch.where(related_concepts != 0, 1, 0).sum(
+            axis=-1).unsqueeze(-1)
+        concept_num = torch.where(concept_num == 0, 1, concept_num).to(device)
+        concept_avg = (concept_emb_sum / concept_num)
+        return concept_avg
+
+    def forward(self, dcur, train=False): ## F * xemb
+        # print(f"keys: {dcur.keys()}")
+        q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
+        sm = dcur["smasks"].long()
+        is_repeat = dcur["is_repeat"]
         y2 = None
 
         emb_type = self.emb_type
@@ -147,6 +234,54 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("seq2seq"): # add transformer to predict multi label cs
+            if train:
+                oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
+                # oriqs, orics, orisms = self.generate_oriqcs(q, c, sm, is_repeat)
+                # print(f"oriqs: {oriqs.shape}, orics: {orics.shape}, orisms: {orisms.shape}")
+                concept_avg = self.get_avg_skill_emb(orics)
+                # print(oriqs)
+                # print(q)
+                # assert False
+                qemb = self.question_emb(oriqs)
+                
+                # print(f"concept_avg: {concept_avg.shape}, qemb: {qemb.shape}")
+                
+                que_c_emb = torch.cat([concept_avg, qemb],dim=-1)
+                # add mask
+                def get_attn_pad_mask(sm):
+                    batch_size, l = sm.size()
+                    pad_attn_mask = sm.data.eq(0).unsqueeze(1)
+                    pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
+                    return pad_attn_mask.repeat(self.nhead, 1, 1)
+                mask = get_attn_pad_mask(orisms)
+                # if self.emb_type.find("linear") != -1:
+                #     que_c_emb = self.que_c_linear(que_c_emb)
+                # print(f"q: {q[30]}, mask: {mask[30][0]}")
+                # print(f"que_c_emb: {que_c_emb.shape}, mask: {mask.shape}")
+                qh = self.net(que_c_emb.transpose(0,1), mask).transpose(0,1)
+                qh = self.qnet(qh)
+            
+                cpreds = torch.sigmoid(self.qclasifier(qh))
+                flag = orisms==1
+                masked = cpreds[flag]
+                # print(f"closs: {masked.shape}")
+                # print(f"cpreds: {cpreds.shape}, ")
+                pad = torch.ones(cpreds.shape[0], cpreds.shape[1], self.num_c-10).to(device)
+                pad = -1 * pad
+                ytrues = torch.cat([orics, pad], dim=-1).long()[flag]
+                y2 = self.closs(masked, ytrues)
+
+            repqemb = self.question_emb(q)
+            repcemb = self.concept_emb[c]
+            cremb = self.response_emb(r)
+            xemb = xemb + repqemb + repcemb
+            if emb_type.find("addr") != -1:
+                xemb += cremb
+            h, _ = self.lstm_layer(xemb)
+            h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h))
+            
         elif emb_type.endswith("addcc"): # add cc
             # 需要构造数据做cc任务
             if train:
@@ -278,6 +413,9 @@ class CDKT(Module):
             if emb_type.find("cemb") != -1:
                 cemb = self.concept_emb(c)
                 catemb += cemb
+                if emb_type.find("caddr") != -1:
+                    remb = self.response_emb(r)
+                    catemb += remb
             qh, _ = self.qlstm(catemb)
             y2 = self.qclasifier(qh)
 

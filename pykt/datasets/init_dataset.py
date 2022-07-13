@@ -106,6 +106,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     else:
         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        # test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1})
         # test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
     
     if model_name == "dkt_forget":
@@ -118,6 +119,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         data_config["num_at"] = len(at2idx) + 1
         data_config["num_it"] = len(it2idx) + 1
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    # test_question_window_loader = DataLoader(test_question_window_dataset, batch_size=batch_size, shuffle=False)
     # test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = None
     return train_loader, valid_loader, test_loader, test_window_loader

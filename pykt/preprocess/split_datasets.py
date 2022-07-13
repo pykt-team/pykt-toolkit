@@ -447,6 +447,7 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
         "dpath": dpath,
         "num_q": num_q,
         "num_c": num_c,
+        "dq2c": "dq2c.pkl",
         "input_type": input_type,
         "max_concepts":dkeyid2idx["max_concepts"],
         "min_seq_len":min_seq_len,
@@ -474,7 +475,16 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
     with open(configf, "w") as fout:
         data = json.dumps(data_config, ensure_ascii=False, indent=4)
         fout.write(data)
-      
+def getq2c(df):
+    cs = set()
+    dq2c = dict()
+    for i, row in df.iterrows():
+        for q, c in zip(row["questions"].split(","), row["concepts"].split(",")):
+            q, c = int(q), int(c)
+            dq2c.setdefault(q, set())
+            dq2c[q].add(c)
+            cs.add(c)
+    return dq2c, len(cs)
       
 def calStatistics(df, stares, key):
     allin, allselect = 0, 0
@@ -546,6 +556,9 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
     total_df, effective_keys = extend_multi_concepts(total_df, effective_keys)
     total_df, dkeyid2idx = id_mapping(total_df)
     dkeyid2idx["max_concepts"] = max_concepts
+
+    dq2c, _ = getq2c(total_df)
+    pd.to_pickle(dq2c, os.path.join(dname, "dq2c.pkl"))
 
     extends, _, qs, cs, seqnum = calStatistics(total_df, stares, "extend multi")
     print("="*20)
