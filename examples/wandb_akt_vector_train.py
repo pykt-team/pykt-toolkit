@@ -1,5 +1,6 @@
 import argparse
 from wandb_train import main
+CUDA_LAUNCH_BLOCKING=1
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

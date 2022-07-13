@@ -7,7 +7,7 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-
+CUDA_LAUNCH_BLOCKING=1 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
