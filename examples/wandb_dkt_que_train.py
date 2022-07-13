@@ -104,8 +104,11 @@ if __name__ == "__main__":
     #dynamic loss
     parser.add_argument("--c_dyn_a", type=float, default=0.0)
     parser.add_argument("--c_dyn_b", type=float, default=0.0)
-   
+    
+    #future reward
+    parser.add_argument("--fr_window", type=int, default=1)
 
+    
     
     parser.add_argument("--learning_rate", type=float, default=1e-3)
 
