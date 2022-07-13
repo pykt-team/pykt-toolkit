@@ -1,0 +1,14 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/bayesian.yaml
+parameters:
+  save_dir:
+    values:
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_akt_vector_tiaocan_assist2009_224_0_0.1_256_256_8_4_0.0001_1_1_5f3d42bf-3dfc-4dab-bdb8-70b20f527108/bayesian_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_akt_vector_tiaocan_assist2009_224_1_0.1_256_512_4_4_1e-05_1_1_e132f44c-80cd-423b-8d59-0597be45c9ec/bayesian_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_akt_vector_tiaocan_assist2009_3407_2_0.1_256_512_4_4_1e-05_1_1_37a93718-ef4b-47d6-adab-6c32ddd9f7cc/bayesian_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_akt_vector_tiaocan_assist2009_42_3_0.1_256_256_8_4_0.0001_1_1_e4c9b9ef-9945-4c4c-aea5-40dd2a2b50f5/bayesian_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_akt_vector_tiaocan_assist2009_224_4_0.05_256_256_4_4_1e-05_1_1_81616555-9e45-4dca-8983-4808ac176b0b/bayesian_model.ckpt
+program: ../wandb_predict.py

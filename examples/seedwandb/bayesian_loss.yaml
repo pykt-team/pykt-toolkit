@@ -1,0 +1,14 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/bayesian_loss.yaml
+parameters:
+  save_dir:
+    values:
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_loss_akt_vector_tiaocan_assist2009_3407_0_0.25_256_256_4_3_0.0001_1_1_500616ac-3774-410a-9d99-ec4b2cdf7db0/bayesian_loss_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_loss_akt_vector_tiaocan_assist2009_3407_1_0.25_256_512_4_2_0.0001_1_1_107e0429-496d-4b4c-8b4b-d81462652b30/bayesian_loss_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_loss_akt_vector_tiaocan_assist2009_42_2_0.5_256_256_8_3_0.0001_1_1_76fa4124-0099-4194-880b-35c321758e82/bayesian_loss_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_loss_akt_vector_tiaocan_assist2009_3407_3_0.5_256_512_4_2_0.0001_1_1_e9d8213f-9254-488d-9272-393a312a289c/bayesian_loss_model.ckpt
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_bayesian_loss_akt_vector_tiaocan_assist2009_42_4_0.15_512_256_4_3_0.0001_1_1_c450d783-7d8d-4345-a65f-183a9295600e/bayesian_loss_model.ckpt
+program: ../wandb_predict.py
