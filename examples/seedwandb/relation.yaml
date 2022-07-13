@@ -6,9 +6,9 @@ name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/relation.yaml
 parameters:
   save_dir:
     values:
-    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_0_0.15_256_256_8_4_0.0001_1_1_86098c46-e953-4e8a-ade4-fd586e3e6f5b/relation_model.ckpt
-    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_224_1_0.1_256_256_8_4_0.0001_1_1_9ce955a7-e2d8-4915-bcf3-7a9fbb9a599e/relation_model.ckpt
-    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_42_2_0.05_256_512_4_4_1e-05_1_1_48f65450-075c-409a-a3b6-2898e1bf8c1f/relation_model.ckpt
-    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_3_0.1_256_256_4_4_0.0001_1_1_e31485bd-33d4-41ce-a910-c5ce1b85355c/relation_model.ckpt
-    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_4_0.05_256_256_4_4_1e-05_1_1_48f0db0d-e277-4e5c-b667-579f6a00be48/relation_model.ckpt
-program: ../wandb_predict.py
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_0_0.15_256_256_8_4_0.0001_1_1_86098c46-e953-4e8a-ade4-fd586e3e6f5b
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_224_1_0.1_256_256_8_4_0.0001_1_1_9ce955a7-e2d8-4915-bcf3-7a9fbb9a599e
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_42_2_0.05_256_512_4_4_1e-05_1_1_48f65450-075c-409a-a3b6-2898e1bf8c1f
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_3_0.1_256_256_4_4_0.0001_1_1_e31485bd-33d4-41ce-a910-c5ce1b85355c
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_3407_4_0.05_256_256_4_4_1e-05_1_1_48f0db0d-e277-4e5c-b667-579f6a00be48
+program: ./wandb_predict.py
