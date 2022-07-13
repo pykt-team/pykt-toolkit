@@ -110,7 +110,6 @@ def model_forward(model, data):
         ys.append(y)  
     # cal loss
     elif model_name == "lpkt":
-
         # y = model(cq.long(), cr.long(), cat, cit.long())
         y = model(cq.long(), cr.long(), cit.long())
         ys.append(y[:, 1:])  
