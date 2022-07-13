@@ -1,6 +1,6 @@
 name: assist2009_dkt_que_mt_iekt_add_c_dyn
 program: wandb_dkt_que_train.py
-method: grid
+method: bayes
 metric:
     goal: maximize
     name: testauc
@@ -31,3 +31,7 @@ parameters:
         values: ["next"]
     loss_mode:
         values: ['c_dyn']
+    c_dyn_a:
+        values: [0,0.1,0.2,0.4,0.6,0.8,1,1.2,1.4]
+    c_dyn_b:
+        values: [0,0.1,0.2,0.4,0.6,0.8,1,1.2,1.4]
