@@ -301,7 +301,7 @@ class AKTVec(nn.Module):
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
-            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "lstmy", "lstmy_bayesian", "bayesian_loss", "yplus_que"] :
+            if emb_type in ["qid", "bayesian", "bernoulli", "bernoulli_v2", "lstmy", "lstmy_bayesian", "bayesian_loss", "yplus_que", "yplus_kc"] :
                 q_embed_data = q_embed_data + pid_embed_data + \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             elif emb_type in ["relation", "relation_bayesian", "relation_bayesian_loss", "relation_lstmy_bayesian"]:
