@@ -71,7 +71,16 @@ class DKTQueNet(nn.Module):
             self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
             self.h_c_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
 
-        
+        if "an" in self.predict_mode:#all and next merge, qc-c_an#all 使用qc，next使用 c
+            if self.emb_type in ["iekt"]:
+                if self.attention_mode in ["attention"]:
+                    self.out_layer_question = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),1,dropout)
+                    self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),num_c,dropout)
+                    if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
+                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
+                    else:
+                        self.out_concept_classifier = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)#concept classifier predict the concepts in
+
 
         if self.predict_next:
             if self.emb_type in ["iekt"]:
