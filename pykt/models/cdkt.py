@@ -52,6 +52,43 @@ class CDKT(Module):
                 self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
                 self.qdrop = Dropout(dropout)
                 self.qclasifier = Linear(self.hidden_size, self.num_c)
+
+        if self.emb_type.endswith("pretrainddiff"): # use pretrained qemb and cemb from cc
+            qavgkc = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_qavgcvec.pkl")
+            qvec = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_questionvec.pkl")
+            cvec = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_conceptvec.pkl")
+            qdifficulty = pd.read_pickle("/hw/share/liuqiongqiong/kt/kaiyuan/dev/algebra2005_eachqdifficulty.pkl")
+            self.pretrain_qemb = Embedding.from_pretrained(qvec)
+            self.pretrain_cemb = Embedding.from_pretrained(cvec)
+            self.pretrain_qavgcemb = Embedding.from_pretrained(qavgkc)
+            self.pretrain_qdifficulty = Embedding.from_pretrained(qdifficulty)
+
+            self.qlinear = Linear(qvec.shape[1], self.emb_size)
+            self.clinear = Linear(cvec.shape[1], self.emb_size)
+            for param in self.pretrain_qemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_cemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_qavgcemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_qdifficulty.parameters():
+                param.requires_grad = False
+            if self.emb_type.find("predcurc") != -1:
+                self.l1 = l1
+                self.l2 = l2
+                ## learning
+                self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
+                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+
+                if self.emb_type.find("catr") != -1:
+                    self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
+                if self.emb_type.find("addr") != -1:
+                    self.response_emb = Embedding(2, self.emb_size)
+                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+
+                # self.qdrop = Dropout(dropout)
+                self.qclasifier = Linear(self.hidden_size, self.num_c)
+
                 
         if self.emb_type.endswith("addcemb"): # xemb += cemb
             self.concept_emb = Embedding(self.num_c, self.emb_size)
@@ -234,6 +271,44 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
+            qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
+            if emb_type.find("sep") != -1:
+                xemb = xemb + qemb + cemb + qdiff
+            elif emb_type.find("qavgc") != -1:
+                xemb = xemb + qavgcemb + qdiff
+            elif emb_type.find("all") != -1: # use all
+                xemb = xemb + qemb + cemb + qavgcemb + qdiff
+            elif emb_type.find("onlydiff") != -1:
+                xemb = xemb + qdiff
+            elif emb_type.find("onlycdiff") != -1:
+                xemb = xemb + cemb + qdiff
+            elif emb_type.find("onlyc") != -1:
+                xemb = xemb + cemb
+            elif emb_type.find("onlyqc") != -1:
+                xemb = xemb + qemb + cemb
+            if emb_type.find("predcurc") != -1:
+                qemb2, cemb2 = self.question_emb(q), self.concept_emb(c)
+                catemb = xemb + qemb2 + cemb2
+                if emb_type.find("caddr") != -1:
+                    remb = self.response_emb(r)
+                    catemb += remb
+                qh, _ = self.qlstm(catemb)
+                y2 = self.qclasifier(qh)
+
+                # predict response
+                xemb = xemb + qh + cemb2# + cemb ## +cemb效果更好
+                if emb_type.find("catr") != -1:
+                    remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
+                    xemb = torch.cat([xemb, remb], dim=-1)
+                elif emb_type.find("addr") != -1:
+                    remb = self.response_emb(r)
+                    xemb = xemb + remb
+
+            h, _ = self.lstm_layer(xemb)
+            h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h))
+
         elif emb_type.endswith("seq2seq"): # add transformer to predict multi label cs
             if train:
                 oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
