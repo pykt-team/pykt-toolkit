@@ -5,7 +5,7 @@ metric:
     name: testauc
 parameters:
     model_name:
-        values: ["akt"]
+        values: ["akt_forget"]
     dataset_name:
         values: ["xes"]
     emb_type:

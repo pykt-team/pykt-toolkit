@@ -28,10 +28,7 @@ class AKTF(nn.Module):
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
         self.emb_type = emb_type
-        if self.use_rasch and not self.rasch_x:
-            self.model_name = "akt_vector"
-        elif self.use_rasch and self.rasch_x:
-            self.model_name = "aktvec_raschx"
+        self.model_name = "akt_forget"
 
         self.n_question = n_question
         self.dropout = dropout

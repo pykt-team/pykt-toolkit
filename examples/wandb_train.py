@@ -1,4 +1,4 @@
-examples/wandb_train.pyimport os
+import os
 import argparse
 import json
 
