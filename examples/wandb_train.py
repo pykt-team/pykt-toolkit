@@ -1,4 +1,4 @@
-import os
+examples/wandb_train.pyimport os
 import argparse
 import json
 
@@ -38,7 +38,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -82,7 +82,6 @@ def main(params):
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
-    print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
     if model_name == "hawkes":
         weight_p, bias_p = [], []
