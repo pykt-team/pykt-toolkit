@@ -1,6 +1,6 @@
 name: assist2009_dkt_que_mt_iekt_qc_fr
 program: wandb_dkt_que_train.py
-method: grid
+method: bayes
 metric:
     goal: maximize
     name: testauc
