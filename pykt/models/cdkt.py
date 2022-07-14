@@ -13,7 +13,7 @@ from .cdkt_cc import generate_postives, Network, WWWNetwork
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CDKT(Module):
-    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', l1=0.5, l2=0.5, emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, l1=0.5, l2=0.5, emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
         print(f"qnum: {num_q}, cnum: {num_c}")
@@ -135,7 +135,7 @@ class CDKT(Module):
             d_model = self.hidden_size*2
             encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
             encoder_norm = LayerNorm(d_model)
-            self.net = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
+            self.net = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
 
             # self.qclasifier = nn.Linear(self.hidden_size, self.num_c)
             self.qnet = nn.Sequential(
@@ -274,9 +274,9 @@ class CDKT(Module):
 
             repqemb = self.question_emb(q)
             repcemb = self.concept_emb[c]
-            cremb = self.response_emb(r)
             xemb = xemb + repqemb + repcemb
             if emb_type.find("addr") != -1:
+                cremb = self.response_emb(r)
                 xemb += cremb
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
