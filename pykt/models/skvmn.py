@@ -12,7 +12,7 @@ import datetime
 
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
-print(f"device:{device}")
+# print(f"device:{device}")
 
 class DKVMNHeadGroup(nn.Module):
     def forward(self, input_):
@@ -187,7 +187,6 @@ class SKVMN(Module):
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
         self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
-        self.lstm_layer = LSTM(self.dim_s, self.dim_s, batch_first=True)
 
     def ut_mask(self, seq_len):
         return torch.triu(torch.ones(seq_len, seq_len), diagonal=0).to(dtype=torch.bool)
@@ -434,7 +433,6 @@ class SKVMN(Module):
 
         # print(f"mem_key start:{datetime.datetime.now()}")
         w = torch.cat([correlation_weight_list[i].unsqueeze(1) for i in range(self.seqlen)], 1)
-        # print(f"mem_key end:{datetime.datetime.now()}")
         ft = torch.stack(ft, dim=0)
         # print(f"ft: {ft.shape}")
 
@@ -454,36 +452,32 @@ class SKVMN(Module):
         #Hop-LSTM
         # original
 
-        # hidden_state, cell_state = [], []
-        # hx, cx = self.hx.repeat(bs, 1), self.cx.repeat(bs, 1)
+        hidden_state, cell_state = [], []
+        hx, cx = self.hx.repeat(bs, 1), self.cx.repeat(bs, 1)
         # print(f"replace_hidden_start:{datetime.datetime.now()}")
-        # for i in range(self.seqlen): # 逐个ex进行计算
-        #     for j in range(bs):
-        #         if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
-        #             # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
-        #             hx[j,:] = hidden_state[idx_values[0][2]][j]
-        #             cx = cx.clone()
-        #             cx[j,:] = cell_state[idx_values[0][2]][j]
-        #             idx_values = idx_values[1:]
-        #     # print(f"replace_per_hidden_end:{datetime.datetime.now()}")
-        #     hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
-        #     hidden_state.append(hx) #记录中间层的h
-        #     cell_state.append(cx) #记录中间层的c
-        # # print(f"replace_all_hidden_end:{datetime.datetime.now()}")
-        # hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
-        # # print(f"stack_hidden_state:{datetime.datetime.now()}")
-        # cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
-        # print(f"stack_cell_state:{datetime.datetime.now()}")
+        for i in range(self.seqlen): # 逐个ex进行计算
+            for j in range(bs):
+                if idx_values.shape[0] != 0 and i == idx_values[0][0] and j == idx_values[0][1]:
+                    # e.g 在t=3时，第2个序列的hidden应该用t=1时的hidden,同理cell_state
+                    hx[j,:] = hidden_state[idx_values[0][2]][j]
+                    cx = cx.clone()
+                    cx[j,:] = cell_state[idx_values[0][2]][j]
+                    idx_values = idx_values[1:]
+            hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
+            hidden_state.append(hx) #记录中间层的h
+            cell_state.append(cx) #记录中间层的c
+        hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
+        cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
 
-        print(f"lstm_start:{datetime.datetime.now()}")
-        hidden_state, _ = self.lstm_layer(ft)
-        print(f"lstm_end:{datetime.datetime.now()}")
+        # # print(f"lstm_start:{datetime.datetime.now()}")
+        # hidden_state, _ = self.lstm_layer(ft)
+        # # print(f"lstm_end:{datetime.datetime.now()}")
         p = self.p_layer(self.dropout_layer(hidden_state))
-        # print(f"dropout:{datetime.datetime.now()}")
+        # # print(f"dropout:{datetime.datetime.now()}")
         p = torch.sigmoid(p)
-        print(f"sigmoid:{datetime.datetime.now()}")
+        # # print(f"sigmoid:{datetime.datetime.now()}")
         p = p.squeeze(-1)
-        print(f"p:{datetime.datetime.now()}")
+        # # print(f"p:{datetime.datetime.now()}")
         return p
 
         #时间优化
