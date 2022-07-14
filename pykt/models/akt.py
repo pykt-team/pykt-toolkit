@@ -52,6 +52,9 @@ class AKT(nn.Module):
                 self.model_name = "akt_raschy"
         elif self.emb_type.startswith("relation"):
             self.model_name = "aktrelation"
+        
+        elif self.emb_type.startswith("yplus"):
+            self.model_name = "akt"
 
         self.n_question = n_question
         self.dropout = dropout
@@ -76,7 +79,7 @@ class AKT(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
 
-        if emb_type.startswith("relation"):
+        elif emb_type.startswith("relation"):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             self.que_embed = nn.Embedding(self.n_pid, embed_l)
@@ -87,6 +90,19 @@ class AKT(nn.Module):
             self.qmatrix = Embedding.from_pretrained(qmatrix, freeze=True)
             self.qmatrix_t = Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
 
+        elif emb_type.startswith("yplus") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.que_kc_linear = nn.Sequential(
+            nn.Linear(embed_l * 2,
+                      embed_l), torch.nn.Sigmoid(), nn.Dropout(self.dropout)
+                    )
+            self.x_linear = nn.Linear(embed_l * 2, embed_l)
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -100,6 +116,12 @@ class AKT(nn.Module):
             nn.Linear(256, 1)
         )
         self.reset()
+
+        if emb_type.startswith("yplus") or emb_type.startswith("relation"):
+            if emb_type in ["yplus_que"] or emb_type.startswith("relation"):
+                self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            if emb_type in ["yplus_kc"]  or emb_type.startswith("relation"):
+                self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
 
     def reset(self):
         for p in self.parameters():
@@ -119,14 +141,16 @@ class AKT(nn.Module):
         return q_embed_data, qa_embed_data
 
     def forward(self, q_data, target, pid_data=None, qtest=False):
+        batch_size = q_data.shape[0]
+        seqlen = q_data.shape[1]
         emb_type = self.emb_type
         # Batch First
-        if emb_type == "qid":
+        if emb_type == "qid" or emb_type.startswith("yplus"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
         
         if emb_type == "relation":
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
-            print(f"relation")
+            # print(f"relation")
             relation_q = self.qmatrix(pid_data) # lookup all the kcs
             relation_q = torch.nn.functional.softmax(relation_q,-1)
             relation_q_emb = torch.einsum('bij, jk -> bik', relation_q, self.q_embed.weight)
@@ -138,14 +162,13 @@ class AKT(nn.Module):
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             if not self.rasch_y:
-                if emb_type == "qid":
+                if emb_type == "qid" or emb_type.startswith("yplus"):
                     q_embed_data = q_embed_data + pid_embed_data * \
                         q_embed_diff_data  # uq *d_ct + c_ct # question encoder
                 elif emb_type == "relation":
-                    print(f"relation_que_emb: {relation_que_emb.shape}")
                     q_embed_data = q_embed_data + pid_embed_data * \
                         q_embed_diff_data + relation_que_emb + relation_q_emb # uq *d_ct + c_ct # question encoder                    
-            if not self.rasch_x:
+            if not self.rasch_x and emb_type == "qid":
                 qa_embed_diff_data = self.qa_embed_diff(
                     target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
                 if self.separate_qa:
@@ -154,6 +177,46 @@ class AKT(nn.Module):
                 else:
                     qa_embed_data = qa_embed_data + pid_embed_data * \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+            
+            elif not self.rasch_x and emb_type in ["yplus_que"]:
+                relation_kc = torch.reshape(self.qmatrix(pid_data), [batch_size*seqlen, -1]) # lookup all the kcs
+                relation_kc_emb = torch.mm(relation_kc, self.q_embed.weight)
+                concept_num = torch.where(relation_kc!= 0, 1, 0).sum(axis=-1).unsqueeze(-1)
+                relation_kc_emb = torch.reshape(relation_kc_emb / concept_num, [batch_size,seqlen,-1])
+                que_emb = self.que_embed(pid_data)
+                new_q_embed_data = torch.cat([que_emb, relation_kc_emb],dim=-1)
+                new_q_embed_data = self.que_kc_linear(new_q_embed_data)
+                qa_embed_diff_data = self.qa_embed_diff(
+                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                if self.separate_qa:
+                    qa_embed_data = qa_embed_data + pid_embed_data + \
+                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+                else:
+                    remb = target.unsqueeze(2).expand_as(new_q_embed_data)
+                    xemb = torch.cat((new_q_embed_data, remb), 2)
+                    xemb = self.x_linear(xemb)
+                    qa_embed_data = xemb + pid_embed_data + \
+                        (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff)      
+            
+            elif not self.rasch_x and emb_type in ["yplus_kc"]:
+                relation_que = torch.reshape(self.qmatrix_t(q_data), [batch_size*seqlen, -1]) # lookup all the kcs
+                relation_que_emb = torch.mm(relation_que, self.que_embed.weight)
+                que_num = torch.where(relation_que!= 0, 1, 0).sum(axis=-1).unsqueeze(-1)
+                relation_que_emb = torch.reshape(relation_que_emb / que_num, [batch_size,seqlen,-1])
+                new_q_embed_data = torch.cat([q_embed_data, relation_que_emb],dim=-1)
+                new_q_embed_data = self.que_kc_linear(new_q_embed_data)
+                qa_embed_diff_data = self.qa_embed_diff(
+                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                if self.separate_qa:
+                    qa_embed_data = qa_embed_data + pid_embed_data + \
+                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+                else:
+                    remb = target.unsqueeze(2).expand_as(new_q_embed_data)
+                    xemb = torch.cat((new_q_embed_data, remb), 2)
+                    xemb = self.x_linear(xemb)
+                    qa_embed_data = xemb + pid_embed_data + \
+                        (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff)   
+            
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
             c_reg_loss = 0.
