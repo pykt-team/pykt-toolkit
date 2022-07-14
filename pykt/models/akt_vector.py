@@ -57,7 +57,7 @@ class bernoulli():
 
 class AKTVec(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
-            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None):
+            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None, sigmoida=5, sigmoidb=6.9):
         super().__init__()
         """
         Input:
@@ -84,6 +84,8 @@ class AKTVec(nn.Module):
         self.separate_qa = separate_qa
         # print(f"init_qmatrix: {qmatrix}")
         self.init_qmatrix = qmatrix
+        self.sigmoida = sigmoida
+        self.sigmoidb = sigmoidb 
 
         embed_l = d_model
         if self.n_pid > 0:
@@ -254,6 +256,8 @@ class AKTVec(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
+    def mySigmoid(self, x):
+        return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
@@ -408,8 +412,9 @@ class AKTVec(nn.Module):
         output = self.out(concat_q).squeeze(-1)
 
         if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian", "bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
-            m = nn.Sigmoid()
-            preds = m(output)
+            # m = nn.Sigmoid()
+            # preds = m(output)
+            preds = self.mySigmoid(output)    
             # print(f"preds: {preds.shape}")
             if emb_type in ["relation_bayesian_loss", "bayesian_loss"]:
                 kc_slipping = self.slipping(q_data)
