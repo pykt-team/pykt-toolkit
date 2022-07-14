@@ -33,3 +33,4 @@ examples/nohup.out
 start_sweep_*.sh
 wandb/*
 *tiaocan*
+examples/assist2009_*

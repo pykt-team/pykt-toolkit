@@ -172,9 +172,11 @@ class DKTQueNet(nn.Module):
         y_concept = torch.sigmoid(self.out_layer_concept(h_c))
         if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
             y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_ccs))
-        else:
+        elif self.loss_mode in ["q_cc","c_cc","qc_cc","cc"]:
             # 知识点分类当作多标签分类
             y_question_concepts = torch.softmax(self.out_concept_classifier(emb_q[:,1:,:]),axis=-1)
+        else:
+            y_question_concepts = None
         return y_question,y_concept,y_question_concepts
 
 class DKTQue(QueBaseModel):
@@ -280,12 +282,14 @@ class DKTQue(QueBaseModel):
             # print(f"y_question_concepts shape is {y_question_concepts.shape}")
             loss_question = self.get_loss(y_question,data_new['rshft'],data_new['sm'])#question level loss
             loss_concept = self.get_loss(y_concept,data_new['rshft'],data_new['sm'])#kc level loss
-            
-            #知识点分类当作多分类
-            loss_func = Loss(self.model.other_config.get("loss_type","ce"),
-                            epsilon=self.model.other_config.get("epsilon",1.0),
-                            gamma=self.model.other_config.get("gamma",2)).get_loss
-            loss_question_concept = loss_func(y_qc_predict,qc_target)#question concept level loss
+            if "cc" in self.model.loss_mode:
+                # 知识点分类当作多分类
+                loss_func = Loss(self.model.other_config.get("loss_type","ce"),
+                                epsilon=self.model.other_config.get("epsilon",1.0),
+                                gamma=self.model.other_config.get("gamma",2)).get_loss
+                loss_question_concept = loss_func(y_qc_predict,qc_target)#question concept level loss
+            else:
+                loss_question_concept = -1
 
         print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
         
@@ -310,16 +314,18 @@ class DKTQue(QueBaseModel):
                 t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
                 y_trues.append(t.numpy())
                 y_scores.append(y.numpy())
+                if "cc" in self.model.loss_mode:
+                    y_qc_true_list.append(qc_target.detach().cpu().numpy())
+                    y_qc_pred_list.append(y_qc_predict.detach().cpu().numpy().argmax(axis=-1))
 
-                y_qc_true_list.append(qc_target.detach().cpu().numpy())
-                y_qc_pred_list.append(y_qc_predict.detach().cpu().numpy().argmax(axis=-1))
-
-                
         ts = np.concatenate(y_trues, axis=0)
         ps = np.concatenate(y_scores, axis=0)
-        kc_ts = np.concatenate(y_qc_true_list, axis=0)
-        kc_ps = np.concatenate(y_qc_pred_list, axis=0)
-
+        if "cc" in self.model.loss_mode:
+            kc_ts = np.concatenate(y_qc_true_list, axis=0)
+            kc_ps = np.concatenate(y_qc_pred_list, axis=0)
+        else:
+            kc_ts = None
+            kc_ps = None
 
         return ps,ts,kc_ts, kc_ps
 
@@ -328,7 +334,10 @@ class DKTQue(QueBaseModel):
         kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= acc_threshold else 0 for p in ps]
         kt_acc = metrics.accuracy_score(ts, prelabels)
-        kc_em_acc = metrics.accuracy_score(y_qc_true_hot, y_qc_pred_hot)
+        if "cc" in self.model.loss_mode:
+            kc_em_acc = metrics.accuracy_score(y_qc_true_hot, y_qc_pred_hot)
+        else:
+            kc_em_acc = 0
         eval_result = {"auc":kt_auc,"acc":kt_acc,"kc_em_acc":kc_em_acc}
         self.eval_result = eval_result
         return eval_result
@@ -358,7 +367,10 @@ class DKTQue(QueBaseModel):
                 y_question = (y_question * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
 
             y_concept = self.get_avg_fusion_concepts(y_concept,data_new['cshft'])
-            qc_target,y_qc_predict = self.get_qc_predict_result(y_question_concepts,data_new)
+            if "cc" in self.model.loss_mode:
+                qc_target,y_qc_predict = self.get_qc_predict_result(y_question_concepts,data_new)
+            else:
+                qc_target,y_qc_predict = None,None
 
         if self.model.predict_mode=="c":
             y = y_concept
