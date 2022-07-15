@@ -40,7 +40,9 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt"]:
+        elif model_name in ["akt_perturbation"]:
+            train_config["batch_size"] = 64 ## because of OOM
+        elif model_name in ["gkt"]:
             train_config["batch_size"] = 16 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:

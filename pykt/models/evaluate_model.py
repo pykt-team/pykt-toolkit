@@ -86,6 +86,9 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:                                
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
+            elif model_name in ["akt_perturbation"]:
+                y, perturbation_y, reg_loss = model(cc.long(), cr.long(), cq.long())                              
+                y = y[:,1:]
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
