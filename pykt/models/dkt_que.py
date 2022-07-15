@@ -340,7 +340,7 @@ class DKTQue(QueBaseModel):
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
             auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
             auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
-            loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])*0.1
+            loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])*0
             if "dyn" in self.model.loss_mode:
                 alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
                 alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
