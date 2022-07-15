@@ -81,7 +81,7 @@ class KTDataset(Dataset):
         dcur = dict()
         mseqs = self.dori["masks"][index]
         for key in self.dori:
-            if key in ["masks", "smasks", "orics", "orisms"]:
+            if key in ["masks", "smasks", "orics", "orisms", "futuresms"]:
                 continue
             if len(self.dori[key]) == 0:
                 dcur[key] = self.dori[key]
@@ -106,6 +106,8 @@ class KTDataset(Dataset):
         dcur["shft_orics"] = self.dori["orics"][index][1:]
         dcur["orisms"] = self.dori["orisms"][index]
 
+        dcur["futuresms"] = self.dori["futuresms"][index]
+
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
         # print("tseqs", dcur["tseqs"])
@@ -116,6 +118,45 @@ class KTDataset(Dataset):
             for key in self.dqtest:
                 dqtest[key] = self.dqtest[key][index]
             return dcur, dqtest
+
+    def __generate_future__(self, cs, rs, numc):
+        deachskill = dict()
+        cs, rs = torch.LongTensor(cs), torch.LongTensor(rs)
+        for i in range(0, numc):
+            curc, curr = cs[cs==i], rs[cs==i]
+            for j in range(0, len(curc)):
+                right = len(curr[j+1:][curr[j+1:]==1])
+                total = len(curc) - j - 1
+                if total > 0:
+                    correct_rate = right / total
+                else:
+                    correct_rate = 0 # skill的最后一个预测默认是0，sm会筛掉
+                # print(f"i: {i}, j: {j}, curc: {curc.shape}, future right: {right}, total: {total}, rate: {correct_rate}")
+                deachskill.setdefault(i, list())
+                deachskill[i].append([j, correct_rate])
+        cs, rs = cs.tolist(), rs.tolist()
+        allrates, ratessms = [], []
+        dindex = dict()
+        for i in range(0, len(cs)):
+            curc = cs[i]
+            if curc != -1:
+                dindex.setdefault(curc, 0)
+                curidx = dindex[curc]
+                # print(f"curc: {curc}, curidx: {curidx}, lenn: {len(deachskill[curc])}, currate: {deachskill[curc][curidx]}")
+                correct_rate = deachskill[curc][curidx][1]
+                assert curidx == deachskill[curc][curidx][0]
+                cursm = 1 if correct_rate != -1 else 0
+                ratessms.append(cursm)
+                allrates.append(correct_rate) # 只计算当前知识点对应的未来准确率
+                dindex[curc] += 1
+            else:
+                ratessms.append(0)
+                allrates.append(0)
+        # allrates, ratessms = torch.FloatTensor(allrates), torch.LongTensor(ratessms)[1:]
+        
+        # print(f"allrates: {allrates}, -1 num: {allrates[allrates==-1].shape}, deach len: {len(deachskill)}")
+        # assert False
+        return allrates, ratessms[1:]
 
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """
@@ -134,27 +175,14 @@ class KTDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], "futurerates": [], "futuresms": []}
 
         allcs = set()
         for q in self.dq2c:
             allcs |= self.dq2c[q]
         numc = len(allcs) 
         print(f"numc: {numc}")
-        # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         df = pd.read_csv(sequence_path)#[0:1000]
-        '''
-        if len(folds) > 1:
-            df = df[df["fold"].isin(folds)]
-            allnews = []
-            for delta in [1,3,5,10,20,30,40,50,60]:
-                allnews.append("new"+str(delta))
-            df = df[df["flag"].isin(["ori"])]#(["new60"])]
-        elif folds[0] != -1:
-            print(folds, df.columns)
-            df = df[df["fold"].isin(folds)]
-            df = df[df["flag"]=="ori"]
-        '''
         df = df[df["fold"].isin(folds)]
         interaction_num = 0
         # seq_qidxs, seq_rests = [], []
@@ -172,6 +200,15 @@ class KTDataset(Dataset):
             if "is_repeat" in row:
                 dori["is_repeat"].append([int(_) for _ in row["is_repeat"].split(",")])
 
+            curoqs = [int(_) for _ in row["questions"].split(",")]
+            curocs = [int(_) for _ in row["concepts"].split(",")]
+            curors = [int(_) for _ in row["responses"].split(",")]
+            is_repeat = [int(_) for _ in row["is_repeat"].split(",")]
+
+            # 计算未来准确率
+            futurerates, futuresms = self.__generate_future__(curocs, curors, numc)
+            dori["futurerates"].append(futurerates)
+            dori["futuresms"].append(futuresms)
             # ccs = []
             # for q, c in zip(dori["qseqs"][-1], dori["cseqs"][-1]):
             #     if q != -1:
@@ -181,10 +218,6 @@ class KTDataset(Dataset):
             #     ccs.append(curcs)
             seqlen = len(dori["cseqs"][-1])
             cqs, ccs = [], []
-
-            curoqs = [int(_) for _ in row["questions"].split(",")]
-            curocs = [int(_) for _ in row["concepts"].split(",")]
-            is_repeat = [int(_) for _ in row["is_repeat"].split(",")]
             i = 0
             for q, r in zip(curoqs, is_repeat):
                 if (i > 0 and r == 1) or q == -1:
@@ -213,7 +246,7 @@ class KTDataset(Dataset):
                 dqtest["rests"].append([int(_) for _ in row["rest"].split(",")])
                 dqtest["orirow"].append([int(_) for _ in row["orirow"].split(",")])
         for key in dori:
-            if key not in ["rseqs"]:#in ["smasks", "tseqs"]:
+            if key not in ["rseqs", "futurerates"]:#in ["smasks", "tseqs"]:
                 dori[key] = LongTensor(dori[key])
             else:
                 dori[key] = FloatTensor(dori[key])

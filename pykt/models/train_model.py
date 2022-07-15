@@ -76,6 +76,9 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             loss = model.l1*loss1+model.l2*0.05*ys[1]
         elif model.emb_type.endswith("seq2seq"):
             loss = model.l1*loss1+model.l2*ys[1]
+        elif model.emb_type.endswith("predfuture"):
+            # print(f"loss1: {model.l1*loss1}, loss2: {model.l2*5*ys[1]}")
+            loss = model.l1*loss1+model.l2*2*ys[1]
         else:
             loss = loss1
 

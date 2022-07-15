@@ -1,3 +1,4 @@
+from cmath import log
 from curses.ascii import EM
 import os
 from tkinter import N
@@ -8,6 +9,7 @@ import torch
 from torch import nn
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss
 from .utils import transformer_FFN, ut_mask, pos_encode
+from torch.nn.functional import one_hot
 from .cdkt_cc import generate_postives, Network, WWWNetwork
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -186,6 +188,23 @@ class CDKT(Module):
             
             self.closs = MultiLabelMarginLoss()
 
+        if self.emb_type.endswith("predfuture") != -1:
+            self.l1, self.l2 = l1, l2
+            # self.futurelstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+            # self.predfuture = nn.Sequential(
+            #     nn.Linear(self.hidden_size, self.emb_size), nn.ReLU(
+            #     ), nn.Dropout(dropout)
+            # )
+            self.futureclasifier = nn.Linear(self.hidden_size, self.num_c)
+            self.floss = nn.MSELoss()
+
+            # self.out_layer = nn.Sequential(
+            #     nn.Linear(self.hidden_size, self.emb_size), nn.ReLU(
+            #     ), nn.Dropout(dropout),
+            #     nn.Linear(self.hidden_size, self.num_c)
+            # )
+            
+
         self.dF = dict()
         self.avgf = 0
 
@@ -271,6 +290,28 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("predfuture"): # add pred future correct rates
+            h, _ = self.lstm_layer(xemb)
+            flogits = self.futureclasifier(h)
+            if train:
+                predrates = torch.sigmoid(flogits)
+                # cal y2 loss
+                predrates = (predrates * one_hot(c.long(), self.num_c)).sum(-1) # 当前知识点以后的准确率
+                rates, ratessms = dcur["futurerates"].float(), dcur["futuresms"].long()
+                # print(f"rates: {rates.shape}, ratessms: {ratsessms.shape}")
+                floss = self.floss(predrates[ratessms==1], rates[ratessms==1])
+                y2 = floss
+
+            logits = self.out_layer(self.dropout_layer(h))
+            y = torch.sigmoid(logits)
+            if emb_type.find("merge") != -1:
+                mlogits = flogits + logits
+                # print(f"predrates: {predrates[0:1].tolist()}")
+                # yy = (y * one_hot(c.long(), self.num_c)).sum(-1)
+                # print(f"predratyy: {yy[0:1].tolist()}")
+                # print(f"flogits: {flogits.shape}, logits: {logits.shape}, mlogits: {mlogits.shape}")
+                y = torch.sigmoid(mlogits)
+                # assert False
         elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
             qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
             if emb_type.find("sep") != -1:
