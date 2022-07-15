@@ -203,7 +203,7 @@ class DKTQueNet(nn.Module):
             if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
                 y_question_concepts = torch.sigmoid(self.out_concept_classifier(h_ccs))
                 outputs['y_question_concepts'] = y_question_concepts
-            elif self.loss_mode in ["q_cc","c_cc","qc_cc","cc","cc_dyn"]:
+            elif self.loss_mode in ["q_cc","c_cc","qc_cc","qc_cc_dyn","cc","cc_dyn"]:
                 # 知识点分类当作多标签分类
                 y_question_concepts = torch.softmax(self.out_concept_classifier(emb_q[:,1:,:]),axis=-1)
                 outputs['y_question_concepts'] = y_question_concepts
@@ -312,7 +312,6 @@ class DKTQue(QueBaseModel):
             loss_question = loss_question/num_inter
             loss_concept = loss_concept/num_inter
             loss_question_concept = 0
-            y_question = None
         else: 
             outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
             if "an" in self.model.output_mode:
@@ -338,8 +337,6 @@ class DKTQue(QueBaseModel):
 
         if "an" in self.model.output_mode:
             all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
-            
-
             loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
             loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
@@ -382,6 +379,7 @@ class DKTQue(QueBaseModel):
                 outputs,data_new = self.predict_one_step(data,return_details=True)
                
                 for key in outputs:
+                    # print(f"key is {key},shape is {outputs[key].shape}")
                     if not key.startswith("y") or key in ['y_qc_predict']:
                         continue
                     elif key not in y_pred_dict:
@@ -394,27 +392,26 @@ class DKTQue(QueBaseModel):
                 y_trues.append(t.numpy())
 
                 if "cc" in self.model.loss_mode:
-                    qc_target = outputs['qc_target']
-                    y_qc_predict = outputs['y_qc_predict']
-                    y_qc_true_list.append(qc_target.detach().cpu().numpy())
-                    y_qc_pred_list.append(y_qc_predict.detach().cpu().numpy().argmax(axis=-1))
+                    y_qc_true_list.append(outputs['qc_target'].detach().cpu().numpy())
+                    y_qc_pred_list.append(outputs['y_qc_predict'].detach().cpu().numpy().argmax(axis=-1))
         
-        for key in outputs:
-            y_pred_dict[key] = np.concatenate(y_pred_dict[key], axis=0)
-            print(f"y type is {key},shape is {y_pred_dict[key].shape}")
+        results = y_pred_dict
+        for key in results:
+            # print(f"y type is {key}")
+            results[key] = np.concatenate(results[key], axis=0)
+            # print(f"{key} shape is {results[key].shape}")
+        # print(f"results is {results}")
                 
-
         ts = np.concatenate(y_trues, axis=0)
+        results['ts'] = ts
         print(f"ts shape is {ts.shape}")
 
         if "cc" in self.model.loss_mode:
             kc_ts = np.concatenate(y_qc_true_list, axis=0)
             kc_ps = np.concatenate(y_qc_pred_list, axis=0)
-        else:
-            kc_ts = None
-            kc_ps = None
-        results = {"ts":ts,"kc_ts":kc_ts,"kc_ps":kc_ps}
-        results.update(y_pred_dict)
+            results['kc_ts'] = kc_ts
+            results['kc_ps'] = kc_ps
+        
         return results
 
     def evaluate(self,dataset,batch_size,acc_threshold=0.5):
@@ -427,7 +424,6 @@ class DKTQue(QueBaseModel):
                 pass
             else:
                 ps = results[key]
-                
                 kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
                 prelabels = [1 if p >= acc_threshold else 0 for p in ps]
                 kt_acc = metrics.accuracy_score(ts, prelabels)
@@ -470,10 +466,10 @@ class DKTQue(QueBaseModel):
         else:
             if self.model.emb_type in ["iekt"]:
                 outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-                # y_question,y_concept,y_question_concepts = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
+                
             else:
                 outputs = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
-                # y_question,y_concept,y_question_concepts = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
+                
         # print(y_question.shape,y_concept.shape)
         if return_raw:#return raw probability, for future reward
             return outputs,data_new
@@ -490,10 +486,11 @@ class DKTQue(QueBaseModel):
                     outputs['y_question'] = outputs['y_question'].squeeze(-1)
                 else:
                     outputs['y_question'] = (outputs['y_question'] * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
-                
                 outputs['y_concept'] = self.get_avg_fusion_concepts(outputs['y_concept'],data_new['cshft'])
+
                 if "cc" in self.model.loss_mode:
                     qc_target,y_qc_predict = self.get_qc_predict_result(outputs['y_question_concepts'],data_new)
+                    del outputs['y_question_concepts']
                     outputs["qc_target"] = qc_target
                     outputs["y_qc_predict"] = y_qc_predict
                 
