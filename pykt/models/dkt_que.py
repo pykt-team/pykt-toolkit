@@ -157,10 +157,14 @@ class DKTQueNet(nn.Module):
             h_all = h
             y_question_all = torch.sigmoid(self.out_question_all(h_all))
             y_concept_all = torch.sigmoid(self.out_concept_all(h_all))
-            y_question_concepts_next,y_question_concepts_all = None,None
-            
-            outputs = {"y_question_next":y_question_next,"y_concept_next":y_concept_next,"y_question_concepts_next":y_question_concepts_next,
-                        "y_question_all":y_question_all,"y_concept_all":y_concept_all,"y_question_concepts_all":y_question_concepts_all}
+            outputs = {"y_question_next":y_question_next,"y_concept_next":y_concept_next,
+                        "y_question_all":y_question_all,"y_concept_all":y_concept_all}
+
+            if "cc" in self.loss_mode:
+                y_question_concepts_next,y_question_concepts_all = None,None
+                outputs['y_question_concepts_next'] = y_question_concepts_next
+                outputs['y_question_concepts_all'] = y_question_concepts_all
+           
             return outputs
 
         else:
@@ -321,18 +325,33 @@ class DKTQue(QueBaseModel):
                 if "cc" in self.model.loss_mode:
                     # 知识点分类当作多分类
                     loss_func = Loss(self.model.other_config.get("loss_type","ce"),
-                                    epsilon=self.model.other_config.get("epsilon",1.0),
-                                    gamma=self.model.other_config.get("gamma",2)).get_loss
+                                     epsilon=self.model.other_config.get("epsilon",1.0),
+                                     gamma=self.model.other_config.get("gamma",2)).get_loss
                     loss_question_concept = loss_func(outputs['y_qc_predict'],outputs['qc_target'])#question concept level loss
                 else:
                     loss_question_concept = -1
 
         if "an" in self.model.output_mode:
-            all_loss_mode,next_loss_mode = self.model.loss_mode.split("_")[0].split("-")
-            
+            all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
+            dyn_a = self.model.other_config.get("dyn_a",0)
+            dyn_b = self.model.other_config.get("dyn_b",0)
+
             loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
-            loss = (loss_all+loss_next)/2
+            auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
+            auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
+            loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])*0.1
+            if "dyn" in self.model.loss_mode:
+                alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
+                alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
+                loss = alpha_all*loss_all + alpha_next*loss_next
+                print(f"auc_all={auc_all},auc_next={auc_next},alpha_all={alpha_all},alpha_next={alpha_next},dyn_a={dyn_a},dyn_b={dyn_b}")
+            else:
+                loss_all = loss_all + loss_next + loss_same
+
+           
+            loss = (loss_all*0.5+loss_next*0.5)
+            print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
             return outputs['y'],loss#y_question没用
         else:
             print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
@@ -346,45 +365,75 @@ class DKTQue(QueBaseModel):
         self.model.eval()
         with torch.no_grad():
             y_trues = []
-            y_scores = []
             y_qc_true_list = []
             y_qc_pred_list =[]
+            y_pred_dict = {}
             for data in test_loader:
                 new_data = self.batch_to_device(data,process=process)
                 outputs,data_new = self.predict_one_step(data,return_details=True)
-                y = outputs['y']
                
-                y = torch.masked_select(y, new_data['sm']).detach().cpu()
+                for key in outputs:
+                    if not key.startswith("y") or key in ['y_qc_predict']:
+                        continue
+                    elif key not in y_pred_dict:
+                       y_pred_dict[key] = []
+                    # print(f"outputs is {outputs}")
+                    y = torch.masked_select(outputs[key], new_data['sm']).detach().cpu()#get label
+                    y_pred_dict[key].append(y.numpy())
+                
                 t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
                 y_trues.append(t.numpy())
-                y_scores.append(y.numpy())
+
                 if "cc" in self.model.loss_mode:
                     qc_target = outputs['qc_target']
                     y_qc_predict = outputs['y_qc_predict']
                     y_qc_true_list.append(qc_target.detach().cpu().numpy())
                     y_qc_pred_list.append(y_qc_predict.detach().cpu().numpy().argmax(axis=-1))
+        
+        for key in outputs:
+            y_pred_dict[key] = np.concatenate(y_pred_dict[key], axis=0)
+            print(f"y type is {key},shape is {y_pred_dict[key].shape}")
+                
 
         ts = np.concatenate(y_trues, axis=0)
-        ps = np.concatenate(y_scores, axis=0)
+        print(f"ts shape is {ts.shape}")
+
         if "cc" in self.model.loss_mode:
             kc_ts = np.concatenate(y_qc_true_list, axis=0)
             kc_ps = np.concatenate(y_qc_pred_list, axis=0)
         else:
             kc_ts = None
             kc_ps = None
-
-        return ps,ts,kc_ts, kc_ps
+        results = {"ts":ts,"kc_ts":kc_ts,"kc_ps":kc_ps}
+        results.update(y_pred_dict)
+        return results
 
     def evaluate(self,dataset,batch_size,acc_threshold=0.5):
-        ps,ts,y_qc_true_hot, y_qc_pred_hot = self.predict(dataset,batch_size=batch_size)
-        kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
-        prelabels = [1 if p >= acc_threshold else 0 for p in ps]
-        kt_acc = metrics.accuracy_score(ts, prelabels)
+        # ps,ts,y_qc_true_hot, y_qc_pred_hot = self.predict(dataset,batch_size=batch_size)
+        results = self.predict(dataset,batch_size=batch_size)
+        eval_result = {}
+        ts = results["ts"]
+        for key in results:
+            if not key.startswith("y") or key in ['y_qc_predict']:
+                pass
+            else:
+                ps = results[key]
+                
+                kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
+                prelabels = [1 if p >= acc_threshold else 0 for p in ps]
+                kt_acc = metrics.accuracy_score(ts, prelabels)
+                if key!="y":
+                    eval_result["{}_kt_auc".format(key)] = kt_auc
+                    eval_result["{}_kt_acc".format(key)] = kt_acc
+                else:
+                    eval_result["auc"] = kt_auc
+                    eval_result["acc"] = kt_acc
+        
         if "cc" in self.model.loss_mode:
-            kc_em_acc = metrics.accuracy_score(y_qc_true_hot, y_qc_pred_hot)
+            kc_em_acc = metrics.accuracy_score(results['kc_ts'], results['kc_ps'])
         else:
             kc_em_acc = 0
-        eval_result = {"auc":kt_auc,"acc":kt_acc,"kc_em_acc":kc_em_acc}
+        eval_result["kc_em_acc"] = kc_em_acc
         self.eval_result = eval_result
         return eval_result
         
@@ -442,7 +491,8 @@ class DKTQue(QueBaseModel):
             all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
             y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
             y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
-            y = (y_qc_all+y_qc_next)*0.5
+            y = (y_qc_all*0.5+y_qc_next*0.5)
+            outputs['y_qc_all'] = y_qc_all
             outputs['y'] = y
         else:
             y = self.get_merge_y(y_question,y_concept,self.model.predict_mode)
