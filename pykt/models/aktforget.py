@@ -13,7 +13,7 @@ from torch.nn import LSTM
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class AKTF(nn.Module):
+class AKTForget(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None, sigmoida=5, sigmoidb=6.9, lambda_r = 0.3):
         super().__init__()
@@ -25,6 +25,7 @@ class AKTF(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
+        self.model_name = "aktforget"
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
         self.emb_type = emb_type
@@ -41,8 +42,10 @@ class AKTF(nn.Module):
         if self.n_pid > 0 and self.use_rasch:
             self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+            self.q_embed_forget = nn.Embedding(self.n_question+1, embed_l)
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
+                self.qa_embed_forget = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
         if emb_type.startswith("qid") and self.use_rasch:
             # n_question+1 ,d_model
@@ -90,26 +93,36 @@ class AKTF(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         seqlen = q_data.shape[1]
-
         # Batch First
-        for i in range(seq_len):
         q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+        delta = torch.arange(0, seqlen).repeat(batch_size,1).to(device)
+        lambda_1 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
+        lambda_2 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
+        lambda_3 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
 
         if self.n_pid > 0 and self.use_rasch: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            q_embed_forget_data = self.q_embed_forget(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
+            theta = lambda_1 * torch.exp(-(lambda_2 * delta)) + lambda_3 #残留记忆
+            theta = torch.reshape(theta,(batch_size, seqlen, 1))
+            T = nn.Tanh()
+            theta = T(theta)
+            # print(f"theta: {theta}")
 
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
             qa_embed_diff_data = self.qa_embed_diff(
                 target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+            qa_embed_forget_data = self.qa_embed_forget(
+                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
             if self.separate_qa:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
             else:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
-                    (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+                    (qa_embed_diff_data+q_embed_diff_data)  + theta * (qa_embed_forget_data+q_embed_forget_data)# + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
@@ -126,12 +139,12 @@ class AKTF(nn.Module):
         if emb_type == "qid":
             m = nn.Sigmoid()
             preds = m(output)
-        # print(f"preds: {preds.shape}")
-
-        if not qtest and emb_type:
-            return preds[0], preds[1], c_reg_loss
+        # print(f"preds: {preds}")     
+        if not qtest:
+            return preds, c_reg_loss
         else:
             return preds, c_reg_loss, concat_q
+     
 
 
 class Architecture(nn.Module):
@@ -159,7 +172,7 @@ class Architecture(nn.Module):
                 for _ in range(n_blocks*2)
             ])
 
-    def forward(self, q_embed_data, qa_embed_data):
+    def forward(self, q_embed_data, qa_embed_data, ):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
