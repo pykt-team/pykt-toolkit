@@ -108,10 +108,18 @@ if __name__ == "__main__":
     #future reward
     parser.add_argument("--fr_window", type=int, default=1)
 
+    #for an, all merge next
+    parser.add_argument("--loss_next_lambda", type=float, default=0.5)
+    parser.add_argument("--loss_all_lambda", type=float, default=0.5)
+    parser.add_argument("--loss_same_lambda", type=float, default=0.0)
+    parser.add_argument("--output_next_lambda", type=float, default=0.5)
+    parser.add_argument("--output_all_lambda", type=float, default=0.5)
+    
+
+    
     
     
     parser.add_argument("--learning_rate", type=float, default=1e-3)
-
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
     

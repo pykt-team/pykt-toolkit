@@ -333,21 +333,28 @@ class DKTQue(QueBaseModel):
 
         if "an" in self.model.output_mode:
             all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
-            dyn_a = self.model.other_config.get("dyn_a",0)
-            dyn_b = self.model.other_config.get("dyn_b",0)
+            
 
             loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
-            auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
-            auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
             loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
+            
+            
             if "dyn" in self.model.loss_mode:
+                dyn_a = self.model.other_config.get("dyn_a",0)
+                dyn_b = self.model.other_config.get("dyn_b",0)
+                auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
+                auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
                 alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
                 alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
                 loss = alpha_all*loss_all + alpha_next*loss_next
                 print(f"auc_all={auc_all},auc_next={auc_next},alpha_all={alpha_all},alpha_next={alpha_next},dyn_a={dyn_a},dyn_b={dyn_b}")
             else:
-                loss = loss_all*0.5+loss_next*0.5 + loss_same*0
+                loss_next_lambda = self.model.other_config.get("loss_next_lambda",0.5)
+                loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
+                loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
+                loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
+                loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
             print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
             return outputs['y'],loss#y_question没用
         else:
@@ -488,7 +495,9 @@ class DKTQue(QueBaseModel):
             all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
             y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
             y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
-            y = (y_qc_all*0.5+y_qc_next*0.5)
+            output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
+            output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
+            y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
             outputs['y_qc_all'] = y_qc_all
             outputs['y'] = y
         else:
