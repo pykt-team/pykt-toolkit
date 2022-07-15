@@ -28,12 +28,6 @@ class AKTF(nn.Module):
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
         self.emb_type = emb_type
-        if self.emb_type != "perturbation":
-            self.model_name = "akt_forget"
-        elif self.emb_type == "perturbation":
-            self.model_name = "akt_perturbation"
-            self.lambda_r = lambda_r
-
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -50,15 +44,8 @@ class AKTF(nn.Module):
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
-        if emb_type.startswith("qid") and self.use_rasch or emb_type.startswith("perturbation"):
+        if emb_type.startswith("qid") and self.use_rasch:
             # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question, embed_l)
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
-
-        elif emb_type.startswith("forget") and self.use_rasch:
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
@@ -66,18 +53,6 @@ class AKTF(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
             self.h0 = nn.Parameter(torch.Tensor(self.n_question + 1, embed_l))
 
-        elif emb_type.startswith("atc") and self.use_rasch:
-            # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
-            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
-            # self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
-            # self.hidden = nn.Linear(in_features=embed_l,out_features=self.n_question)
-            self.sigmoida = sigmoida
-            self.sigmoidb = sigmoidb  
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -116,19 +91,8 @@ class AKTF(nn.Module):
         batch_size = q_data.shape[0]
         seqlen = q_data.shape[1]
 
-        if emb_type == "perturbation":
-            beta = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
-            new_target = torch.clamp(target + beta, 0, 1)
-            new_target = torch.bernoulli(new_target).long()
-            q_data = q_data.repeat(2,1,1).reshape(-1, seqlen)
-            if self.n_pid > 0:
-                pid_data = pid_data.repeat(2,1,1).reshape(-1, seqlen)
-            target = torch.stack([target, new_target]).reshape(-1,seqlen)
-            # print(f"q_data:{q_data.shape}")
-            # print(f"pid_data:{pid_data.shape}")
-            # print(f"target:{target.shape}")
-
         # Batch First
+        for i in range(seq_len):
         q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
         if self.n_pid > 0 and self.use_rasch: # have problem id
@@ -163,25 +127,8 @@ class AKTF(nn.Module):
             m = nn.Sigmoid()
             preds = m(output)
         # print(f"preds: {preds.shape}")
-        elif emb_type in ["atc"]:
-            stu_state = d_output
-            cosine_similarity = torch.cosine_similarity(stu_state,q_embed_data,dim=2)
-            stu_state_f2 = torch.norm(stu_state,dim=2)
-            next_kc = q_embed_data
-            next_kc_hot_f2 = torch.norm(next_kc,dim=2)
-            projection = torch.mul(stu_state_f2,cosine_similarity)
-            subprojection = projection - next_kc_hot_f2 
 
-            subprojection = torch.clamp(subprojection, -15, 15)
-            preds = self.mySigmoid(subprojection)       
-
-        if not qtest and emb_type != "perturbation":
-            return preds, c_reg_loss
-        elif not qtest and emb_type == "perturbation":
-            m = nn.Sigmoid()
-            preds = m(output)
-            # print(f"perturbation_preds:{preds.shape}")
-            preds = preds.reshape(-1, batch_size, seqlen)
+        if not qtest and emb_type:
             return preds[0], preds[1], c_reg_loss
         else:
             return preds, c_reg_loss, concat_q

@@ -1,23 +1,29 @@
 import os, sys
 import torch
 import torch.nn as nn
-from torch.nn.functional import one_hot, binary_cross_entropy
+from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss
 import numpy as np
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-CUDA_LAUNCH_BLOCKING=1 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[]):
+def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
-
+    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt", "akt_vector", "akt_forget"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
+    elif model_name in ["akt_perturbation"]:
+        # print(f"calculate perturbation loss")
+        y = torch.masked_select(ys[0], sm)
+        perturbation_y = torch.masked_select(perturbation_ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        pred_loss = binary_cross_entropy(y.double(), t.double())
+        perturbation_loss = mse_loss(y, perturbation_y)
+        loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss
     elif model_name == "dkt+":
         y_curr = torch.masked_select(ys[1], sm)
         y_next = torch.masked_select(ys[0], sm)
@@ -57,7 +63,7 @@ def model_forward(model, data):
     qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
     m, sm = dcur["masks"], dcur["smasks"]
 
-    ys, preloss = [], []
+    ys, preloss, perturbation_ys = [], [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
@@ -89,6 +95,11 @@ def model_forward(model, data):
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
+        preloss.append(reg_loss)
+    elif model_name in ["akt_perturbation"]:               
+        y, perturbation_y, reg_loss = model(cc.long(), cr.long(), cq.long())
+        ys.append(y[:,1:])
+        perturbation_ys.append(perturbation_y[:,1:])
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
@@ -122,7 +133,7 @@ def model_forward(model, data):
     elif model_name == "iekt":
         y,loss = model.train_one_step(data)
     if model_name not in ["atkt", "atktfix","iekt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss)
+        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys)
     return loss
     
 
