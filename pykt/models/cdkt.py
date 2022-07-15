@@ -167,16 +167,13 @@ class CDKT(Module):
                 self.response_emb = Embedding(2, self.emb_size)
             
             self.nhead = 5
-            # if self.emb_type.find("linear") != -1:
-            #     self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
-            #     d_model = self.hidden_size 
-            # else:
-            d_model = self.hidden_size*2
+            d_model = self.hidden_size# * 2
             encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
             encoder_norm = LayerNorm(d_model)
+            if self.emb_type.find("addbase") != -1:
+                self.basenet = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
             self.net = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
-
-            # self.qclasifier = nn.Linear(self.hidden_size, self.num_c)
+            self.position_emb = Embedding(seq_len, emb_size)
             self.qnet = nn.Sequential(
                 nn.Linear(d_model,
                         self.hidden_size), nn.ReLU(), nn.Dropout(dropout),
@@ -184,9 +181,9 @@ class CDKT(Module):
                 ), nn.Dropout(dropout)
             )
             self.qclasifier = nn.Linear(self.emb_size, self.num_c)
-
-            
             self.closs = MultiLabelMarginLoss()
+            # if self.emb_type.find("transpredr") != -1:
+            #     self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
 
         if self.emb_type.endswith("predfuture") != -1:
             self.l1, self.l2 = l1, l2
@@ -274,6 +271,12 @@ class CDKT(Module):
         concept_avg = (concept_emb_sum / concept_num)
         return concept_avg
 
+    def get_attn_pad_mask(self, sm):
+        batch_size, l = sm.size()
+        pad_attn_mask = sm.data.eq(0).unsqueeze(1)
+        pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
+        return pad_attn_mask.repeat(self.nhead, 1, 1)
+
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -351,38 +354,31 @@ class CDKT(Module):
             y = torch.sigmoid(self.out_layer(h))
 
         elif emb_type.endswith("seq2seq"): # add transformer to predict multi label cs
+            posemb = self.position_emb(pos_encode(xemb.shape[1]))
             if train:
                 oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
                 # oriqs, orics, orisms = self.generate_oriqcs(q, c, sm, is_repeat)
                 # print(f"oriqs: {oriqs.shape}, orics: {orics.shape}, orisms: {orisms.shape}")
                 concept_avg = self.get_avg_skill_emb(orics)
-                # print(oriqs)
-                # print(q)
-                # assert False
                 qemb = self.question_emb(oriqs)
-                
                 # print(f"concept_avg: {concept_avg.shape}, qemb: {qemb.shape}")
-                
-                que_c_emb = torch.cat([concept_avg, qemb],dim=-1)
+                que_c_emb = concept_avg + qemb + posemb#torch.cat([concept_avg, qemb],dim=-1)
+
                 # add mask
-                def get_attn_pad_mask(sm):
-                    batch_size, l = sm.size()
-                    pad_attn_mask = sm.data.eq(0).unsqueeze(1)
-                    pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
-                    return pad_attn_mask.repeat(self.nhead, 1, 1)
-                mask = get_attn_pad_mask(orisms)
+                # mask = self.get_attn_pad_mask(orisms)
+                mask = ut_mask(seq_len = que_c_emb.shape[1])
                 # if self.emb_type.find("linear") != -1:
-                #     que_c_emb = self.que_c_linear(que_c_emb)
-                # print(f"q: {q[30]}, mask: {mask[30][0]}")
+                # que_c_emb = self.que_c_linear(que_c_emb)
                 # print(f"que_c_emb: {que_c_emb.shape}, mask: {mask.shape}")
+                
+                if emb_type.find("addbase") != -1:
+                    que_c_emb = self.basenet(que_c_emb.transpose(0,1), mask).transpose(0,1)
                 qh = self.net(que_c_emb.transpose(0,1), mask).transpose(0,1)
                 qh = self.qnet(qh)
             
                 cpreds = torch.sigmoid(self.qclasifier(qh))
                 flag = orisms==1
                 masked = cpreds[flag]
-                # print(f"closs: {masked.shape}")
-                # print(f"cpreds: {cpreds.shape}, ")
                 pad = torch.ones(cpreds.shape[0], cpreds.shape[1], self.num_c-10).to(device)
                 pad = -1 * pad
                 ytrues = torch.cat([orics, pad], dim=-1).long()[flag]
@@ -391,12 +387,28 @@ class CDKT(Module):
             repqemb = self.question_emb(q)
             repcemb = self.concept_emb[c]
             xemb = xemb + repqemb + repcemb
+            if emb_type.find("addbase") != -1:
+                # qcemb = repcemb+repqemb
+                qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
+                # qcmask = self.get_attn_pad_mask(sm)
+                qcmask = ut_mask(seq_len = qcemb.shape[1])
+                qcemb = self.basenet(qcemb.transpose(0,1), qcmask).transpose(0,1)
+                qcemb = self.net(qcemb.transpose(0,1), qcmask).transpose(0,1)
+                qcemb = self.qnet(qcemb)
+                xemb = xemb + qcemb
+            
             if emb_type.find("addr") != -1:
                 cremb = self.response_emb(r)
                 xemb += cremb
-            h, _ = self.lstm_layer(xemb)
-            h = self.dropout_layer(h)
-            y = torch.sigmoid(self.out_layer(h))
+            if emb_type.find("transpredr") != -1:
+                mask = ut_mask(seq_len = xemb.shape[1])
+                h = self.trans(xemb.transpose(0,1), mask).transpose(0,1)
+                h = self.dropout_layer(h)
+                y = torch.sigmoid(self.out_layer(h))
+            else:
+                h, _ = self.lstm_layer(xemb)
+                h = self.dropout_layer(h)
+                y = torch.sigmoid(self.out_layer(h))
             
         elif emb_type.endswith("addcc"): # add cc
             # 需要构造数据做cc任务
