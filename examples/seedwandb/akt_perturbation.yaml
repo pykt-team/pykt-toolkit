@@ -1,17 +1,17 @@
-program: wandb_akt_forget_train.py
+program: wandb_akt_perturbation_train.py
 method: bayes
 metric:
     goal: maximize
     name: testauc
 parameters:
     model_name:
-        values: ["akt_forget"]
+        values: ["akt_perturbation"]
     dataset_name:
         values: ["xes"]
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["akt_forget_tiaocan"]
+        values: ["akt_perturbation_tiaocan"]
     d_model:
         values: [256, 512]
     d_ff:
