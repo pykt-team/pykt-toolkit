@@ -11,4 +11,4 @@ parameters:
     - akt_vector_tiaocan_assist2009/assist2009_akt_vector_yplus_kc_akt_vector_tiaocan_assist2009_42_2_0.05_256_256_4_3_1e-05_1_1_0f4215e4-312b-461d-aabf-5e35252d34a0/yplu
     - akt_vector_tiaocan_assist2009/assist2009_akt_vector_yplus_kc_akt_vector_tiaocan_assist2009_224_3_0.05_256_256_4_4_1e-05_1_1_f952fd7e-2aa3-47b9-9d32-8b1c5e1a87dd/yplu
     - akt_vector_tiaocan_assist2009/assist2009_akt_vector_yplus_kc_akt_vector_tiaocan_assist2009_42_4_0.1_256_256_4_4_1e-05_1_1_1c882a8f-f4e3-40ed-889e-a0cda0db47f7/yplu
-program: ../wandb_predict.py
+program: ./wandb_predict.py

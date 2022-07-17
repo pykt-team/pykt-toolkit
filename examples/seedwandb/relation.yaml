@@ -11,4 +11,4 @@ parameters:
     - vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_224_2_0.1_256_512_4_4_0.0001_1_1_5b36e607-063f-4a5b-9b6e-f25ad1416d2
     - vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_42_3_0.15_256_512_8_4_0.0001_1_1_aa9e89fb-505f-41d0-9a10-5500760d533
     - vector_tiaocan_assist2009/assist2009_akt_vector_relation_akt_vector_tiaocan_assist2009_224_4_0.15_256_512_4_4_0.0001_1_1_81a88e4a-ae36-42c6-b1c5-40a1b17dffe7
-program: ../wandb_predict.py
+program: ./wandb_predict.py
