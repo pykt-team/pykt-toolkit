@@ -6,9 +6,9 @@ name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/relation_baye
 parameters:
   save_dir:
     values:
-    - vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_42_0_0.1_256_256_8_4_0.0001_1_1_c3d3c6c7-51b6-472f-86f8-604975d9efc4
-    - vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_42_1_0.1_256_256_8_4_0.0001_1_1_5581e62b-011e-4984-b14c-5f280217f646
-    - vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_3407_2_0.1_256_512_4_4_0.0001_1_1_4e0e6362-7a8e-4cb3-9da1-56fb0fa792d5
-    - vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_3407_3_0.15_256_256_8_4_0.0001_1_1_25da5a14-50bd-41c0-ab05-288d8518cd49
-    - vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_224_4_0.15_256_512_8_4_0.0001_1_1_c188ae05-8a87-4c9a-ba42-7afb33e9dc29
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_42_0_0.1_256_256_8_4_0.0001_1_1_c3d3c6c7-51b6-472f-86f8-604975d9efc4
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_42_1_0.1_256_256_8_4_0.0001_1_1_5581e62b-011e-4984-b14c-5f280217f646
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_3407_2_0.1_256_512_4_4_0.0001_1_1_4e0e6362-7a8e-4cb3-9da1-56fb0fa792d5
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_3407_3_0.15_256_256_8_4_0.0001_1_1_25da5a14-50bd-41c0-ab05-288d8518cd49
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_relation_bayesian_akt_vector_tiaocan_assist2009_224_4_0.15_256_512_8_4_0.0001_1_1_c188ae05-8a87-4c9a-ba42-7afb33e9dc29
 program: ./wandb_predict.py
