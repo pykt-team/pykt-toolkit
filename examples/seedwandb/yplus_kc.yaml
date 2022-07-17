@@ -11,4 +11,4 @@ parameters:
     - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_224_2_0.15_256_512_8_3_0.0001_1_1_64dcdd1b-3cad-4f99-84eb-42a54808bd68
     - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_42_3_0.15_256_512_4_4_0.0001_1_1_23db9eae-9eaf-4928-902b-b984bf4102af
     - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_42_4_0.15_256_512_4_4_0.0001_1_1_3ebd464f-f175-4ba0-aaee-1679106645f2
-program: ../wandb_predict.py
+program: ./wandb_predict.py
