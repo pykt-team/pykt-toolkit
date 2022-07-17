@@ -96,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--attention_mode", type=str, default="no_attention",help="no_attention/attention")
     parser.add_argument("--qc_predict_mode_lambda", type=float, default=1)
     parser.add_argument("--qc_loss_mode_lambda", type=float, default=1)
+   
     #知识点分类loss
     parser.add_argument("--loss_type", type=str, default="ce")
     parser.add_argument("--epsilon", type=float, default=1.0)
