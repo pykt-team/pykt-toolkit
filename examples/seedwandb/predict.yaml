@@ -5,4 +5,17 @@ metric:
     name: testauc
 parameters:
     save_dir:
-        values: []
+        values: ["akt_vector_tiaocan_nips_task34/nips_task34_akt_vector_bayesian_loss_akt_vector_tiaocan_nips_task34_3407_0_0.3_256_512_4_3_0.0001_1_1_0d24b999-2be8-46d8-8d14-d1b65d0ac0bd",
+        "akt_vector_tiaocan_nips_task34/nips_task34_akt_vector_bayesian_akt_vector_tiaocan_nips_task34_3407_0_0.3_256_512_8_1_0.0001_1_1_5224b021-ba2e-43c0-9fcd-ab5884e4ad21",
+        "akt_vector_tiaocan_nips_task34/nips_task34_akt_vector_relation_akt_vector_tiaocan_nips_task34_42_0_0.25_256_256_8_1_0.0001_1_1_cf16d7ef-13fc-498e-8d12-2218e6653443",
+        "akt_vector_tiaocan_nips_task34/nips_task34_akt_vector_relation_bayesian_akt_vector_tiaocan_nips_task34_42_0_0.25_256_256_4_1_0.0001_1_1_9c1cc6de-2a87-4d26-8173-9d77e82d8d62",
+        "akt_vector_tiaocan_nips_task34/nips_task34_akt_vector_qid_akt_vector_tiaocan_nips_task34_42_0_0.25_256_256_8_2_0.0001_1_1_ec638fdd-6cb3-4dcc-b0eb-0ce997efe795",
+        "akt_vector_tiaocan_algebra2005/algebra2005_akt_vector_qid_akt_vector_tiaocan_algebra2005_42_0_0.05_256_256_8_4_1e-05_1_1_23e05479-056c-412f-aac3-42758a5699ca",
+        "akt_vector_tiaocan_algebra2005/algebra2005_akt_vector_relation_akt_vector_tiaocan_algebra2005_42_0_0.1_256_256_4_4_5e-06_1_1_0ff64c41-25eb-4b08-9bef-2536d4c37043",
+        "akt_vector_tiaocan_algebra2005/algebra2005_akt_vector_relation_bayesian_akt_vector_tiaocan_algebra2005_3407_0_0.05_512_256_8_4_1e-05_1_1_9f8516c0-53ce-4eae-9dc8-0f69faff962e",
+        "akt_vector_tiaocan_algebra2005/algebra2005_akt_vector_bayesian_akt_vector_tiaocan_algebra2005_3407_0_0.05_512_512_8_4_5e-06_1_1_eee7d237-98bd-41a4-ac9e-3e1495d99213",
+        "akt_vector_tiaocan_algebra2005/algebra2005_akt_vector_bayesian_loss_akt_vector_tiaocan_algebra2005_3407_0_0.0_256_256_8_2_0.0001_1_1_6ce51800-c199-40e8-a379-13a1ba49e8c4",
+        "akt_forget_tiaocan_assist2009/assist2009_akt_forget_atc_akt_forget_tiaocan_assist2009_42_0_0.0_256_512_8_2_0.0001_1_1_105e04b7-be50-452e-a17b-15b48c51bd9f",
+        "akt_perturbation_tiaocan_assist2009/assist2009_akt_perturbation_perturbation_akt_perturbation_tiaocan_assist2009_3407_0_0.2_256_512_8_4_0.0001_0.2_1_1_ea2222c6-2081-48d3-a5ed-ad89fbfe98dd",
+        "aktforget_tiaocan_assist2009/assist2009_aktforget_qid_aktforget_tiaocan_assist2009_3407_0_0.2_256_256_8_4_0.0001_1_1_3a61c900-03e3-4c83-a97d-62c942189281"
+        ]

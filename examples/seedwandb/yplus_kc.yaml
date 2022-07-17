@@ -1,0 +1,14 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/yplus_kc.yaml
+parameters:
+  save_dir:
+    values:
+    - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_224_0_0.15_256_512_8_3_0.0001_1_1_4687ea1e-c4f4-4693-82b7-37eee57651c7
+    - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_224_1_0.2_256_256_8_4_0.0001_1_1_b67b40eb-db95-4a6c-9812-46d9c42bfeda
+    - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_224_2_0.15_256_512_8_3_0.0001_1_1_64dcdd1b-3cad-4f99-84eb-42a54808bd68
+    - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_42_3_0.15_256_512_4_4_0.0001_1_1_23db9eae-9eaf-4928-902b-b984bf4102af
+    - akt_tiaocan_assist2009/assist2009_akt_yplus_kc_akt_tiaocan_assist2009_42_4_0.15_256_512_4_4_0.0001_1_1_3ebd464f-f175-4ba0-aaee-1679106645f2
+program: ../wandb_predict.py
