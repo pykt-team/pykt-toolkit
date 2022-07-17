@@ -1,4 +1,7 @@
-WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/bayesian.yaml -p pykt_bayesian
-WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/bayesian_loss.yaml -p pykt_bayesian
-WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/relation_bayesian.yaml -p pykt_bayesian
-WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/relation.yaml -p pykt_bayesian
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/bayesian.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/bayesian_loss.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/relation_bayesian.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/relation.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/yplus_kc.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/aktvec_yplus_kc.yaml -p pykt_pred
+WANDB_API_KEY=07ec58f8e8315aa083a202292092d7e2ee9d43b4 wandb sweep seedwandb/predict.yaml -p pykt_pred
