@@ -183,7 +183,9 @@ class AKTF(nn.Module):
             # print(f"perturbation_preds:{preds.shape}")
             preds = preds.reshape(-1, batch_size, seqlen)
             return preds[0], preds[1], c_reg_loss
-        else:
+        elif qtest and emb_type == "perturbation":
+            return preds[0], preds[1], c_reg_loss, concat_q
+        elif qtest and emb_type != "perturbation":
             return preds, c_reg_loss, concat_q
 
 
