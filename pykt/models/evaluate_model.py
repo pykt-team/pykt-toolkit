@@ -134,13 +134,10 @@ def early_fusion(curhs, model, model_name):
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
-    elif model_name in ["akt_perturbation"]:
-        y, perturbation_y, reg_loss = model.out(curhs[0]).squeeze(-1)                              
-        y = y[:,1:]
     elif model_name == "saint":
         p = model.out(model.dropout(curhs[0]))
         p = torch.sigmoid(p).squeeze(-1)
