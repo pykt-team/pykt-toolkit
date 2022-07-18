@@ -256,8 +256,8 @@ class AKTVec(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def mySigmoid(self, x):
-        return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
+    # def mySigmoid(self, x):
+    #     return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
