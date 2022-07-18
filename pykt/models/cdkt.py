@@ -110,7 +110,8 @@ class CDKT(Module):
                 encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
                 encoder_norm = LayerNorm(d_model)
                 self.trans = TransformerEncoder(encoder_layer, num_layers=2, norm=encoder_norm)
-                self.position_emb = Embedding(seq_len, emb_size)
+                if self.emb_type.find("addpos") != -1:
+                    self.position_emb = Embedding(seq_len, emb_size)
             else:    
                 self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             self.qdrop = Dropout(dropout)
