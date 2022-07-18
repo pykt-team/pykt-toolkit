@@ -138,6 +138,9 @@ def early_fusion(curhs, model, model_name):
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
+    elif model_name in ["akt_perturbation"]:
+        y, perturbation_y, reg_loss = model.out(curhs[0]).squeeze(-1)                              
+        y = y[:,1:]
     elif model_name == "saint":
         p = model.out(model.dropout(curhs[0]))
         p = torch.sigmoid(p).squeeze(-1)
@@ -178,7 +181,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]
+    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -220,7 +223,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     if cq.shape[1] == 0:
         cq = cc
 
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
     
     alldfs, drest = [], dict() # not predict infos!
     # print(f"real bz in group fusion: {rs.shape[0]}")
@@ -310,7 +313,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # dkvmn / akt / saint: give cur -> predict cur
     # sakt: give past+cur -> predict cur
     # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -351,6 +354,9 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
+                y = y[:,1:]
+            elif model_name in ["akt_perturbation"]:
+                y, y_perturbation, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
@@ -918,6 +924,9 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = y[:, 1:]
         elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:                                
             y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
+            y = y[:,1:]
+        elif model_name in ["akt_perturbation"]:                                
+            y, perturbation_y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
             y = y[:,1:]
         elif model_name in ["atkt", "atktfix"]:
             # print(f"atkt_pad: {atkt_pad}")

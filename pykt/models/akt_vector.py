@@ -256,8 +256,8 @@ class AKTVec(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def mySigmoid(self, x):
-        return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
+    # def mySigmoid(self, x):
+    #     return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
@@ -412,9 +412,9 @@ class AKTVec(nn.Module):
         output = self.out(concat_q).squeeze(-1)
 
         if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian", "bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
-            # m = nn.Sigmoid()
-            # preds = m(output)
-            preds = self.mySigmoid(output)    
+            m = nn.Sigmoid()
+            preds = m(output)
+            # preds = self.mySigmoid(output)    
             # print(f"preds: {preds.shape}")
             if emb_type in ["relation_bayesian_loss", "bayesian_loss"]:
                 kc_slipping = self.slipping(q_data)
