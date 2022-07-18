@@ -27,7 +27,7 @@ class AKTQueNet(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "akt"
+        self.model_name = "akt_que"
         self.num_c = num_c
         self.dropout = dropout
         self.kq_same = kq_same
@@ -48,7 +48,7 @@ class AKTQueNet(nn.Module):
             self.qa_embed = nn.Embedding(2, emb_size)
 
         self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
-                             emb_path=emb_path,pretrain_dim=pretrain_dim)
+                             emb_path=emb_path,pretrain_dim=pretrain_dim,model_name=self.model_name)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(num_q=num_q, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=emb_size, d_feature=emb_size / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
@@ -60,6 +60,8 @@ class AKTQueNet(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
+
+        # self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),num_c,dropout)
         self.reset()
 
     def reset(self):
@@ -68,7 +70,11 @@ class AKTQueNet(nn.Module):
                 torch.nn.init.constant_(p, 0.)
 
     def base_emb(self, q, c, r):
-        q_embed_data = self.que_emb(q,c,r)  # BS, seqlen,  d_model# c_ct
+        if self.emb_type=="iekt":
+            xemb,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q, c, r)
+            q_embed_data = xemb
+        else:
+            q_embed_data = self.que_emb(q,c,r)  # BS, seqlen,  d_model# c_ct
         if self.separate_qa:
             qa_data = q + self.num_q * r
             qa_embed_data = self.qa_embed(qa_data)
@@ -107,8 +113,7 @@ class AKTQueNet(nn.Module):
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
-        m = nn.Sigmoid()
-        preds = m(output)
+        preds = torch.sigmoid(output)
        
         return preds, c_reg_loss
        
@@ -117,26 +122,37 @@ class AKTQueNet(nn.Module):
 
 class AKTQue(QueBaseModel):
     def __init__(self, num_q,num_c, emb_size,n_blocks=1, dropout=0.1, emb_type='qid',kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5,d_ff=256,emb_path="", pretrain_dim=768,device='cpu',seed=0):
-        model_name = "dkt_que"
+        model_name = "akt_que"
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
         self.model = AKTQueNet(num_q=num_q, num_c=num_c, emb_size=emb_size, n_blocks=n_blocks, dropout=dropout, d_ff=d_ff, 
             kq_same=kq_same, final_fc_dim=final_fc_dim, num_attn_heads=num_attn_heads, separate_qa=separate_qa, 
             l2=l2, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim)
         self.model = self.model.to(device)
     
-    def train_one_step(self,data):
-        y,reg_loss,data_new = self.predict_one_step(data,return_details=True)
+    def get_avg_fusion_concepts(self,y_concept,cshft):
+        """获取知识点 fusion 的预测结果
+        """
+        concept_mask = torch.where(cshft.long()==-1,False,True)
+        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.model.num_c)
+        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,4,1)*concept_index).sum(-1)
+        concept_sum = concept_sum*concept_mask#remove mask
+        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
+        return y_concept
+
+    def train_one_step(self,data,process=True,return_all=False):
+        y,reg_loss,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
-        print(f"reg_loss is {reg_loss}")
+        # print(f"reg_loss is {reg_loss}")
         loss = loss+reg_loss
         return y,loss
 
 
-    def predict_one_step(self,data,return_details=False):
-        data_new = self.batch_to_device(data)
+    def predict_one_step(self,data,return_details=False,process=True):
+        data_new = self.batch_to_device(data,process=process)
         # q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
         y, reg_loss = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long())
         y = y[:,1:]
+        # y = self.get_avg_fusion_concepts(y,data_new['cshft'])
         if return_details:
             return y,reg_loss,data_new
         else:
@@ -155,7 +171,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'akt'}:
+        if model_type in {'akt','akt_que'}:
             self.blocks_1 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)

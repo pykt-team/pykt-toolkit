@@ -9,7 +9,8 @@ from torch.utils.data import TensorDataset
 from sklearn import metrics
 
 emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
-emb_type_map = {"iekt-qid":"qc_merge",
+emb_type_map = {"akt-iekt":"qc_merge",
+                "iekt-qid":"qc_merge",
                 "iekt-qc_merge":"qc_merge",
                 "iekt_ce-qid":"qc_merge",
                 "dkt_que-qid":"qaid_qc",
@@ -304,9 +305,9 @@ class QueBaseModel(nn.Module):
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= acc_threshold else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
-        # eval_result = {"auc":auc,"acc":acc}
-        # return eval_result
-        return auc,acc
+        eval_result = {"auc":auc,"acc":acc}
+        return eval_result
+        # return auc,acc
 
     def _parser_row(self,row,data_config,ob_portions=0.5):
         max_concepts = data_config["max_concepts"]

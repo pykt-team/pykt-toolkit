@@ -90,7 +90,11 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
-        ys.append(y[:,1:])
+        [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
+        y_next = pred_next[:,1:]
+        y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
+        y = (y_next+y_all)/2
+        ys.append(y)
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
