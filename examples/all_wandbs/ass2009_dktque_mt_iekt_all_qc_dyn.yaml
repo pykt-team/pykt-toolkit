@@ -1,4 +1,4 @@
-name: assist2009_dkt_que_mt_iekt_add_all_qc_dyn
+name: ass2009_dktque_mt_iekt_all_qc_dyn
 program: wandb_dkt_que_train.py
 method: bayes
 metric:
