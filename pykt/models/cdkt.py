@@ -7,9 +7,9 @@ import pandas as pd
 import torch
 
 from torch import nn
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss, MultiLabelSoftMarginLoss
 from .utils import transformer_FFN, ut_mask, pos_encode
-from torch.nn.functional import one_hot, cross_entropy
+from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss
 from .cdkt_cc import generate_postives, Network, WWWNetwork
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -190,15 +190,16 @@ class CDKT(Module):
                 ), nn.Dropout(dropout)
             )
             self.qclasifier = nn.Linear(self.emb_size, self.num_c)
-            self.closs = MultiLabelMarginLoss()
+            self.closs = MultiLabelMarginLoss()#MultiLabelSoftMarginLoss()# MultiLabelMarginLoss()
+            #  MultiLabelMarginLoss会导致结果不可复现
 
             # if self.emb_type.find("addpcurc") != -1:
             #     self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             #     self.qdrop = Dropout(dropout)
             #     self.qclasifier = Linear(self.hidden_size, self.num_c)
             #     self.response_emb = Embedding(2, self.emb_size)
-            # if self.emb_type.find("transpredr") != -1:
-            #     self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
+            if self.emb_type.find("transpredr") != -1:
+                self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
 
         if self.emb_type.endswith("predfuture") != -1:
             self.l1, self.l2 = l1, l2
