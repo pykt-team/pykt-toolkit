@@ -412,9 +412,9 @@ class AKTVec(nn.Module):
         output = self.out(concat_q).squeeze(-1)
 
         if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian", "bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
-            # m = nn.Sigmoid()
-            # preds = m(output)
-            preds = self.mySigmoid(output)    
+            m = nn.Sigmoid()
+            preds = m(output)
+            # preds = self.mySigmoid(output)    
             # print(f"preds: {preds.shape}")
             if emb_type in ["relation_bayesian_loss", "bayesian_loss"]:
                 kc_slipping = self.slipping(q_data)
