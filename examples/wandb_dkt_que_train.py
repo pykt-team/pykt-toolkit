@@ -105,6 +105,8 @@ if __name__ == "__main__":
     #dynamic loss
     parser.add_argument("--c_dyn_a", type=float, default=0.0)
     parser.add_argument("--c_dyn_b", type=float, default=0.0)
+    parser.add_argument("--temperature", type=float, default=1)
+    
     
     #future reward
     parser.add_argument("--fr_window", type=int, default=1)

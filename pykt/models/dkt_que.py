@@ -8,6 +8,7 @@ from pykt.utils import debug_print
 from sklearn import metrics
 from torch.utils.data import DataLoader
 from .loss import Loss
+from scipy.special import softmax
 
 class MLP(nn.Module):
     '''
@@ -341,12 +342,12 @@ class DKTQue(QueBaseModel):
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
             loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
             
-            
             if "dyn" in self.model.loss_mode:
                 dyn_a = self.model.other_config.get("dyn_a",0)
                 dyn_b = self.model.other_config.get("dyn_b",0)
                 auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
                 auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
+                auc_all,auc_next = softmax(np.array([auc_all,auc_next])/self.model.other_config.get("temperature",0.003))
                 alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
                 alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
                 loss = alpha_all*loss_all + alpha_next*loss_next
