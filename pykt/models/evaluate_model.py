@@ -349,11 +349,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             if model_name in ["dkvmn", "skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
-            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:
+            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
-                y = y[:,1:]
-            elif model_name in ["akt_perturbation"]:
-                y, y_perturbation, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
@@ -919,11 +916,8 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         elif model_name == "saint":
             y = model(ccq.long(), ccc.long(), curr.long())
             y = y[:, 1:]
-        elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:                                
+        elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:                                
             y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
-            y = y[:,1:]
-        elif model_name in ["akt_perturbation"]:                                
-            y, perturbation_y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
             y = y[:,1:]
         elif model_name in ["atkt", "atktfix"]:
             # print(f"atkt_pad: {atkt_pad}")
