@@ -179,8 +179,8 @@ class CDKT(Module):
             d_model = self.hidden_size# * 2
             encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
             encoder_norm = LayerNorm(d_model)
-            # if self.emb_type.find("addbase") != -1:
-            #     self.basenet = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
+            if self.emb_type.find("addbase") != -1:
+                self.basenet = TransformerEncoder(encoder_layer, num_layers=1, norm=encoder_norm)
             self.net = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
             self.position_emb = Embedding(seq_len, emb_size)
             self.qnet = nn.Sequential(
@@ -383,8 +383,8 @@ class CDKT(Module):
                 # que_c_emb = self.que_c_linear(que_c_emb)
                 # print(f"que_c_emb: {que_c_emb.shape}, mask: {mask.shape}")
                 
-                # if emb_type.find("addbase") != -1:
-                #     que_c_emb = self.basenet(que_c_emb.transpose(0,1), mask).transpose(0,1)
+                if emb_type.find("addbase") != -1:
+                    que_c_emb = self.basenet(que_c_emb.transpose(0,1), mask).transpose(0,1)
                     # que_c_emb += posemb
                 qh = self.net(que_c_emb.transpose(0,1), mask).transpose(0,1)
                 qh = self.qnet(qh)
@@ -405,7 +405,7 @@ class CDKT(Module):
                 qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
                 # qcmask = self.get_attn_pad_mask(sm)
                 qcmask = ut_mask(seq_len = qcemb.shape[1])
-                # qcemb = self.basenet(qcemb.transpose(0,1), qcmask).transpose(0,1)
+                qcemb = self.basenet(qcemb.transpose(0,1), qcmask).transpose(0,1)
                 # qcemb += posemb
                 qcemb = self.net(qcemb.transpose(0,1), qcmask).transpose(0,1)
                 qcemb = self.qnet(qcemb)
