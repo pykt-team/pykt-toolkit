@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss
 from .utils import transformer_FFN, ut_mask, pos_encode
-from torch.nn.functional import one_hot
+from torch.nn.functional import one_hot, cross_entropy
 from .cdkt_cc import generate_postives, Network, WWWNetwork
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -104,7 +104,15 @@ class CDKT(Module):
             self.l1 = l1
             self.l2 = l2
             self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
-            self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+            if self.emb_type.find("trans") != -1:
+                self.nhead = 5
+                d_model = self.hidden_size# * 2
+                encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
+                encoder_norm = LayerNorm(d_model)
+                self.trans = TransformerEncoder(encoder_layer, num_layers=2, norm=encoder_norm)
+                self.position_emb = Embedding(seq_len, emb_size)
+            else:    
+                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             self.qdrop = Dropout(dropout)
             self.qclasifier = Linear(self.hidden_size, self.num_c)
             if self.emb_type.find("cemb") != -1:
@@ -182,6 +190,12 @@ class CDKT(Module):
             )
             self.qclasifier = nn.Linear(self.emb_size, self.num_c)
             self.closs = MultiLabelMarginLoss()
+
+            # if self.emb_type.find("addpcurc") != -1:
+            #     self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+            #     self.qdrop = Dropout(dropout)
+            #     self.qclasifier = Linear(self.hidden_size, self.num_c)
+            #     self.response_emb = Embedding(2, self.emb_size)
             # if self.emb_type.find("transpredr") != -1:
             #     self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
 
@@ -294,27 +308,24 @@ class CDKT(Module):
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
         elif emb_type.endswith("predfuture"): # add pred future correct rates
+            # fh, _ = self.futurelstm(xemb)
             h, _ = self.lstm_layer(xemb)
-            flogits = self.futureclasifier(h)
             if train:
-                predrates = torch.sigmoid(flogits)
+                
+                predrates = torch.sigmoid(self.futureclasifier(h))
+                # predratescur = (predrates * one_hot(c.long(), self.num_c)).sum(-1) # 当前知识点以后的准确率
+                # rates, ratessms = dcur["futurerates"].float(), dcur["futuresms"].long()
+                # flosscur = self.floss(predratescur[ratessms==1], rates[ratessms==1])
                 # cal y2 loss
-                predrates = (predrates * one_hot(c.long(), self.num_c)).sum(-1) # 当前知识点以后的准确率
-                rates, ratessms = dcur["futurerates"].float(), dcur["futuresms"].long()
+                cshft = dcur["shft_cseqs"].long()
+                predratesnext = (predrates * one_hot(cshft.long(), self.num_c)).sum(-1) # 下一个知识点以后的准确率
+                rates, ratessms = dcur["shft_futurerates"].float(), dcur["futuresms"].long()
                 # print(f"rates: {rates.shape}, ratessms: {ratsessms.shape}")
-                floss = self.floss(predrates[ratessms==1], rates[ratessms==1])
-                y2 = floss
+                flossnext = self.floss(predratesnext[ratessms==1], rates[ratessms==1])
+                y2 = flossnext
 
             logits = self.out_layer(self.dropout_layer(h))
             y = torch.sigmoid(logits)
-            if emb_type.find("merge") != -1:
-                mlogits = flogits + logits
-                # print(f"predrates: {predrates[0:1].tolist()}")
-                # yy = (y * one_hot(c.long(), self.num_c)).sum(-1)
-                # print(f"predratyy: {yy[0:1].tolist()}")
-                # print(f"flogits: {flogits.shape}, logits: {logits.shape}, mlogits: {mlogits.shape}")
-                y = torch.sigmoid(mlogits)
-                # assert False
         elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
             qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
             if emb_type.find("sep") != -1:
@@ -373,6 +384,7 @@ class CDKT(Module):
                 
                 if emb_type.find("addbase") != -1:
                     que_c_emb = self.basenet(que_c_emb.transpose(0,1), mask).transpose(0,1)
+                    # que_c_emb += posemb
                 qh = self.net(que_c_emb.transpose(0,1), mask).transpose(0,1)
                 qh = self.qnet(qh)
             
@@ -393,9 +405,18 @@ class CDKT(Module):
                 # qcmask = self.get_attn_pad_mask(sm)
                 qcmask = ut_mask(seq_len = qcemb.shape[1])
                 qcemb = self.basenet(qcemb.transpose(0,1), qcmask).transpose(0,1)
+                # qcemb += posemb
                 qcemb = self.net(qcemb.transpose(0,1), qcmask).transpose(0,1)
                 qcemb = self.qnet(qcemb)
                 xemb = xemb + qcemb
+
+            # if emb_type.find("addpcurc") != -1:
+            #     qh, _ = self.qlstm(self.qdrop(repcemb))
+            #     if train:
+            #         cpreds = self.qclasifier(qh)
+            #         mask = sm == 1
+            #         y2 = 0.5*y2 + 0.5*cross_entropy(cpreds[mask], c[mask])
+            #     xemb += qh
             
             if emb_type.find("addr") != -1:
                 cremb = self.response_emb(r)
@@ -544,7 +565,14 @@ class CDKT(Module):
                 if emb_type.find("caddr") != -1:
                     remb = self.response_emb(r)
                     catemb += remb
-            qh, _ = self.qlstm(catemb)
+            if emb_type.find("trans") != -1:
+                if emb_type.find("addpos") != -1: # 不加pos效果更好
+                    posemb = self.position_emb(pos_encode(xemb.shape[1]))
+                    catemb = catemb + posemb
+                mask = ut_mask(seq_len = catemb.shape[1])
+                qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
+            else:
+                qh, _ = self.qlstm(catemb)
             y2 = self.qclasifier(qh)
 
             # predict response
