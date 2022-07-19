@@ -28,9 +28,9 @@ class AKTF(nn.Module):
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
         self.emb_type = emb_type
-        if self.emb_type != "perturbation":
+        if self.emb_type.find("perturbation") == -1:
             self.model_name = "akt_forget"
-        elif self.emb_type == "perturbation":
+        elif self.emb_type.find("perturbation") != -1:
             self.model_name = "akt_perturbation"
             self.lambda_r = lambda_r
 
@@ -50,7 +50,7 @@ class AKTF(nn.Module):
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
-        if emb_type.startswith("qid") and self.use_rasch or emb_type.startswith("perturbation"):
+        if emb_type.startswith("qid") and self.use_rasch or emb_type.startswith("perturbation") or emb_type.find("bayesian") != -1:
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
@@ -105,6 +105,10 @@ class AKTF(nn.Module):
             self.sigmoida = sigmoida
             self.sigmoidb = sigmoidb  
 
+        if emb_type.find("bayesian") != -1:
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
+
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
@@ -142,7 +146,7 @@ class AKTF(nn.Module):
         batch_size = q_data.shape[0]
         seqlen = q_data.shape[1]
 
-        if emb_type == "perturbation":
+        if emb_type.find("perturbation") != -1:
             beta = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
             new_target = torch.clamp(target + beta, 0, 1)
             new_target = torch.bernoulli(new_target).long()
@@ -197,11 +201,7 @@ class AKTF(nn.Module):
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
-        if emb_type not in ["atc"]:
-            m = nn.Sigmoid()
-            preds = m(output)
-        # print(f"preds: {preds.shape}")
-        else:
+        if emb_type in ["atc"]:
             stu_state = d_output
             cosine_similarity = torch.cosine_similarity(stu_state,q_embed_data,dim=2)
             stu_state_f2 = torch.norm(stu_state,dim=2)
@@ -211,24 +211,43 @@ class AKTF(nn.Module):
             subprojection = projection - next_kc_hot_f2 
 
             subprojection = torch.clamp(subprojection, -15, 15)
-            preds = self.mySigmoid(subprojection)       
-
-        if not qtest and emb_type != "perturbation":
-            return preds, c_reg_loss
-        elif not qtest and emb_type == "perturbation":
+            preds = self.mySigmoid(subprojection)
+        elif emb_type.find("bayesian") != -1 and emb_type.find("inner") == -1:
+            # print(f"using bayesian_prediction")
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = m(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = m(kc_guess)
+            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
+            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
+            preds = m(output)
+        elif emb_type.find("inner") != -1:
+            # print(f"using inner_prediction")
+            output = torch.sum(d_output * q_embed_data, dim=2).reshape(batch_size,seqlen,1)
+            # print(f"output: {output.shape}")
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = m(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = m(kc_guess)
+            # print(f"guess: {kc_guess.shape}")
+            preds = torch.squeeze(output * (1 - kc_slipping) + (1 - output) * kc_guess)
+            preds = m(preds)
+        else:
             m = nn.Sigmoid()
             preds = m(output)
-            # print(f"perturbation_preds:{preds.shape}")
+        # print(f"preds: {preds.shape}")
+
+        if not qtest and emb_type.find("perturbation") == -1:
+            return preds, c_reg_loss
+        elif not qtest and emb_type.find("perturbation") != -1:
             preds = preds.reshape(-1, batch_size, seqlen)
             return preds[0], preds[1], c_reg_loss
-        elif qtest and emb_type == "perturbation":
-            m = nn.Sigmoid()
-            preds = m(output)
-            # print(f"perturbation_preds:{preds.shape}")
-            preds = preds.reshape(-1, batch_size, seqlen)
+        elif qtest and emb_type.find("perturbation") != -1:
             concat_q = concat_q.reshape(-1, batch_size, seqlen)
             return preds[0], c_reg_loss, concat_q[0]
-        elif qtest and emb_type != "perturbation":
+        elif qtest and emb_type.find("perturbation") == -1:
             return preds, c_reg_loss, concat_q
 
 
