@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+git#!/usr/bin/env python
 # coding=utf-8
 
 import torch
@@ -30,9 +30,14 @@ class AKTF(nn.Module):
         self.emb_type = emb_type
         if self.emb_type.find("perturbation") == -1:
             self.model_name = "akt_forget"
+<<<<<<< HEAD
         elif self.emb_type.find("perturbation") != -1:
+=======
+        else:
+>>>>>>> 15eda1c746be1c133af77fd0e0d36199d24c402a
             self.model_name = "akt_perturbation"
             self.lambda_r = lambda_r
+        
 
         self.n_question = n_question
         self.dropout = dropout
@@ -104,6 +109,10 @@ class AKTF(nn.Module):
             # self.hidden = nn.Linear(in_features=embed_l,out_features=self.n_question)
             self.sigmoida = sigmoida
             self.sigmoidb = sigmoidb  
+        
+        if emb_type.find("bayesian") == 0:
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
 
         if emb_type.find("bayesian") != -1:
             self.guess = nn.Embedding(self.n_question + 1, 1)
@@ -209,7 +218,6 @@ class AKTF(nn.Module):
             next_kc_hot_f2 = torch.norm(next_kc,dim=2)
             projection = torch.mul(stu_state_f2,cosine_similarity)
             subprojection = projection - next_kc_hot_f2 
-
             subprojection = torch.clamp(subprojection, -15, 15)
             preds = self.mySigmoid(subprojection)
         elif emb_type.find("bayesian") != -1 and emb_type.find("inner") == -1:
