@@ -45,7 +45,7 @@ class AKTF(nn.Module):
 
         embed_l = d_model
         if self.n_pid > 0 and self.use_rasch:
-            self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
+            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
@@ -57,6 +57,32 @@ class AKTF(nn.Module):
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
+        
+        elif emb_type.startswith("concat"):
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.linear_x = nn.Linear(3 * embed_l, embed_l)
+            self.linear_y = nn.Linear(4 * embed_l, embed_l)
+
+        elif emb_type.startswith("fc"):
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.layer_x = nn.Sequential(
+            nn.Linear(embed_l * 3,
+                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+            )
+            self.layer_y = nn.Sequential(
+            nn.Linear(embed_l * 4,
+                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+            )
 
         elif emb_type.startswith("forget") and self.use_rasch:
             self.q_embed = nn.Embedding(self.n_question, embed_l)
@@ -135,16 +161,28 @@ class AKTF(nn.Module):
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
-            q_embed_data = q_embed_data + pid_embed_data * \
-                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
+            if emb_type.startswith("concat"):
+                # print(f"q_embed_data: {type(q_embed_data)}")
+                # print(f"pid_embed_data: {type(pid_embed_data)}")
+                # print(f"q_embed_diff_data: {type(q_embed_diff_data)}")
+                q_embed_data = self.linear_x(torch.cat([q_embed_data, pid_embed_data, q_embed_diff_data],dim=2))
+            elif emb_type.startswith("fc"):
+                q_embed_data = self.layer_x(torch.cat([q_embed_data, pid_embed_data, q_embed_diff_data],dim=2))
+            else:
+                q_embed_data = q_embed_data + pid_embed_data * \
+                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             qa_embed_diff_data = self.qa_embed_diff(
                 target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
             if self.separate_qa:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            elif emb_type.startswith("fc"):
+                qa_embed_data = self.layer_y(torch.cat([qa_embed_data, pid_embed_data, qa_embed_diff_data, q_embed_diff_data], dim=2))
             else:
-                qa_embed_data = qa_embed_data + pid_embed_data * \
+                if emb_type.startswith("concat"):
+                    qa_embed_data = self.linear_y(torch.cat([qa_embed_data, pid_embed_data, qa_embed_diff_data, q_embed_diff_data], dim=2))  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+                else:
+                    qa_embed_data = qa_embed_data + pid_embed_data * \
                     (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
             c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
@@ -159,11 +197,11 @@ class AKTF(nn.Module):
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
-        if emb_type == "qid":
+        if emb_type not in ["atc"]:
             m = nn.Sigmoid()
             preds = m(output)
         # print(f"preds: {preds.shape}")
-        elif emb_type in ["atc"]:
+        else:
             stu_state = d_output
             cosine_similarity = torch.cosine_similarity(stu_state,q_embed_data,dim=2)
             stu_state_f2 = torch.norm(stu_state,dim=2)

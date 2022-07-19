@@ -287,9 +287,10 @@ class Architecture(nn.Module):
         x = q_pos_embed
 
         # encoder
-        for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y = block(mask=1, query=y, key=y, values=y) # yt^
-        flag_first = True
+        # for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
+        #     y = block(mask=1, query=y, key=y, values=y) # yt^
+        # flag_first = True
+        flag_first = False
         for block in self.blocks_2:
             if flag_first:  # peek current question
                 x = block(mask=1, query=x, key=x,
@@ -301,6 +302,7 @@ class Architecture(nn.Module):
                 # print(x[0,0,:])
                 flag_first = True
         return x
+
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
