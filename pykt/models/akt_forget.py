@@ -30,11 +30,7 @@ class AKTF(nn.Module):
         self.emb_type = emb_type
         if self.emb_type.find("perturbation") == -1:
             self.model_name = "akt_forget"
-<<<<<<< HEAD
         elif self.emb_type.find("perturbation") != -1:
-=======
-        else:
->>>>>>> 15eda1c746be1c133af77fd0e0d36199d24c402a
             self.model_name = "akt_perturbation"
             self.lambda_r = lambda_r
         
