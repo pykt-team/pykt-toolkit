@@ -71,7 +71,7 @@ class DKTQueNet(nn.Module):
         if self.emb_type in ["qcaid","qcaid_h"]:
             self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
             self.h_c_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
-
+        
         if "an" in self.output_mode:#all and next merge, qc-c_an#all 使用qc，next使用 c
             if self.emb_type in ["iekt"]:
                 if self.attention_mode in ["attention"]:
@@ -84,6 +84,13 @@ class DKTQueNet(nn.Module):
                 self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
             else:
                 pass
+
+        if self.output_mode in ["an_irt"]:
+            trainable = self.other_config.get("irt_w_trainable",1)==1
+            # self.irt_w = nn.Parameter(torch.randn(3).to(device), requires_grad=True)
+            self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
+            # self.irt_w = nn.Parameter(torch.tensor([0.75,0.75,1.5]).to(device), requires_grad=True)
+
         else:#单独预测模式
             if self.predict_next:
                 if self.emb_type in ["iekt"]:
@@ -341,24 +348,30 @@ class DKTQue(QueBaseModel):
             loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
             loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
-            
-            if "dyn" in self.model.loss_mode:
-                dyn_a = self.model.other_config.get("dyn_a",0)
-                dyn_b = self.model.other_config.get("dyn_b",0)
-                auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
-                auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
-                auc_all,auc_next = softmax(np.array([auc_all,auc_next])/self.model.other_config.get("temperature",0.003))
-                alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
-                alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
-                loss = alpha_all*loss_all + alpha_next*loss_next
-                print(f"auc_all={auc_all},auc_next={auc_next},alpha_all={alpha_all},alpha_next={alpha_next},dyn_a={dyn_a},dyn_b={dyn_b}")
+            if self.model.output_mode=="an_irt":
+                loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
+                l2 = self.model.other_config.get("l2",1e-5)
+                w_norm = (self.model.irt_w ** 2.).sum() * l2
+                loss = loss_kt + w_norm #+ loss_all#+loss_next
+                print(f"loss={loss:.4f},loss_kt={loss_kt:.4f},w_norm={w_norm:.4f},self.model.irt_w is {self.model.irt_w}")
             else:
-                loss_next_lambda = self.model.other_config.get("loss_next_lambda",0.5)
-                loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
-                loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
-                loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
-                loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-            print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
+                if "dyn" in self.model.loss_mode:
+                    dyn_a = self.model.other_config.get("dyn_a",0)
+                    dyn_b = self.model.other_config.get("dyn_b",0)
+                    auc_all =  self.eval_result.get("y_qc_all_kt_auc",1)
+                    auc_next =  self.eval_result.get("y_concept_next_kt_auc",1)
+                    auc_all,auc_next = softmax(np.array([auc_all,auc_next])/self.model.other_config.get("temperature",0.003))
+                    alpha_all = (auc_next+dyn_a)/(auc_all+dyn_a+auc_next+dyn_b)
+                    alpha_next = (auc_all+dyn_b)/(auc_all+dyn_a+auc_next+dyn_b)
+                    loss = alpha_all*loss_all + alpha_next*loss_next
+                    print(f"auc_all={auc_all},auc_next={auc_next},alpha_all={alpha_all},alpha_next={alpha_next},dyn_a={dyn_a},dyn_b={dyn_b}")
+                else:
+                    loss_next_lambda = self.model.other_config.get("loss_next_lambda",0.5)
+                    loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
+                    loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
+                    loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
+                    loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
+                print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
             return outputs['y'],loss#y_question没用
         else:
             print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
@@ -498,11 +511,20 @@ class DKTQue(QueBaseModel):
         if "an" in self.model.output_mode:
             all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
             y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
-            y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
-            output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
-            output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
-            y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
             outputs['y_qc_all'] = y_qc_all
+            y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
+            if self.model.output_mode=="an_irt":
+                def sigmoid_inverse(x):
+                    # return x
+                    return torch.log(x/(1-x+1e-7)+1e-7)
+                y = self.model.irt_w[0]*sigmoid_inverse(outputs['y_question_all']) + self.model.irt_w[1]*sigmoid_inverse(outputs['y_concept_all']) - self.model.irt_w[2]*sigmoid_inverse(outputs['y_question_next'])
+                # print(f"y is {y}")
+                y = torch.sigmoid(y)
+            else:
+                output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
+                output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
+                y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
+                
             outputs['y'] = y
         else:
             y = self.get_merge_y(outputs['y_question'],outputs['y_concept'],self.model.predict_mode)

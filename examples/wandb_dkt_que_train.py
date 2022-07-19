@@ -119,9 +119,10 @@ if __name__ == "__main__":
     parser.add_argument("--output_all_lambda", type=float, default=0.5)
     
 
+    #an_irt
+    parser.add_argument("--irt_w_trainable", type=int, default=0)
     
-    
-    
+    #model
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
