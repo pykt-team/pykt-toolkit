@@ -1,0 +1,14 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/seedwandb/aktvec_qid.yaml
+parameters:
+  save_dir:
+    values:
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_qid_akt_vector_tiaocan_assist2009_3407_0_0.15_256_512_8_4_0.0001_1_1_dc66aa10-250d-4a1a-879f-80f80b13f6bd/
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_qid_akt_vector_tiaocan_assist2009_224_1_0.05_256_256_4_4_1e-05_1_1_6681870f-d2e8-4ac6-bc08-adeb80ee8739/
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_qid_akt_vector_tiaocan_assist2009_224_2_0.1_256_256_4_4_1e-05_1_1_01ece1cc-646f-4a39-aaaf-f6c443c522cd/
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_qid_akt_vector_tiaocan_assist2009_3407_3_0.05_256_512_4_4_1e-05_1_1_d8d7d359-c536-41a4-94e0-3e6fa14dd211/
+    - akt_vector_tiaocan_assist2009/assist2009_akt_vector_qid_akt_vector_tiaocan_assist2009_3407_4_0.15_256_512_4_4_0.0001_1_1_bb456171-9504-477a-a77f-9a8998b3696b/
+program: ./wandb_predict.py
