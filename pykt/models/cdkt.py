@@ -287,7 +287,7 @@ class CDKT(Module):
             # predcurc
             if emb_type.find("predcurc") != -1:
                 # catemb = repqemb + repcemb + xemb
-                catemb = repcemb + xemb # +xemb -> predr
+                catemb = repcemb# +xemb -> predr
                 # if self.num_q > 0:
                 #     catemb = catemb + repqemb
                 # posemb = self.position_emb(pos_encode(xemb.shape[1]))
@@ -330,6 +330,8 @@ class CDKT(Module):
 
                     # add mask
                     mask = self.get_attn_pad_mask(orisms)
+                    # print(f"que_c_emb: {que_c_emb.shape}, mask: {mask.shape}, orisms: {orisms.shape}")
+                    # assert False
                     # mask = ut_mask(seq_len = que_c_emb.shape[1])
                     qh = self.qnet2(self.base_qnet22(self.base_qnet21(que_c_emb.transpose(0,1), mask).transpose(0,1)))
                     cpreds = torch.sigmoid(self.qclasifier2(qh))
