@@ -32,7 +32,13 @@ class KTDataset(Dataset):
         else:
             processed_data = file_path + folds_str + ".pkl"
         dpath = "/".join(file_path.split("/")[0:-1])
-        self.dq2c = pd.read_pickle(os.path.join(dpath, "dq2c.pkl"))
+        if "questions" in self.input_type:
+            self.dq2c = pd.read_pickle(os.path.join(dpath, "dq2c.pkl"))
+        else:
+            with open(os.path.join(dpath, "keyid2idx.json")) as fin:
+                import json
+                obj = json.load(fin)
+                self.dq2c = obj["concepts"]
         # print(self.dq2c)
 
         if not os.path.exists(processed_data):
@@ -87,7 +93,7 @@ class KTDataset(Dataset):
                 dcur[key] = self.dori[key]
                 dcur["shft_"+key] = self.dori[key]
                 continue
-            if key == "oriqs":
+            if key == "oriqs" and "questions" in self.input_type:
                 cursm = self.dori["orisms"][index]
                 dcur[key] = self.dori[key][index][:-1] * cursm
                 dcur["shft_"+key] = self.dori[key][index][1:] * cursm
@@ -177,10 +183,13 @@ class KTDataset(Dataset):
         """
         dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], "futurerates": [], "futuresms": []}
 
-        allcs = set()
-        for q in self.dq2c:
-            allcs |= self.dq2c[q]
-        numc = len(allcs) 
+        if "questions" in self.input_type:
+            allcs = set()
+            for q in self.dq2c:
+                allcs |= self.dq2c[q]
+            numc = len(allcs) 
+        else:
+            numc = len(self.dq2c)
         print(f"numc: {numc}")
         df = pd.read_csv(sequence_path)#[0:1000]
         df = df[df["fold"].isin(folds)]
@@ -188,22 +197,23 @@ class KTDataset(Dataset):
         # seq_qidxs, seq_rests = [], []
         dqtest = {"qidxs": [], "rests":[], "orirow":[]}
         for i, row in df.iterrows():
+            curoqs, is_repeat = [], []
             #use kc_id or question_id as input
             if "concepts" in self.input_type:
                 dori["cseqs"].append([int(_) for _ in row["concepts"].split(",")])
             if "questions" in self.input_type:
                 dori["qseqs"].append([int(_) for _ in row["questions"].split(",")])
+                curoqs = [int(_) for _ in row["questions"].split(",")]
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
                 dori["utseqs"].append([int(_) for _ in row["usetimes"].split(",")])
             if "is_repeat" in row:
                 dori["is_repeat"].append([int(_) for _ in row["is_repeat"].split(",")])
+                is_repeat = [int(_) for _ in row["is_repeat"].split(",")]
 
-            curoqs = [int(_) for _ in row["questions"].split(",")]
             curocs = [int(_) for _ in row["concepts"].split(",")]
             curors = [int(_) for _ in row["responses"].split(",")]
-            is_repeat = [int(_) for _ in row["is_repeat"].split(",")]
 
             # 计算未来准确率
             futurerates, futuresms = self.__generate_future__(curocs, curors, numc)

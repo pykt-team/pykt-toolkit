@@ -67,17 +67,21 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
 
         # 1.2
         loss2 = 0
-        if model.emb_type.find("predcurc") != -1:
-            mask = sm == 1
-            loss2 = cross_entropy(ys[1][mask], ys[2][mask])
-            loss = model.l1*loss1+model.l2*loss2
+        if model.emb_type.endswith("mergetwo"):
+            loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
+        elif model.emb_type.find("predcurc") != -1:
+            loss = model.l1*loss1+model.l2*ys[1]
+        # if model.emb_type.find("predcurc") != -1:
+        #     mask = sm == 1
+        #     loss2 = cross_entropy(ys[1][mask], ys[2][mask])
+        #     loss = model.l1*loss1+model.l2*loss2
         elif model.emb_type.endswith("addcc"):
             # print(f"loss1: {loss1}, loss2: {ys[1]}")
             loss = model.l1*loss1+model.l2*0.05*ys[1]
-        elif model.emb_type.endswith("seq2seq"):
+        elif model.emb_type.endswith("seq2seq") or model.emb_type.endswith("transpretrain"):
             # print(f"loss1: {model.l1*loss1}, loss2: {model.l2*ys[1]}")
             loss = model.l1*loss1+model.l2*ys[1]
-        elif model.emb_type.endswith("predfuture"):
+        elif model.emb_type.endswith("predfuture") or model.emb_type.endswith("three"):
             # print(f"loss1: {model.l1*loss1}, loss2: {model.l2*ys[1]}")
             loss = model.l1*loss1+model.l2*ys[1]
         else:
@@ -159,13 +163,14 @@ def model_forward(model, data):
     #     ys = [y, y2] # first: yshft
     if model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
-        y, y2 = model(dcur, train=True)
+        y, y2, y3 = model(dcur, train=True)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
-        ys = [y, y2, c] # first: yshft
+        ys = [y, y2, y3] # first: yshft
     elif model_name in ["cakt"]:
-        y, reg_loss, y2 = model(cc.long(), cr.long(), cq.long(), train=True)
-        ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
+        y, reg_loss, y2, y3 = model(dcur, train=True)#(cc.long(), cr.long(), cq.long(), train=True)
+        ys = [y[:,1:], y2, y3]
+        # ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
         preloss.append(reg_loss)
     elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
