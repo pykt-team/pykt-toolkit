@@ -288,15 +288,8 @@ class CAKT(nn.Module):
 
             # TODO!!!
             x, y = q_embed_data, qa_embed_data
-            flag_first = True
             for block in self.model:
-                if flag_first:  # peek current question
-                    x = block(mask=1, query=x, key=x,
-                            values=x, apply_pos=False, decay=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
-                    flag_first = False
-                else:  # dont peek current response
-                    x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=False) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
-                    flag_first = True
+                x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # value = qa_embed_data
             # for i in range(self.n_blocks):
             #     value = self.model[i](q_embed_data, q_embed_data, value)

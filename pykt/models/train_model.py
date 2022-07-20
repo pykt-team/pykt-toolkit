@@ -56,7 +56,7 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 #         poly1 = poly1.sum()
 #     return poly1
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[]):
+def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
     model_name = model.model_name
 
     if model_name in ["cdkt", "cakt"]:
@@ -68,7 +68,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         # 1.2
         loss2 = 0
         if model.emb_type.endswith("mergetwo"):
+            # if epoch <= 3:
             loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
+            # elif epoch <= 6:
+            #     loss = model.l1*loss1+model.l2/2*ys[1]+model.l3/2*ys[2]
+            # else:
+            #     loss = loss1
         elif model.emb_type.find("predcurc") != -1:
             loss = model.l1*loss1+model.l2*ys[1]
         # if model.emb_type.find("predcurc") != -1:
@@ -137,7 +142,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(model, data):
+def model_forward(model, data, epoch):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -204,7 +209,7 @@ def model_forward(model, data):
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-        loss = cal_loss(model, [y], r, rshft, sm)
+        loss = cal_loss(model, [y], r, rshft, sm, epoch)
         # at
         features_grad = grad(loss, features, retain_graph=True)
         p_adv = torch.FloatTensor(model.epsilon * _l2_normalize_adv(features_grad[0].data))
@@ -212,7 +217,7 @@ def model_forward(model, data):
         pred_res, _ = model(c.long(), r.long(), p_adv)
         # second loss
         pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
-        adv_loss = cal_loss(model, [pred_res], r, rshft, sm)
+        adv_loss = cal_loss(model, [pred_res], r, rshft, sm, epoch)
         loss = loss + model.beta * adv_loss
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
@@ -232,7 +237,7 @@ def model_forward(model, data):
     elif model_name == "iekt":
         y,loss = model.train_one_step(data)
     if model_name not in ["atkt", "atktfix","iekt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss)
+        loss = cal_loss(model, ys, r, rshft, sm, preloss, epoch)
     return loss
     
 
@@ -249,7 +254,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 model.model.train()
             else:
                 model.train()
-            loss = model_forward(model, data)
+            loss = model_forward(model, data, i)
             opt.zero_grad()
             loss.backward()#compute gradients 
             opt.step()#update model’s parameters

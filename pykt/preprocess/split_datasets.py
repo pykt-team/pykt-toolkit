@@ -478,12 +478,13 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
 def getq2c(df):
     cs = set()
     dq2c = dict()
-    for i, row in df.iterrows():
-        for q, c in zip(row["questions"].split(","), row["concepts"].split(",")):
-            q, c = int(q), int(c)
-            dq2c.setdefault(q, set())
-            dq2c[q].add(c)
-            cs.add(c)
+    if "questions" in df.columns:
+        for i, row in df.iterrows():
+            for q, c in zip(row["questions"].split(","), row["concepts"].split(",")):
+                q, c = int(q), int(c)
+                dq2c.setdefault(q, set())
+                dq2c[q].add(c)
+                cs.add(c)
     return dq2c, len(cs)
       
 def calStatistics(df, stares, key):

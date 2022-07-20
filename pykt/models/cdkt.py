@@ -7,7 +7,8 @@ import pandas as pd
 import torch
 
 from torch import nn
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
+        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss
 from .utils import transformer_FFN, ut_mask, pos_encode
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 
@@ -55,6 +56,9 @@ class CDKT(Module):
                 self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
             if self.emb_type.find("addr") != -1:
                 self.response_emb = Embedding(2, self.emb_size)
+            if self.emb_type.find("predr") != -1:
+                self.response_emb = Embedding(2, self.emb_size)
+                self.rclasifier = Linear(self.hidden_size, self.num_c)
             self.closs = CrossEntropyLoss()
 
         if self.emb_type.endswith("seq2seq"):
@@ -100,9 +104,20 @@ class CDKT(Module):
                 self.qnet1 = TransformerEncoder(encoder_layer1, num_layers=2, norm=encoder_norm1)
             else:    
                 self.qnet1 = LSTM(self.emb_size, self.hidden_size, batch_first=True)
-            # self.qdrop1 = Dropout(dropout)
-            self.qclasifier1 = Linear(self.hidden_size, self.num_c)
-            self.closs1 = CrossEntropyLoss()
+            # self.qdrop1 = Dropout(dropout)                
+            if self.emb_type.find("match") != -1: # concat(h, c) -> predict match or not?
+                self.qclasifier1 = nn.Sequential(
+                    nn.Linear(d_model+self.emb_size, self.hidden_size), nn.ReLU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size, int(self.emb_size/2)), nn.ReLU(), nn.Dropout(dropout),
+                    nn.Linear(int(self.emb_size/2), 2)
+                )
+                self.closs1 = BCELoss()
+            else:
+                self.qclasifier1 = Linear(self.hidden_size, self.num_c)
+                if self.emb_type.find("predr") != -1:
+                    # self.response_emb = Embedding(2, self.emb_size)
+                    self.rclasifier1 = Linear(self.hidden_size, self.num_c)
+                self.closs1 = CrossEntropyLoss()
             # seq2seq
             self.position_emb = Embedding(seq_len, emb_size)
             encoder_layer2 = TransformerEncoderLayer(d_model, nhead=self.nhead)
@@ -226,6 +241,8 @@ class CDKT(Module):
             if emb_type.find("cemb") != -1:
                 cemb = self.concept_emb(c)
                 catemb += cemb
+            # cemb = self.concept_emb(c)
+            # catemb = cemb
             if emb_type.find("caddr") != -1:
                 remb = self.response_emb(r)
                 catemb += remb
@@ -241,6 +258,9 @@ class CDKT(Module):
                 cpreds = self.qclasifier(qh) # 之前版本没加sigmoid，效果好过sigmoid和softmax
                 flag = sm==1
                 y2 = self.closs(cpreds[flag], c[flag])
+                if emb_type.find("predr") != -1:
+                    rpreds = self.rclasifier(qh)
+                    y2 = y2+self.closs(rpreds[flag], r[flag])
 
             # predict response
             xemb = xemb + qh + cemb
@@ -263,9 +283,11 @@ class CDKT(Module):
             if self.num_q > 0:
                 repqemb = self.question_emb(q)
             repcemb = self.concept_emb[c]
+            # repremb = self.response_emb(r)
             # predcurc
             if emb_type.find("predcurc") != -1:
-                catemb = repcemb
+                # catemb = repqemb + repcemb + xemb
+                catemb = repcemb + xemb # +xemb -> predr
                 # if self.num_q > 0:
                 #     catemb = catemb + repqemb
                 # posemb = self.position_emb(pos_encode(xemb.shape[1]))
@@ -277,9 +299,23 @@ class CDKT(Module):
                 else:
                     qh, _ = self.qnet1(catemb)
                 if train:
-                    cpreds = self.qclasifier1(qh) # 之前版本没加sigmoid
-                    flag = sm==1
-                    y2 = self.closs1(cpreds[flag], c[flag])
+                    if emb_type.find("match") == -1:
+                        cpreds = self.qclasifier1(qh)
+                        flag = sm==1
+                        y2 = self.closs1(cpreds[flag], c[flag])
+                        if emb_type.find("predr") != -1:
+                            rpreds = self.rclasifier1(qh)
+                            y2 = y2+self.closs1(rpreds[flag], r[flag])
+
+                    else:
+                        merge = torch.cat([repcemb, qh], dim=-1)
+                        cpreds = torch.sigmoid(self.qclasifier1(merge))
+                        cpreds = cpreds[:,:,1]
+                        # print(f"cpreds: {cpreds.shape}")
+                        flag = sm==1
+                        ones = torch.ones(cpreds.shape[0], cpreds.shape[1]).to(device)
+                        y2 = self.closs1(cpreds[flag], ones[flag])
+                        # assert False
                 xemb1 = qh
 
             # multi label pred
@@ -288,7 +324,7 @@ class CDKT(Module):
                 if train:
                     oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
                     concept_avg = self.get_avg_skill_emb(orics)
-                    # que_c_emb = concept_avg
+                    # que_c_emb = concept_avg + posemb
                     qemb = self.question_emb(oriqs)
                     que_c_emb = concept_avg+qemb+posemb#torch.cat([concept_avg, qemb],dim=-1)
 
@@ -303,7 +339,7 @@ class CDKT(Module):
                     pad = -1 * pad
                     ytrues = torch.cat([orics, pad], dim=-1).long()[flag]
                     y3 = self.closs2(masked, ytrues)
-                
+                # qcemb = repcemb+posemb
                 qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
                 qcmask = self.get_attn_pad_mask(sm)
                 # qcmask = ut_mask(seq_len = qcemb.shape[1])
