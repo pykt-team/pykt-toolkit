@@ -244,6 +244,15 @@ class AKTVec(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
+
+        self.out2 = nn.Sequential(
+            nn.Linear(d_model + embed_l,
+                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+            nn.Linear(final_fc_dim, 256), nn.Sigmoid(
+            ), nn.Dropout(self.dropout),
+            nn.Linear(256, 1)
+        )
+
         self.reset()
         if emb_type.startswith("yplus") or emb_type.startswith("relation"):
             if emb_type in ["yplus_que"] or emb_type.startswith("relation"):
@@ -432,12 +441,17 @@ class AKTVec(nn.Module):
         elif emb_type in ["bernoulli", "bayesian", "relation_bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)
-            kc_slipping = m(kc_slipping)
+            kc_slipping = torch.squeeze(m(kc_slipping))
             kc_guess = self.guess(q_data)
-            kc_guess = m(kc_guess)
-            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
-            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
-            preds = m(output)
+            kc_guess = torch.squeeze(m(kc_guess))
+            # print(f"kc_guess: {kc_guess.shape}")
+            d_ones = torch.ones(1, 1).expand_as(output).to(device)
+            # print(f"d_ones: {d_ones.shape}")
+            # print(f"output: {output.shape}")
+            preds = output * (1 - kc_slipping) + (d_ones - output) * kc_guess
+            # print(f"preds: {preds.shape}")
+            preds = m(preds)
+            # print(f"after_sigmoid: {preds.shape}")
         elif emb_type in ["bernoulli_v2"]:
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)

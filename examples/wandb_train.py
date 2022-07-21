@@ -68,10 +68,10 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
             train_config["batch_size"] = 64 ## because of OOM
-        elif model_name in ["akt_perturbation", "aktforget"]:
-            train_config["batch_size"] = 64 ## because of OOM
-        elif model_name in ["gkt"]:
-            train_config["batch_size"] = 16 
+        elif model_name in ["akt_perturbation", "deepbkt"]:
+            train_config["batch_size"] = 32 ## because of OOM
+        elif model_name in ["gkt", "aktforget"]:
+            train_config["batch_size"] = 16
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
@@ -113,7 +113,7 @@ def main(params):
         
     debug_print(text = "init_model",fuc_name="main")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-    if model_name in ["aktforget"] and emb_type.find("ratio")!=-1:
+    if model_name in ["aktforget"] and emb_type.find("ratio")!=-1 or emb_type.find("mforget")!=-1:
         print(f"start addF2AKT to model: {model_name}!")
         addF2AKT(model, train_loader, valid_loader, test_loader)
     if model_name == "hawkes":

@@ -86,6 +86,12 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:                                
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
+            elif model_name in ["deepbkt"]:
+                if model.emb_type.find("agumentation") != -1:
+                    y, perturbation_y = model(cc.long(), cr.long(), cq.long())  
+                else:                      
+                    y = model(cc.long(), cr.long(), cq.long())
+                y = y[:,1:]
             elif model_name in ["akt_perturbation"]:
                 y, perturbation_y, reg_loss = model(cc.long(), cr.long(), cq.long())                              
                 y = y[:,1:]
@@ -134,7 +140,7 @@ def early_fusion(curhs, model, model_name):
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation", "deepbkt"]:
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
@@ -178,7 +184,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
+    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation", "deepbkt"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -220,7 +226,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     if cq.shape[1] == 0:
         cq = cc
 
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation", "deepbkt"]
     
     alldfs, drest = [], dict() # not predict infos!
     # print(f"real bz in group fusion: {rs.shape[0]}")
@@ -310,7 +316,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # dkvmn / akt / saint: give cur -> predict cur
     # sakt: give past+cur -> predict cur
     # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]
+    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation", "deepbkt"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -349,8 +355,14 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             if model_name in ["dkvmn", "skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
-            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:
+            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
+                y = y[:,1:]
+            elif model_name in ["deepbkt"]:
+                y, h = model(cc.long(), cr.long(), cq.long(), True)
+                y = y[:,1:]
+            elif model_name in ["deepbkt"]:
+                y, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
@@ -705,6 +717,17 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
 
             y, reg_loss = model(cin.long(), rin.long(), qin.long())
             pred = y[0][-1]
+        elif model_name in ["deepbkt"]:  
+            #### 输入有question！     
+            if qout != None:
+                curq = torch.tensor([[qout.item()]]).to(device)
+                qin = torch.cat((qin, curq), axis=1)
+            # curr不起作用！当前预测不用curr，实际用的历史的也不一定是true，用的是rin，可能是预测，可能是历史
+            curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
+            cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
+
+            y = model(cin.long(), rin.long(), qin.long())
+            pred = y[0][-1]
         elif model_name == "gkt":
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
@@ -918,6 +941,12 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = y[:, 1:]
         elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:                                
             y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
+            y = y[:,1:]
+        elif model_name in ["deepbkt"]:
+            if model.emb_type.find("agumentation") != -1:
+                y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
+            else:                            
+                y = model(ccc.long(), ccr.long(), ccq.long())
             y = y[:,1:]
         elif model_name in ["atkt", "atktfix"]:
             # print(f"atkt_pad: {atkt_pad}")
