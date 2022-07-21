@@ -39,6 +39,9 @@ class DeepBKT(nn.Module):
         self.emb_type = emb_type
         self.use_pos = use_pos
         self.lambda_r = lambda_r
+        self.agumentation = False
+        self.bayesian = False
+        self.forgetting = False
         embed_l = d_model
         
         if self.emb_type == "qid":
@@ -76,7 +79,7 @@ class DeepBKT(nn.Module):
         self.x_linear = nn.Linear(embed_l * 2, embed_l)
         self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
 
-        if self.agumentation:
+        if self.agumentation or self.bayesian:
             self.guess = nn.Embedding(self.n_question + 1, 1)
             self.slipping = nn.Embedding(self.n_question + 1, 1)
             self.Sigmoid = nn.Sigmoid()
@@ -392,7 +395,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forgetting=True
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
-    print(f"forgetting: {forgetting}")
+    # print(f"forgetting: {forgetting}")
     if forgetting:
         print(f"using exp forgetting")
         x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
