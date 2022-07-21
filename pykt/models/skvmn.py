@@ -154,7 +154,7 @@ class DKVMN(nn.Module):
 
 
 class SKVMN(Module):
-    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=True):
+    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=False):
         super().__init__()
         self.model_name = "skvmn"
         self.num_c = num_c
@@ -162,6 +162,7 @@ class SKVMN(Module):
         self.size_m = size_m
         self.emb_type = emb_type
         self.use_onehot = use_onehot
+        print(f"self.use_onehot: {self.use_onehot}")
 
         if emb_type.startswith("qid"):
             self.k_emb_layer = Embedding(self.num_c, self.dim_s)

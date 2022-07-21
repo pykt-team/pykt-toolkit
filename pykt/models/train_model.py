@@ -12,10 +12,22 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "deepbkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
+    elif model_name in ["deepbkt"]:
+        if model.emb_type.find("agumentation") != -1:
+            y = torch.masked_select(ys[0], sm)
+            agumentation_y = torch.masked_select(perturbation_ys[0], sm)
+            t = torch.masked_select(rshft, sm)
+            pred_loss = binary_cross_entropy(y.double(), t.double())
+            perturbation_loss = mse_loss(y, agumentation_y)
+            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
+        else:
+            y = torch.masked_select(ys[0], sm)
+            t = torch.masked_select(rshft, sm)
+            loss = binary_cross_entropy(y.double(), t.double())
     elif model_name in ["akt_perturbation"]:
         # print(f"calculate perturbation loss")
         y = torch.masked_select(ys[0], sm)
@@ -92,6 +104,13 @@ def model_forward(model, data):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
+    elif model_name in ["deepbkt"]:
+        if model.emb_type.find("agumentation") != -1:
+            y, perturbation_y = model(cc.long(), cr.long(), cq.long())
+            perturbation_ys.append(perturbation_y[:,1:])     
+        else:   
+            y = model(cc.long(), cr.long(), cq.long())
+        ys.append(y[:,1:])
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])

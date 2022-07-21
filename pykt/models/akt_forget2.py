@@ -13,7 +13,7 @@ from torch.nn import LSTM
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class AKTForget(nn.Module):
+class AKTF(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, use_rasch=True, rasch_x=False, qmatrix=None, sigmoida=5, sigmoidb=6.9, lambda_r = 0.3):
         super().__init__()
@@ -25,10 +25,16 @@ class AKTForget(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "aktforget"
         self.use_rasch = use_rasch
         self.rasch_x = rasch_x
         self.emb_type = emb_type
+        if self.emb_type.find("perturbation") == -1:
+            self.model_name = "akt_forget"
+        else:
+            self.model_name = "akt_perturbation"
+            self.lambda_r = lambda_r
+        
+
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -36,36 +42,73 @@ class AKTForget(nn.Module):
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
-        self.embed_l = d_model
         # print(f"init_qmatrix: {qmatrix}")
 
         embed_l = d_model
         if self.n_pid > 0 and self.use_rasch:
-            self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
+            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-            self.q_embed_forget = nn.Embedding(self.n_question+1, embed_l)
             if not self.rasch_x:
                 self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
-                self.qa_embed_forget = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
 
-        if emb_type.startswith("qid") and self.use_rasch:
+        if emb_type.startswith("qid") and self.use_rasch or emb_type.startswith("perturbation"):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
-
-        if emb_type.startswith("ratio") and self.use_rasch or emb_type.find("mforget") != -1:
+        
+        elif emb_type.startswith("concat"):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
-            self.kc2df = dict()
-            self.dF = dict()
-            self.avgf = 0
+            self.linear_x = nn.Linear(3 * embed_l, embed_l)
+            self.linear_y = nn.Linear(4 * embed_l, embed_l)
+
+        elif emb_type.startswith("fc"):
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.layer_x = nn.Sequential(
+            nn.Linear(embed_l * 3,
+                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+            )
+            self.layer_y = nn.Sequential(
+            nn.Linear(embed_l * 4,
+                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+            )
+
+        elif emb_type.startswith("forget") and self.use_rasch:
+            self.q_embed = nn.Embedding(self.n_question, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            self.h0 = nn.Parameter(torch.Tensor(self.n_question + 1, embed_l))
+
+        elif emb_type.startswith("atc") and self.use_rasch:
+            # n_question+1 ,d_model
+            self.q_embed = nn.Embedding(self.n_question + 1, embed_l)
+            self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
+            if self.separate_qa: 
+                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+            else: # false default
+                self.qa_embed = nn.Embedding(2, embed_l)
+            # self.qmatrix = nn.Embedding.from_pretrained(qmatrix, freeze=True)
+            # self.hidden = nn.Linear(in_features=embed_l,out_features=self.n_question)
+            self.sigmoida = sigmoida
+            self.sigmoidb = sigmoidb  
+        
+        if emb_type.find("bayesian") != -1:
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -78,7 +121,7 @@ class AKTForget(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
-        self.reset()        
+        self.reset()
 
     def mySigmoid(self, x):
         return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
@@ -88,66 +131,6 @@ class AKTForget(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
-
-        # 计算每个技能的遗忘率
-    def calSkillF(self, cs, rs, sm):
-        dr2w, dr = dict(), dict()
-        concepts = set()
-        for i in range(cs.shape[0]): # batch
-            drs = dict()
-            for j in range(cs.shape[1]): # seqlen
-                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                # print(f"curc: {curc}")
-                if j != 0 and sm[i][j-1] != 1:
-                    break
-                
-                if curr == 1:
-                    dr.setdefault(curc, 0)
-                    dr[curc] += 1
-                elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
-                    dr2w.setdefault(curc, 0)
-                    dr2w[curc] += 1
-                drs.setdefault(curc, list())
-                drs[curc].append([curr, j])
-                concepts.add(curc)
-        print(f"dr2w: {dr2w}, dr: {dr}")
-        sum = 0
-        for c in dr:
-            if c not in dr2w:
-                self.dF[c] = 0
-            else:
-                self.dF[c] = dr2w[c] / dr[c]
-                sum += dr2w[c] / dr[c]
-        self.avgf = sum / len(dr)
-        self.kc2df = {x[0]:x[1] for x in sorted(self.dF.items(),key=lambda item:int(item[0]))}
-        print(f"dF: {self.dF}, avgf: {self.avgf}, kc2df: {self.kc2df}")
-
-        if self.emb_type.find("mforget") != -1:
-            self.forget_embed = nn.Embedding(len(self.dF) + 1, self.embed_l).to(device)
-            # print(f"self.forget_embed: {self.forget_embed}")
-
-
-    def calfseqs(self, cs):
-        css, fss, kc2fss = [], [], []
-        for i in range(cs.shape[0]): # batch
-            curfs = []
-            curfs2kc = []
-            dlast = dict()
-            for j in range(cs.shape[1]): # seqlen
-                curc = cs[i][j].detach().cpu().item()
-                if curc not in dlast:
-                    curf = 1
-                else:
-                    delta = j - dlast[curc]
-                    curf = (1-self.dF.get(curc, self.avgf))**delta
-                curfs.append([curf])
-                curfs2kc.append(self.kc2df.get(curc, len(self.dF) + 1))
-                dlast[curc] = j
-            # print(f"curfs: {curfs}")
-            fss.append(curfs)
-            kc2fss.append(curfs2kc)
-            # assert False
-        return torch.tensor(fss).float().to(device), torch.tensor(kc2fss).long().to(device)
 
     def base_emb(self, q_data, target):
         q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
@@ -163,100 +146,53 @@ class AKTForget(nn.Module):
         emb_type = self.emb_type
         batch_size = q_data.shape[0]
         seqlen = q_data.shape[1]
+
+        if emb_type.find("perturbation") != -1:
+            beta = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
+            new_target = torch.clamp(target + beta, 0, 1)
+            new_target = torch.bernoulli(new_target).long()
+            q_data = q_data.repeat(2,1,1).reshape(-1, seqlen)
+            if self.n_pid > 0:
+                pid_data = pid_data.repeat(2,1,1).reshape(-1, seqlen)
+            target = torch.stack([target, new_target]).reshape(-1,seqlen)
+            # print(f"q_data:{q_data.shape}")
+            # print(f"pid_data:{pid_data.shape}")
+            # print(f"target:{target.shape}")
+
         # Batch First
         q_embed_data, qa_embed_data = self.base_emb(q_data, target)
-        if emb_type.startswith("qid"):
-            delta = torch.arange(0, seqlen).repeat(batch_size,1).to(device)
-            lambda_1 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
-            lambda_2 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
-            lambda_3 = torch.normal(0, 0.1,size=(batch_size,seqlen)).to(device)
 
-            if self.n_pid > 0 and self.use_rasch: # have problem id
-                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                q_embed_forget_data = self.q_embed_forget(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-                theta = lambda_1 * torch.exp(-(lambda_2 * delta)) + lambda_3 #残留记忆
-                theta = torch.reshape(theta,(batch_size, seqlen, 1))
-                T = nn.Tanh()
-                theta = T(theta)
-                # print(f"theta: {theta}")
+        if self.n_pid > 0 and self.use_rasch: # have problem id
+            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
 
+            if emb_type.startswith("concat"):
+                # print(f"q_embed_data: {type(q_embed_data)}")
+                # print(f"pid_embed_data: {type(pid_embed_data)}")
+                # print(f"q_embed_diff_data: {type(q_embed_diff_data)}")
+                q_embed_data = self.linear_x(torch.cat([q_embed_data, pid_embed_data, q_embed_diff_data],dim=2))
+            elif emb_type.startswith("fc"):
+                q_embed_data = self.layer_x(torch.cat([q_embed_data, pid_embed_data, q_embed_diff_data],dim=2))
+            else:
                 q_embed_data = q_embed_data + pid_embed_data * \
                     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                qa_embed_forget_data = self.qa_embed_forget(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                if self.separate_qa:
-                    qa_embed_data = qa_embed_data + pid_embed_data * \
-                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            qa_embed_diff_data = self.qa_embed_diff(
+                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+            if self.separate_qa:
+                qa_embed_data = qa_embed_data + pid_embed_data * \
+                    qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
+            elif emb_type.startswith("fc"):
+                qa_embed_data = self.layer_y(torch.cat([qa_embed_data, pid_embed_data, qa_embed_diff_data, q_embed_diff_data], dim=2))
+            else:
+                if emb_type.startswith("concat"):
+                    qa_embed_data = self.linear_y(torch.cat([qa_embed_data, pid_embed_data, qa_embed_diff_data, q_embed_diff_data], dim=2))  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
                 else:
                     qa_embed_data = qa_embed_data + pid_embed_data * \
-                        (qa_embed_diff_data+q_embed_diff_data)  + theta * (qa_embed_forget_data+q_embed_forget_data)# + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+                    (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
-                c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
-            else:
-                c_reg_loss = 0.
-
-        elif emb_type.startswith("ratio"):
-            sLeft, kcLeft = self.calfseqs(q_data) #当前kc的遗忘率
-            if self.n_pid > 0 and self.use_rasch: # have problem id
-                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                q_embed_forget_data = self.q_embed_forget(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-
-                q_embed_data = q_embed_data + pid_embed_data * \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                qa_embed_forget_data = self.qa_embed_forget(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                if self.separate_qa:
-                    qa_embed_data = qa_embed_data + sLeft * \
-                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
-                else:
-                    qa_embed_data = qa_embed_data + sLeft * \
-                        (qa_embed_diff_data+q_embed_diff_data) # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
-
-                c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
-            else:
-                c_reg_loss = 0.
-
-        elif emb_type.find("mforget") != -1:
-            sLeft, kcLeft = self.calfseqs(q_data) #当前kc的遗忘率
-            # print(f"kcLeft:{kcLeft}")
-            forget_embed = self.forget_embed(kcLeft)
-            if self.n_pid > 0 and self.use_rasch: # have problem id
-                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                q_embed_forget_data = self.q_embed_forget(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-
-                q_embed_data = q_embed_data + pid_embed_data * \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                qa_embed_forget_data = self.qa_embed_forget(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                if self.separate_qa:
-                    qa_embed_data = qa_embed_data + forget_embed * \
-                        qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
-                else:
-                    # qa_embed_data = qa_embed_data + forget_embed * \
-                    #     (qa_embed_diff_data+q_embed_diff_data) # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
-                    qa_embed_data = qa_embed_diff_data + q_embed_diff_data
-                    qa_embed_data = torch.reshape(qa_embed_data.repeat(1,seqlen,1), (batch_size*seqlen, seqlen, -1))
-                    index = torch.arange(1,seqlen+1).reshape(-1,1).expand_as(qa_embed_data[0]).repeat(1,1,seqlen).reshape(seqlen,seqlen,-1).to(device)
-                    index = torch.where(index - index.repeat(1,1,seqlen).reshape(seqlen,seqlen,-1) <= 0, 1,0).repeat(2,1,1)
-                    qa_embed_data = torch.sum(qa_embed_data * final_index, dim=1)
-                    qa_embed_data = qa_embed_data + forget_embed * qa_embed_data
-
-                c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
-            else:
-                c_reg_loss = 0.
-
+            c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
+        else:
+            c_reg_loss = 0.
 
         # BS.seqlen,d_model
         # Pass to the decoder
@@ -266,14 +202,50 @@ class AKTForget(nn.Module):
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
-        m = nn.Sigmoid()
-        preds = m(output)
-        # print(f"preds: {preds}")     
-        if not qtest:
-            return preds, c_reg_loss
+        # print(f"preds: {preds.shape}")
+        if emb_type == "atc":
+            stu_state = d_output
+            cosine_similarity = torch.cosine_similarity(stu_state,q_embed_data,dim=2)
+            stu_state_f2 = torch.norm(stu_state,dim=2)
+            next_kc = q_embed_data
+            next_kc_hot_f2 = torch.norm(next_kc,dim=2)
+            projection = torch.mul(stu_state_f2,cosine_similarity)
+            subprojection = projection - next_kc_hot_f2 
+
+            subprojection = torch.clamp(subprojection, -15, 15)
+            preds = self.mySigmoid(subprojection)       
+        elif emb_type.find("bayesian") != -1:
+            print(f"using bayesian_prediction")
+            m = nn.Sigmoid()
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = m(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = m(kc_guess)
+            d_ones = torch.ones(1, 1).expand_as(d_output).to(device)
+            preds = d_output * (1 - kc_slipping) + (d_ones - d_output) * kc_guess
+            preds = m(output)
         else:
+            m = nn.Sigmoid()
+            preds = m(output)
+
+
+        if not qtest and emb_type.find("perturbation") == -1:
+            return preds, c_reg_loss
+        elif not qtest and emb_type.find("perturbation") != -1:
+            m = nn.Sigmoid()
+            preds = m(output)
+            # print(f"perturbation_preds:{preds.shape}")
+            preds = preds.reshape(-1, batch_size, seqlen)
+            return preds[0], preds[1], c_reg_loss
+        elif qtest and emb_type.find("perturbation") != -1:
+            m = nn.Sigmoid()
+            preds = m(output)
+            # print(f"perturbation_preds:{preds.shape}")
+            preds = preds.reshape(-1, batch_size, seqlen)
+            concat_q = concat_q.reshape(-1, batch_size, seqlen)
+            return preds[0], c_reg_loss, concat_q[0]
+        elif qtest and emb_type.find("perturbation") == -1:
             return preds, c_reg_loss, concat_q
-     
 
 
 class Architecture(nn.Module):
@@ -301,7 +273,7 @@ class Architecture(nn.Module):
                 for _ in range(n_blocks*2)
             ])
 
-    def forward(self, q_embed_data, qa_embed_data, ):
+    def forward(self, q_embed_data, qa_embed_data):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -360,17 +332,15 @@ class TransformerLayer(nn.Module):
             query : Query. In transformer paper it is the input for both encoder and decoder
             key : Keys. In transformer paper it is the input for both encoder and decoder
             Values. In transformer paper it is the input for encoder and  encoded output for decoder (in masked attention part)
-
         Output:
             query: Input gets changed over the layer and returned.
-
         """
 
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
-        src_mask = (torch.from_numpy(nopeek_mask) == 0).to(device)
-        if mask == 0:  # If 0, zero-padding is needed.
+        src_mask = (torch.from_numpy(nopeek_mask) != -1).to(device)
+        if mask != -1:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
                 query, key, values, mask=src_mask, zero_pad=True) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
@@ -470,7 +440,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     x2 = x1.transpose(0, 1).contiguous()
 
     with torch.no_grad():
-        scores_ = scores.masked_fill(mask == 0, -1e32)
+        scores_ = scores.masked_fill(mask != -1, -1e32)
         scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
         scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
         distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
@@ -490,7 +460,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
         (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
     scores = scores * total_effect
 
-    scores.masked_fill_(mask == 0, -1e32)
+    scores.masked_fill_(mask != -1, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
     # print(f"before zero pad scores: {scores.shape}")
     # print(zero_pad)
