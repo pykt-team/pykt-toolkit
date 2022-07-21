@@ -47,7 +47,8 @@ class CAKT(nn.Module):
         
         if emb_type.startswith("qid"):
             # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question, embed_l)
+            # self.q_embed = nn.Embedding(self.n_question, embed_l)
+            self.q_embed = nn.Parameter(torch.randn(self.n_question, embed_l).to(device), requires_grad=True)
             if self.separate_qa: 
                 self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
             else: # false default
@@ -101,7 +102,6 @@ class CAKT(nn.Module):
             encoder_norm1 = LayerNorm(d_model)
             self.embed_l = embed_l
 
-            self.concept_emb = nn.Parameter(torch.randn(self.n_question, embed_l).to(device), requires_grad=True)
             if self.n_pid > 0:
                 self.question_emb = Embedding(self.n_pid, embed_l) # 1.2
 
@@ -146,7 +146,7 @@ class CAKT(nn.Module):
                 torch.nn.init.constant_(p, 0.)
 
     def base_emb(self, q_data, target):
-        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
+        q_embed_data = self.q_embed[q_data]  # BS, seqlen,  d_model# c_ct
         if self.separate_qa:
             qa_data = q_data + self.n_question * target
             qa_embed_data = self.qa_embed(qa_data)
@@ -159,7 +159,7 @@ class CAKT(nn.Module):
         # add zero for padding
         concept_emb_cat = torch.cat(
             [torch.zeros(1, self.embed_l).to(device), 
-            self.concept_emb], dim=0)
+            self.q_embed], dim=0)
         # shift c
         related_concepts = (c+1).long()
         #[batch_size, seq_len, emb_dim]
@@ -199,10 +199,10 @@ class CAKT(nn.Module):
             sm = torch.cat([padsm, sm], dim=-1)
             flag = sm==1
             y2 = self.closs1(cpreds[flag], cc[flag])
-        xemb1 = qh
+        xemb1 = xemb + qh
         return y2, xemb1
 
-    def predmultilabel(self, posemb, repcemb, repqemb, dcur, train):
+    def predmultilabel(self, repcemb, repqemb, dcur, train):
         y3 = 0
         if train:
             oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
@@ -210,8 +210,9 @@ class CAKT(nn.Module):
             oriqs, orics = torch.cat([oriqs[:,0:1], oriqshft], dim=-1), torch.cat([orics[:,0:1,:], oricshft], dim=1)
             concept_avg = self.get_avg_skill_emb(orics)
             qemb = self.question_emb(oriqs)
+            oriposemb = self.position_emb(pos_encode(qemb.shape[1]))
             # print(f"concept_avg: {concept_avg.shape}, qemb: {qemb.shape}, posemb: {posemb.shape}")
-            que_c_emb = concept_avg + qemb + posemb#torch.cat([concept_avg, qemb],dim=-1)
+            que_c_emb = concept_avg + qemb + oriposemb#torch.cat([concept_avg, qemb],dim=-1)
 
             # add mask
             # mask = self.get_attn_pad_mask(orisms)
@@ -226,12 +227,12 @@ class CAKT(nn.Module):
             pad = -1 * pad
             ytrues = torch.cat([orics, pad], dim=-1).long()[flag]
             y3 = self.closs2(masked, ytrues)
-        
+        posemb = self.position_emb(pos_encode(repcemb.shape[1]))
         qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
         # qcmask = self.get_attn_pad_mask(sm)
         qcmask = ut_mask(seq_len = qcemb.shape[1])
         qcemb = self.qnet2(self.base_qnet22(self.base_qnet21(qcemb.transpose(0,1), qcmask).transpose(0,1)))
-        xemb2 = qcemb
+        xemb2 = qcemb + repcemb+repqemb
         return y3, xemb2
 
     def forward(self, dcur, qtest=False, train=False):#q_data, target, pid_data=None, qtest=False, train=False):
@@ -278,18 +279,20 @@ class CAKT(nn.Module):
         elif emb_type.endswith("mergetwo"): #
             if self.n_pid > 0:
                 repqemb = self.question_emb(pid_data)
-            repcemb = self.concept_emb[q_data]
+            repcemb = self.q_embed[q_data] # 原来的q_embed_data
             if emb_type.find("predcurc") != -1:
                 y2, xemb1 = self.predcurc(repqemb, repcemb, q_data, sm, emb_type, qa_embed_data, train)
             if emb_type.find("ml") != -1:
-                posemb = self.position_emb(pos_encode(qa_embed_data.shape[1]))
-                y3, xemb2 = self.predmultilabel(posemb, repcemb, repqemb, dcur, train)
+                y3, xemb2 = self.predmultilabel(repcemb, repqemb, dcur, train)
             q_embed_data, qa_embed_data = xemb2, xemb1
 
             # TODO!!!
             x, y = q_embed_data, qa_embed_data
             for block in self.model:
-                x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                if emb_type.find("decay") != -1:
+                    x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                else:
+                    x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=False)
             # value = qa_embed_data
             # for i in range(self.n_blocks):
             #     value = self.model[i](q_embed_data, q_embed_data, value)
@@ -299,15 +302,7 @@ class CAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-
-            # if emb_type.find("predcurc") != -1:
-            #     xemb = xemb + xemb1
-            # if emb_type.find("ml") != -1:
-            #     xemb = xemb + xemb2 + repqemb
-            # xemb = xemb + repcemb
-
-
-            pass
+            
         elif emb_type.endswith("sharepredcurc"):
             d_output = self.model(q_embed_data, qa_embed_data)
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)

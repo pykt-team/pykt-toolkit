@@ -24,12 +24,12 @@ def main(params):
     with open(os.path.join(save_dir, "config.json")) as fin:
         config = json.load(fin)
         model_config = copy.deepcopy(config["model_config"])
-        for remove_item in ['use_wandb','learning_rate','add_uuid']:
+        for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
             if remove_item in model_config:
                 del model_config[remove_item]    
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
-        if model_name in ["saint", "sakt", "cdkt"]:
+        if model_name in ["saint", "sakt", "cdkt", "cakt"]:
             train_config = config["train_config"]
             seq_len = train_config["seq_len"]
             model_config["seq_len"] = seq_len   
@@ -55,12 +55,14 @@ def main(params):
     print(f"testauc: {testauc}, testacc: {testacc}")
 
 
-    '''
     window_testauc, window_testacc = -1, -1
+    '''
     save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
     window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
     print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    '''
 
+    '''
     # question_testauc, question_testacc = -1, -1
     # question_window_testauc, question_window_testacc = -1, -1
   

@@ -352,7 +352,10 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             if model_name in ["dkvmn", "skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
-            elif model_name in ["akt", "cakt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+            elif model_name in ["cakt"]:
+                y, reg_loss, h = model(dcurori, qtest=True, train=False)
+                y = y[:,1:]
+            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
             elif model_name == "saint":

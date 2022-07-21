@@ -15,7 +15,7 @@ from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CDKT(Module):
-    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, l1=0.5, l2=0.5, l3=0.5, emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, num_attn_heads=5, l1=0.5, l2=0.5, l3=0.5, emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
         print(f"qnum: {num_q}, cnum: {num_c}")
@@ -31,17 +31,57 @@ class CDKT(Module):
         self.dropout_layer = Dropout(dropout)
         self.out_layer = Linear(self.hidden_size, self.num_c)
 
+        if self.emb_type.endswith("pretrainddiff"): # use pretrained qemb and cemb from cc
+            dpath = "/data/liuqiongqiong/kt/kaiyuan/dev/algebra2005_1024_350"
+            qavgkc = pd.read_pickle(os.path.join(dpath, "algebra2005_qavgcvec.pkl"))
+            qvec = pd.read_pickle(os.path.join(dpath, "algebra2005_questionvec.pkl"))
+            cvec = pd.read_pickle(os.path.join(dpath, "algebra2005_conceptvec.pkl"))
+            qdifficulty = pd.read_pickle(os.path.join(dpath, "algebra2005_eachqdifficulty.pkl"))
+            self.pretrain_qemb = Embedding.from_pretrained(qvec)
+            self.pretrain_cemb = Embedding.from_pretrained(cvec)
+            self.pretrain_qavgcemb = Embedding.from_pretrained(qavgkc)
+            self.pretrain_qdifficulty = Embedding.from_pretrained(qdifficulty)
+
+            self.qlinear = Linear(qvec.shape[1], self.emb_size)
+            self.clinear = Linear(cvec.shape[1], self.emb_size)
+            # self.qclinear = Linear(qavgkc.shape[1], self.emb_size)
+            # self.dlinear = Linear(qdifficulty.shape[1], self.emb_size)
+            for param in self.pretrain_qemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_cemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_qavgcemb.parameters():
+                param.requires_grad = False
+            for param in self.pretrain_qdifficulty.parameters():
+                param.requires_grad = False
+            if self.emb_type.find("predcurc") != -1:
+                self.l1 = l1
+                self.l2 = l2
+                ## learning
+                self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
+                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+
+                if self.emb_type.find("catr") != -1:
+                    self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
+                if self.emb_type.find("addr") != -1:
+                    self.response_emb = Embedding(2, self.emb_size)
+                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+
+                # self.qdrop = Dropout(dropout)
+                self.qclasifier = Linear(self.hidden_size, self.num_c)
+                self.closs = CrossEntropyLoss()
+
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = l1
             self.l2 = l2
             if self.num_q > 0:
                 self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
             if self.emb_type.find("trans") != -1:
-                self.nhead = 5
+                self.nhead = num_attn_heads
                 d_model = self.hidden_size# * 2
                 encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
                 encoder_norm = LayerNorm(d_model)
-                self.trans = TransformerEncoder(encoder_layer, num_layers=2, norm=encoder_norm)
+                self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
                 if self.emb_type.find("addpos") != -1:
                     self.position_emb = Embedding(seq_len, emb_size)
             else:    
@@ -167,6 +207,45 @@ class CDKT(Module):
             xemb = self.interaction_emb(x)
             
         if emb_type == "qid":
+            h, _ = self.lstm_layer(xemb)
+            h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
+            qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
+            # qemb, cemb, qavgcemb, qdiff = self.qlinear(qemb), self.clinear(cemb), self.qclinear(qavgcemb), self.dlinear(qdiff)
+            if emb_type.find("sep") != -1:
+                xemb = xemb + qemb + cemb + qdiff
+            elif emb_type.find("qavgc") != -1:
+                xemb = xemb + qavgcemb + qdiff
+            elif emb_type.find("all") != -1: # use all
+                xemb = xemb + qemb + cemb + qavgcemb + qdiff
+            elif emb_type.find("onlydiff") != -1:
+                xemb = xemb + qdiff
+            elif emb_type.find("onlycdiff") != -1:
+                xemb = xemb + cemb + qdiff
+            elif emb_type.find("onlyc") != -1:
+                xemb = xemb + cemb
+            elif emb_type.find("onlyqc") != -1:
+                xemb = xemb + qemb + cemb
+            if emb_type.find("predcurc") != -1:
+                qemb2, cemb2 = self.question_emb(q), self.concept_emb(c)
+                catemb = xemb + qemb2 + cemb2
+                if emb_type.find("caddr") != -1:
+                    remb = self.response_emb(r)
+                    catemb += remb
+                qh, _ = self.qlstm(catemb)
+                cpreds = self.qclasifier(qh)
+                flag = sm==1
+                y2 = self.closs(cpreds[flag], c[flag])
+                # predict response
+                xemb = xemb + qh + cemb2# + cemb ## +cemb效果更好
+                if emb_type.find("catr") != -1:
+                    remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
+                    xemb = torch.cat([xemb, remb], dim=-1)
+                elif emb_type.find("addr") != -1:
+                    remb = self.response_emb(r)
+                    xemb = xemb + remb
+
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
@@ -329,10 +408,10 @@ class CDKT(Module):
                     que_c_emb = concept_avg+qemb+posemb#torch.cat([concept_avg, qemb],dim=-1)
 
                     # add mask
-                    mask = self.get_attn_pad_mask(orisms)
+                    # mask = self.get_attn_pad_mask(orisms)
                     # print(f"que_c_emb: {que_c_emb.shape}, mask: {mask.shape}, orisms: {orisms.shape}")
                     # assert False
-                    # mask = ut_mask(seq_len = que_c_emb.shape[1])
+                    mask = ut_mask(seq_len = que_c_emb.shape[1])
                     qh = self.qnet2(self.base_qnet22(self.base_qnet21(que_c_emb.transpose(0,1), mask).transpose(0,1)))
                     cpreds = torch.sigmoid(self.qclasifier2(qh))
                     flag = orisms==1
@@ -343,8 +422,8 @@ class CDKT(Module):
                     y3 = self.closs2(masked, ytrues)
                 # qcemb = repcemb+posemb
                 qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
-                qcmask = self.get_attn_pad_mask(sm)
-                # qcmask = ut_mask(seq_len = qcemb.shape[1])
+                # qcmask = self.get_attn_pad_mask(sm)
+                qcmask = ut_mask(seq_len = qcemb.shape[1])
                 qcemb = self.qnet2(self.base_qnet22(self.base_qnet21(qcemb.transpose(0,1), qcmask).transpose(0,1)))
                 xemb2 = qcemb
             
