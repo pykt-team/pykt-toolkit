@@ -247,9 +247,10 @@ class AKTVec(nn.Module):
 
         self.out2 = nn.Sequential(
             nn.Linear(d_model + embed_l,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.Sigmoid(
-            ), nn.Dropout(self.dropout),
+                      256), nn.Sigmoid(), nn.Dropout(self.dropout)
+        )
+
+        self.out3 = nn.Sequential(
             nn.Linear(256, 1)
         )
 
@@ -418,7 +419,10 @@ class AKTVec(nn.Module):
 
         d_output = self.model(q_embed_data, qa_embed_data)
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-        output = self.out(concat_q).squeeze(-1)
+        if emb_type.find("bayesian") == -1:
+            output = self.out(concat_q).squeeze(-1)
+        else:
+            output = self.out2(concat_q)
 
         if not emb_type.startswith("bernoulli") and emb_type not in ["relation_bayesian", "bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
             m = nn.Sigmoid()
@@ -439,17 +443,22 @@ class AKTVec(nn.Module):
                 preds = preds * (1 - kc_slipping) + (d_ones - preds) * kc_guess
 
         elif emb_type in ["bernoulli", "bayesian", "relation_bayesian", "lstmy_bayesian", "relation_lstmy_bayesian"]:
+            # print("bayesian")
             m = nn.Sigmoid()
             kc_slipping = self.slipping(q_data)
-            kc_slipping = torch.squeeze(m(kc_slipping))
+            # kc_slipping = torch.squeeze(m(kc_slipping))
+            # kc_guess = self.guess(q_data)
+            # kc_guess = torch.squeeze(m(kc_guess))
+            kc_slipping = m(kc_slipping)
             kc_guess = self.guess(q_data)
-            kc_guess = torch.squeeze(m(kc_guess))
+            kc_guess = m(kc_guess)
             # print(f"kc_guess: {kc_guess.shape}")
             d_ones = torch.ones(1, 1).expand_as(output).to(device)
             # print(f"d_ones: {d_ones.shape}")
             # print(f"output: {output.shape}")
             preds = output * (1 - kc_slipping) + (d_ones - output) * kc_guess
             # print(f"preds: {preds.shape}")
+            preds = self.out3(preds).squeeze(-1)
             preds = m(preds)
             # print(f"after_sigmoid: {preds.shape}")
         elif emb_type in ["bernoulli_v2"]:

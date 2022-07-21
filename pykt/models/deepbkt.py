@@ -68,10 +68,15 @@ class DeepBKT(nn.Module):
             self.agumentation = True
             self.bayesian = False
             self.forgetting = True
+        elif self.emb_type == "all":
+            self.agumentation = True
+            self.bayesian = True
+            self.forgetting = True
 
         if self.n_pid > 0:
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+            # self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
    
         # n_question+1 ,d_model
         self.q_embed = nn.Embedding(self.n_question, embed_l)
@@ -136,8 +141,12 @@ class DeepBKT(nn.Module):
         if self.n_pid > 0: # have problem id
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            final_q_embed_data = q_embed_data + pid_embed_data * \
-                q_embed_diff_data  # uq *d_ct + c_ct # question encoder                 
+            final_q_embed_data = q_embed_data + pid_embed_data + q_embed_diff_data  # uq *d_ct + c_ct # question encoder   
+
+            # qa_embed_diff_data = self.qa_embed_diff(target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量 
+            # qa_embed_data = self.qa_embed(target)+q_embed_data
+            # qa_embed_data = qa_embed_data + pid_embed_data + (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）             
+            
             relation_que = torch.reshape(self.qmatrix_t(q_data), [batch_size*seqlen, -1]) # lookup all the kcs
             relation_que_emb = torch.mm(relation_que, self.que_embed.weight)
             que_num = torch.where(relation_que!= 0, 1, 0).sum(axis=-1).unsqueeze(-1)
@@ -150,22 +159,23 @@ class DeepBKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
+        # d_output = self.model(final_q_embed_data, qa_embed_data)
         d_output = self.model(final_q_embed_data, final_qa_embed_data)
 
-        concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+        concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
 
         m = nn.Sigmoid()
         if self.bayesian and not self.agumentation:
-            print(f"using bayesian")
+            # print(f"using bayesian")
             kc_slipping = self.slipping(q_data)
             kc_slipping = torch.squeeze(m(kc_slipping))
             kc_guess = self.guess(q_data)
             kc_guess = torch.squeeze(m(kc_guess))
             d_ones = torch.ones(1, 1).expand_as(output).to(device)
             output = output * (1 - kc_slipping) + (d_ones - output) * kc_guess
-        elif self.bayesian and not self.agumentation:
-            print(f"using agumentation and bayesian")
+        elif self.bayesian and self.agumentation:
+            # print(f"using agumentation and bayesian")
             preds = preds.reshape(-1, batch_size, seqlen)
             d_ones = torch.ones(1, 1).expand_as(preds[0]).to(device)
             original_preds = output * (1 - kc_slipping) + (d_ones - output) * kc_guess
@@ -233,26 +243,26 @@ class Architecture(nn.Module):
         x = q_pos_embed
 
         # # encoder
-        # # for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-        # #     y = block(mask=1, query=y, key=y, values=y) # yt^
-        # # flag_first = True
-        # for block in self.blocks_2:
-        #     x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+        # for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
+        #     y = block(mask=1, query=y, key=y, values=y) # yt^
+        # flag_first = True
+        for block in self.blocks_2:
+            x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
 
         # encoder
-        for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y = block(mask=1, query=y, key=y, values=y) # yt^
-        flag_first = True
-        for block in self.blocks_2:
-            if flag_first:  # peek current question
-                x = block(mask=1, query=x, key=x,
-                          values=x, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
-                flag_first = False
-            else:  # dont peek current response
-                x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
-                # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
-                # print(x[0,0,:])
-                flag_first = True
+        # for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
+        #     y = block(mask=1, query=y, key=y, values=y) # yt^
+        # flag_first = True
+        # for block in self.blocks_2:
+        #     if flag_first:  # peek current question
+        #         x = block(mask=1, query=x, key=x,
+        #                   values=x, apply_pos=False) # False: 没有FFN, 第一层只有self attention, 对应于xt^
+        #         flag_first = False
+        #     else:  # dont peek current response
+        #         x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+        #         # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
+        #         # print(x[0,0,:])
+        #         flag_first = True
         return x
 
 
@@ -397,7 +407,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forgetting=True
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
     # print(f"forgetting: {forgetting}")
     if forgetting:
-        print(f"using exp forgetting")
+        # print(f"using exp forgetting")
         x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
         x2 = x1.transpose(0, 1).contiguous()
 
