@@ -83,6 +83,9 @@ class DeepBKT(nn.Module):
             if self.augmentation:
                 self.slip_linear = nn.Linear(embed_l, 1)
                 self.guess_linear = nn.Linear(embed_l, 1)
+            if self.bayesian:
+                self.correct = nn.Linear(1, embed_l)
+                self.mastery = nn.Linear(1, embed_l)
 
         if self.forgetting:
             self.dF = dict()
@@ -94,21 +97,18 @@ class DeepBKT(nn.Module):
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  seq_len=seq_len, kq_same=self.kq_same, model_type=self.model_type, emb_type=self.emb_type, use_pos=self.use_pos)
 
-        if not self.bayesian:
-            self.out = nn.Sequential(
-                nn.Linear(d_model + embed_l,
-                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout)
-            )
-        else:
-            self.out = nn.Sequential(
-                nn.Linear(d_model + embed_l,
-                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout)
-                nn.Linear(final_fc_dim, embed_l), nn.Sigmoid(
-                ), nn.Dropout(self.dropout)
-            )
-            self.bayesian_linear = nn.Linear(embed_l, final_fc_dim)
-
-        self.pred_linear = nn.Linear(final_fc_dim, 1)
+        self.out = nn.Sequential(
+            nn.Linear(d_model + embed_l,
+                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+        )
+        # if self.bayesian:
+        #     self.bayesian_linear = nn.Linear(embed_l, final_fc_dim)
+        self.pred_linear = nn.Sequential(
+            nn.Linear(embed_l,
+                    final_fc_dim), nn.Sigmoid(), nn.Dropout(self.dropout),
+            nn.Linear(final_fc_dim, 1)
+        )
+        
         self.reset()
 
         self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
@@ -238,7 +238,7 @@ class DeepBKT(nn.Module):
             d_output = self.model(final_q_embed_data, final_qa_embed_data)
 
         concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
-        output = self.out(concat_q).squeeze(-1)
+        output = self.out(concat_q)
         
         if self.bayesian and not self.augmentation:
             # print(f"using bayesian")
@@ -248,9 +248,10 @@ class DeepBKT(nn.Module):
             # # kc_guess = torch.squeeze(m(kc_guess))
             kc_slipping = self.slipping(q_data)
             kc_guess = self.guess(q_data)
-            d_ones = torch.ones(1, 1).expand_as(target).long().to(device)
-            d_ones = self.qa_embed(d_ones)
-            output = output * (d_ones - kc_slipping) + (d_ones - output) * kc_guess
+            d_ones = torch.zeros(1, 1).expand_as(target).long().to(device)
+            d_correct = self.correct(d_ones)
+            d_mastery = self.mastery(d_ones)
+            output = output * (d_correct - kc_slipping) + (d_mastery - output) * kc_guess
             output = self.bayesian_linear(output).squeeze(-1)
         elif self.bayesian and self.augmentation:
             # print(f"using augmentation and bayesian")
@@ -258,20 +259,22 @@ class DeepBKT(nn.Module):
             d_ones = torch.ones(1, 1).expand_as(output[0]).to(device)
             kc_slipping = self.slipping(q_data)
             kc_guess = self.guess(q_data)
-            d_ones = torch.ones(1, 1).expand_as(target).long().to(device)
+            d_ones = torch.zeros(1, 1).expand_as(target).long().to(device)
             d_ones = self.qa_embed(d_ones)
             # print(f"output: {output.shape}")
             # print(f"d_ones: {d_ones.shape}")
             # print(f"kc_slipping: {kc_slipping.shape}")
             # print(f"kc_guess: {kc_guess.shape}")
-            original_preds = output[0] * (d_ones - kc_slipping) + (d_ones - output[0]) * kc_guess
+            d_correct = self.correct(d_ones)
+            d_mastery = self.mastery(d_ones)            
+            original_preds = output[0] * (d_correct - kc_slipping) + (d_mastery - output[0]) * kc_guess
             new_output = torch.stack([original_preds, output[1]])
             original_preds = self.bayesian_linear(new_output).squeeze(-1)
             output = new_output.reshape(2*batch_size * seqlen, -1)
-            print(f"output: {output.shape}")
+            # print(f"output: {output.shape}")
         
         m = nn.Sigmoid()
-        preds = m(output)
+        preds = m(output).squeeze(-1)
 
         if not qtest and not self.augmentation:
             return preds
