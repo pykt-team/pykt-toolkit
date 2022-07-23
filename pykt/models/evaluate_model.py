@@ -87,7 +87,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
             elif model_name in ["deepbkt"]:
-                if model.emb_type.find("agumentation") != -1:
+                if model.emb_type.find("augmentation") != -1:
                     y, perturbation_y = model(cc.long(), cr.long(), cq.long())  
                 else:                      
                     y = model(cc.long(), cr.long(), cq.long())
@@ -943,7 +943,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
             y = y[:,1:]
         elif model_name in ["deepbkt"]:
-            if model.emb_type.find("agumentation") != -1:
+            if model.emb_type.find("augmentation") != -1:
                 y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
             else:                            
                 y = model(ccc.long(), ccr.long(), ccq.long())

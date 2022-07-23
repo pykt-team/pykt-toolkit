@@ -15,6 +15,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--d_model", type=int, default=256)
     parser.add_argument("--d_ff", type=int, default=512)
+    parser.add_argument("--final_fc_dim", type=int, default=512)
     parser.add_argument("--num_attn_heads", type=int, default=8)
     parser.add_argument("--n_blocks", type=int, default=4)
     parser.add_argument("--learning_rate", type=float, default=1e-4)

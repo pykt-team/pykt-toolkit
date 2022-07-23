@@ -16,6 +16,8 @@ parameters:
         values: [256, 512]
     d_ff:
         values: [256, 512]
+    final_fc_dim:
+        values: [256, 512]
     dropout:
         values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
     learning_rate:
