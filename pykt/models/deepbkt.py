@@ -83,6 +83,9 @@ class DeepBKT(nn.Module):
             if self.augmentation:
                 self.slip_linear = nn.Linear(embed_l, 1)
                 self.guess_linear = nn.Linear(embed_l, 1)
+            # if self.bayesian:
+            #     self.correct = nn.Embedding(1, embed_l)
+            #     self.mastery = nn.Embedding(1, embed_l)
 
         if self.forgetting:
             self.dF = dict()
@@ -240,7 +243,7 @@ class DeepBKT(nn.Module):
             d_output = self.model(final_q_embed_data, final_qa_embed_data)
 
         concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
-        output = self.out(concat_q).squeeze(-1)
+        output = self.out(concat_q)
         
         if self.bayesian and not self.augmentation:
             # print(f"using bayesian")
@@ -250,23 +253,45 @@ class DeepBKT(nn.Module):
             # # kc_guess = torch.squeeze(m(kc_guess))
             kc_slipping = self.slipping(q_data)
             kc_guess = self.guess(q_data)
+<<<<<<< HEAD
             d_ones = torch.ones(1, 1).expand_as(q_data).long().to(device)
             d_ones = self.qa_embed(d_ones)
             output = output * (d_ones - kc_slipping) + (d_ones - output) * kc_guess
             # output = self.bayesian_linear(output)
             # print(f"output: {output.shape}")
+=======
+            d_ones = torch.ones(1, 1).expand_as(kc_guess).long().to(device)
+            output = output * (d_ones - kc_slipping) + (d_ones - output) * kc_guess
+            print(f"output: {output.shape}")
+            # d_ones = torch.zeros(1, 1).expand_as(target).long().to(device)
+            # d_correct = self.correct(d_ones)
+            # d_mastery = self.mastery(d_ones)
+            # print(f"output: {output.shape}")
+            # print(f"d_ones: {d_ones.shape}")
+            # print(f"kc_slipping: {kc_slipping.shape}")
+            # print(f"kc_guess: {kc_guess.shape}")
+            # output = output * (d_correct - kc_slipping) + (d_mastery - output) * kc_guess
+            # output = self.bayesian_linear(output).squeeze(-1)
+>>>>>>> 3b068d758cb637133ac8dee932d2cc4de3073baf
         elif self.bayesian and self.augmentation:
             # print(f"using augmentation and bayesian")
             output = output.reshape(2, batch_size, -1)
             new_qdata = output.reshape(2, batch_size, -1)
             kc_slipping = self.slipping(new_qdata[0])
             kc_guess = self.guess(q_data[0])
+<<<<<<< HEAD
             d_ones = torch.ones(1, 1).expand_as(new_qdata[0]).long().to(device)
             d_ones = self.qa_embed(d_ones)
+=======
+            d_ones = torch.ones(1, 1).expand_as(kc_guess).long().to(device)
+            output = output[0] * (d_ones - kc_slipping) + (d_ones - output[0]) * kc_guess
+            # d_ones = torch.zeros(1, 1).expand_as(output[0]).long().to(device)
+>>>>>>> 3b068d758cb637133ac8dee932d2cc4de3073baf
             # print(f"output: {output.shape}")
             # print(f"d_ones: {d_ones.shape}")
             # print(f"kc_slipping: {kc_slipping.shape}")
             # print(f"kc_guess: {kc_guess.shape}")
+<<<<<<< HEAD
             original_preds = output[0] * (d_ones - kc_slipping) + (d_ones - output[0]) * kc_guess
             # original_preds = self.bayesian_linear(original_preds)
             output = torch.stack([original_preds, output[1]])
@@ -276,6 +301,20 @@ class DeepBKT(nn.Module):
         m = nn.Sigmoid()
         output = self.pred_linear(output).squeeze(-1)
         preds = m(output)
+=======
+            # d_correct = self.correct(d_ones)
+            # d_mastery = self.mastery(d_ones)            
+            # original_preds = output[0] * (d_correct - kc_slipping) + (d_mastery - output[0]) * kc_guess
+            new_output = torch.stack([original_preds, output[1]])
+            # original_preds = self.bayesian_linear(new_output).squeeze(-1)
+            output = new_output.reshape(2*batch_size * seqlen, -1)
+            print(f"output: {output.shape}")
+        
+        m = nn.Sigmoid()
+        preds = self.pred_linear(output)
+        preds = m(preds).squeeze(-1)
+        # print(f"output: {preds.shape}")
+>>>>>>> 3b068d758cb637133ac8dee932d2cc4de3073baf
 
         if not qtest and not self.augmentation:
             return preds
