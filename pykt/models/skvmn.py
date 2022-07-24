@@ -155,7 +155,7 @@ class DKVMN(nn.Module):
 
 
 class SKVMN(Module):
-    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=True):
+    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=False):
         super().__init__()
         self.model_name = "skvmn"
         self.num_c = num_c
@@ -163,11 +163,13 @@ class SKVMN(Module):
         self.size_m = size_m
         self.emb_type = emb_type
         self.use_onehot = use_onehot
+        print(f"self.use_onehot: {self.use_onehot}")
 
         if emb_type.startswith("qid"):
             self.k_emb_layer = Embedding(self.num_c, self.dim_s)
+            self.x_emb_layer = Embedding(2 * self.num_c + 1, self.dim_s)
             self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
-            self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
+            self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s)) 
 
         kaiming_normal_(self.Mk)
         kaiming_normal_(self.Mv0)
@@ -177,7 +179,10 @@ class SKVMN(Module):
            memory_value_state_dim=dim_s, init_memory_key=self.Mk)
                 
         # self.a_embed = nn.Linear(2 * self.dim_s, self.dim_s, bias=True)
-        self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
+        if self.use_onehot:
+            self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
+        else:
+            self.a_embed = nn.Linear(self.dim_s * 2, self.dim_s, bias=True)
         self.v_emb_layer = Embedding(self.dim_s * 2, self.dim_s)
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
         self.hx = Parameter(torch.Tensor(1, self.dim_s))
@@ -411,7 +416,7 @@ class SKVMN(Module):
             # modify
             batch_predict_input = torch.cat([read_content, q], 1) ###q: 是r emb后的qemb
             f = torch.tanh(self.f_layer(batch_predict_input))
-            # print(f"f: {f}")
+            # print(f"f: {f.shape}")
             ft.append(f)
 
             # 写入value矩阵的输入为[yt, ft]，onehot向量和ft向量拼接
@@ -420,7 +425,9 @@ class SKVMN(Module):
             if self.use_onehot:
                 y = r_onehot_content[:,i,:]
             else:
-                y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
+                y = self.x_emb_layer(x[:,i])
+                # print(f"y: {y.shape}")
+                # y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
             # print(f"y: {y.shape}")
             # 写入value矩阵的输入为[ft, yt]，ft直接和题目对错（0或1）拼接
             # write_embed = torch.cat([f, slice_a[i].float()], 1)
