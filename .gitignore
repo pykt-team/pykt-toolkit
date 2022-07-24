@@ -34,3 +34,4 @@ examples/nohup.out
 start_sweep_*.sh
 wandb/*
 *tiaocan*
+examples/assist2009_dkt_que_mt_iekt
