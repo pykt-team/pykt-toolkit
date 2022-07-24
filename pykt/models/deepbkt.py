@@ -168,13 +168,9 @@ class DeepBKT(nn.Module):
                     sub_dr2w.setdefault(curc, 0)
                     sub_dr2w[curc] += 1
                 if curc not in sub_dr:
-                    curf = self.dF.get(curc, self.avgf)
+                    curf = 1 - self.dF.get(curc, self.avgf)
                 else:
-                    # print(f"sub_dr2w: {sub_dr2w.get(curc,0)}")
-                    # print(f"dr2w: {self.dr2w[curc]}")
-                    # print(f"sub_dr: {sub_dr[curc]}")
-                    # print(f"dr: {self.dr[curc]}")
-                    curf = (sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr[curc])
+                    curf = 1 - (sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0))
                 curfs.append([curf])   
                 sub_drs.setdefault(curc, list())
                 sub_drs[curc].append([curr, j])
@@ -237,7 +233,7 @@ class DeepBKT(nn.Module):
         # output shape BS,seqlen,d_model or d_model//2
         if self.forgetting:
             sLeft = self.calfseqs(q_data, target) #当前kc的遗忘率
-            # print(f"sLeft: {sLeft.shape}")
+            # print(f"sLeft: {sLeft}")
             d_output = self.model(final_q_embed_data, final_qa_embed_data, sLeft)
         else:
             d_output = self.model(final_q_embed_data, final_qa_embed_data)
@@ -321,6 +317,7 @@ class Architecture(nn.Module):
 
     def forward(self, q_embed_data, qa_embed_data, forget_rate=None, pid_embed_data=None):
         # target shape  bs, seqlen
+        # print(f"forget_rate: {forget_rate}")
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
         if self.use_pos:
@@ -337,7 +334,7 @@ class Architecture(nn.Module):
         x = q_pos_embed
 
         for block in self.blocks_2:
-            x = block(mask=0, query=x, key=x, values=y, apply_pos=True, forget_rate=None, pdiff=pid_embed_data) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+            x = block(mask=0, query=x, key=x, values=y, apply_pos=True, forget_rate=forget_rate, pdiff=pid_embed_data) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
         return x
 
 class TransformerLayer(nn.Module):
@@ -385,11 +382,11 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True, forget_rate=None, pdiff=pdiff) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+                query, key, values, mask=src_mask, zero_pad=True, forget_rate=forget_rate, pdiff=pdiff) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False, forget_rate=None, pdiff=pdiff)
+                query, key, values, mask=src_mask, zero_pad=False, forget_rate=forget_rate, pdiff=pdiff)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -487,6 +484,8 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forget_rate=Non
     # d_k: 每一个头的dim
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
+    # print(f"scores: {scores.shape}")
+
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
 
     # x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
@@ -518,7 +517,10 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forget_rate=Non
     #     total_effect = torch.clamp(torch.clamp(
     #         (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
     # scores = scores * total_effect
-    if forget_rate:
+    # print(f"forget_rate: {forget_rate.shape}")
+    if forget_rate is not None:
+        forget_rate = forget_rate.repeat(1,1,scores.shape[3]).unsqueeze(-1).permute(0,3,1,2)
+        # print(f"forget_rate: {forget_rate.shape}")
         scores = scores * forget_rate
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen

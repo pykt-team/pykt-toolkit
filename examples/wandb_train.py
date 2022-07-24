@@ -40,10 +40,10 @@ def addF2AKT(model, train_loader, valid_loader, test_loader):
     
     # cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
     # model.calSkillF(cs.long(), rs.long(), sms.long(), istrain=True)
-    # for data in valid_loader:
-    #     cs, rs, sms = prepare(data, cs, rs, sms)
-    # for data in test_loader:
-    #     cs, rs, sms = prepare(data, cs, rs, sms)
+    for data in valid_loader:
+        cs, rs, sms = prepare(data, cs, rs, sms)
+    for data in test_loader:
+        cs, rs, sms = prepare(data, cs, rs, sms)
     model.calSkillF(cs.long(), rs.long(), sms.long())
 
     print(f"cs: {cs.shape}, rs: {rs.shape}")
@@ -69,7 +69,7 @@ def main(params):
         if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
             train_config["batch_size"] = 64 ## because of OOM
         elif model_name in ["akt_perturbation", "deepbkt"]:
-            train_config["batch_size"] = 32 ## because of OOM
+            train_config["batch_size"] = 64 ## because of OOM
         elif model_name in ["gkt", "aktforget"]:
             train_config["batch_size"] = 16
         model_config = copy.deepcopy(params)
@@ -113,7 +113,7 @@ def main(params):
         
     debug_print(text = "init_model",fuc_name="main")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-    if model_name in ["aktforget"] and emb_type.find("ratio")!=-1 or emb_type.find("mforget")!=-1:
+    if model_name in ["deepbkt"]:
         print(f"start addF2AKT to model: {model_name}!")
         addF2AKT(model, train_loader, valid_loader, test_loader)
     if model_name == "hawkes":

@@ -105,7 +105,7 @@ def model_forward(model, data):
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
     elif model_name in ["deepbkt"]:
-        if model.emb_type.find("augmentation") != -1:
+        if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:
             y, perturbation_y = model(cc.long(), cr.long(), cq.long())
             perturbation_ys.append(perturbation_y[:,1:])     
         else:   

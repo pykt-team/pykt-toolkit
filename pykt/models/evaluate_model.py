@@ -87,7 +87,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
             elif model_name in ["deepbkt"]:
-                if model.emb_type.find("augmentation") != -1:
+                if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:
                     y, perturbation_y = model(cc.long(), cr.long(), cq.long())  
                 else:                      
                     y = model(cc.long(), cr.long(), cq.long())
