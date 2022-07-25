@@ -9,10 +9,10 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[]):
+def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbation_rshft=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "deepbkt"]:
+    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -20,8 +20,14 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[]):
         if model.emb_type.find("augmentation") != -1:
             y = torch.masked_select(ys[0], sm)
             augmentation_y = torch.masked_select(perturbation_ys[0], sm)
+            # print(f"augmentation_y: {augmentation_y.shape}")
             t = torch.masked_select(rshft, sm)
-            pred_loss = binary_cross_entropy(y.double(), t.double())
+            augmentation_t = torch.masked_select(perturbation_rshft, sm).detach()
+            # print(f"augmentation_t: {augmentation_t.shape}")
+            # if model.emb_type == "augmentation_bayesian_v2":
+            #     pred_loss = binary_cross_entropy(y.double(), t.double())
+            # else:
+            pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
             perturbation_loss = mse_loss(y, augmentation_y)
             loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
         else:
@@ -75,7 +81,7 @@ def model_forward(model, data):
     qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
     m, sm = dcur["masks"], dcur["smasks"]
 
-    ys, preloss, perturbation_ys = [], [], []
+    ys, preloss, perturbation_ys, perturbation_rshft = [], [], [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
@@ -106,8 +112,9 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in ["deepbkt"]:
         if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:
-            y, perturbation_y = model(cc.long(), cr.long(), cq.long())
-            perturbation_ys.append(perturbation_y[:,1:])     
+            y, perturbation_y, perturbation_rshft = model(cc.long(), cr.long(), cq.long())
+            perturbation_ys.append(perturbation_y[:,1:])  
+            perturbation_rshft = perturbation_rshft[:,1:]
         else:   
             y = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
@@ -152,7 +159,7 @@ def model_forward(model, data):
     elif model_name == "iekt":
         y,loss = model.train_one_step(data)
     if model_name not in ["atkt", "atktfix","iekt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys)
+        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys, perturbation_rshft)
     return loss
     
 
