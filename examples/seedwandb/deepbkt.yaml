@@ -22,6 +22,12 @@ parameters:
         values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
     learning_rate:
         values: [5e-6, 1e-5, 1e-4]
+    lambda_r:
+        values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    sigmoida:
+        values: [0.01, 0.025, 0.05, 0.075, 0.1]
+    sigmoidb:
+        values: [0.025, 0.05, 0.1, 0.15, 0.2]
     num_attn_heads:
         values: [4, 8]
     n_blocks:
