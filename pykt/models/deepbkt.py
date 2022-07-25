@@ -66,6 +66,10 @@ class DeepBKT(nn.Module):
             self.augmentation = True
             self.bayesian = True
             self.forgetting = True
+        elif self.emb_type == "bayesian_forgetting":
+            self.augmentation = False
+            self.bayesian = True
+            self.forgetting = True
 
         if self.n_pid > 0:
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
