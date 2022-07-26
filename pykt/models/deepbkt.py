@@ -137,7 +137,7 @@ class DeepBKT(nn.Module):
 
         self.pred_linear = nn.Sequential(
             nn.Linear(embed_l,
-                    final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                    final_fc_dim), nn.Sigmoid(), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 1)
         )
         self.reset()
@@ -369,9 +369,9 @@ class DeepBKT(nn.Module):
             tmp_output = output.reshape(2, batch_size, seqlen, -1)
             new_qdata = q_data.reshape(2, batch_size, -1)
             kc_slipping = self.slipping(new_qdata[0])
-            kc_slipping = self.Sigmoid(kc_slipping)
+            kc_slipping = self.Sigmoid(kc_slipping) * self.sigmoidb
             kc_guess = self.guess(new_qdata[0])
-            kc_guess = self.Sigmoid(kc_guess)
+            kc_guess = self.Sigmoid(kc_guess) * self.sigmoida
             d_mastery = self.mastery(new_qdata[0])
             # print(f"output: {output[0].shape}")
             # print(f"d_ones: {d_correct.shape}")
