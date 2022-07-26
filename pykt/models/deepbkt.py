@@ -115,9 +115,11 @@ class DeepBKT(nn.Module):
 
         if self.forgetting:
             self.dF = dict()
-            self.dr2w = dict()
-            self.dr = dict()
+            # self.dr2w = dict()
+            # self.dr = dict()
             self.avgf = 0
+            self.dfenzi = dict()
+            self.dfenmu = dict()
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -148,62 +150,93 @@ class DeepBKT(nn.Module):
     #     return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
 
     def calSkillF(self, cs, rs, sm):
-        
-        concepts = set()
-        for i in range(cs.shape[0]): # batch
-            drs = dict()
-            for j in range(cs.shape[1]): # seqlen
-                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                # print(f"curc: {curc}")
-                if j != 0 and sm[i][j-1] != 1:
-                    break
-                
-                if curr == 1:
-                    self.dr.setdefault(curc, 0)
-                    self.dr[curc] += 1
-                elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
-                    self.dr2w.setdefault(curc, 0)
-                    self.dr2w[curc] += 1
-                drs.setdefault(curc, list())
-                drs[curc].append([curr, j])
-                concepts.add(curc)
-        print(f"dr2w: {self.dr2w}, dr: {self.dr}")
-        sum = 0
-        for c in self.dr:
-            if c not in self.dr2w:
-                self.dF[c] = 0
-            else:
-                self.dF[c] = self.dr2w[c] / self.dr[c]
-                sum += self.dr2w[c] / self.dr[c]
-        self.avgf = sum / len(self.dr)
-        print(f"dF: {self.dF}, avgf: {self.avgf}")
+            dr2w, dr = dict(), dict()
+            concepts = set()
+            for i in range(cs.shape[0]): # batch
+                drs = dict()
+                for j in range(cs.shape[1]): # seqlen
+                    curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
+                    # print(f"curc: {curc}")
+                    if j != 0 and sm[i][j-1] != 1:
+                        break
 
-    def calfseqs(self, cs, rs):
-        fss = []
-        sub_dr2w, sub_dr = dict(), dict()
-        # print(f"cs: {cs.shape}")
+                    if curr == 1:
+                        dr.setdefault(curc, 0)
+                        dr[curc] += 1
+                    elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
+                        dr2w.setdefault(curc, 0)
+                        dr2w[curc] += 1
+                    drs.setdefault(curc, list())
+                    drs[curc].append([curr, j])
+                    concepts.add(curc)
+            print(f"dr2w: {dr2w}, dr: {dr}")
+            sum = 0
+            for c in dr:
+                if c not in dr2w:
+                    self.dF[c] = 0
+                else:
+                    self.dF[c] = dr2w[c] / dr[c]
+                    self.dfenzi[c] = dr2w[c]
+                    self.dfenmu[c] = dr[c]
+                    sum += dr2w[c] / dr[c]
+            self.avgf = sum / len(dr)
+            print(f"dF: {self.dF}, avgf: {self.avgf}")
+
+    # def calfseqs(self, cs, rs):
+    #     fss = []
+    #     sub_dr2w, sub_dr = dict(), dict()
+    #     # print(f"cs: {cs.shape}")
+    #     for i in range(cs.shape[0]): # batch
+    #         curfs = []
+    #         sub_drs = dict()
+    #         for j in range(cs.shape[1]): # seqlen
+    #             curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
+    #             if curr == 1:
+    #                 sub_dr.setdefault(curc, 0)
+    #                 sub_dr[curc] += 1
+    #             elif curr == 0 and curc in sub_drs and sub_drs[curc][-1][0] == 1:
+    #                 sub_dr2w.setdefault(curc, 0)
+    #                 sub_dr2w[curc] += 1
+    #             if curc not in sub_dr:
+    #                 curf = 1 - self.dF.get(curc, self.avgf)
+    #             else:
+    #                 curf = 1 - (sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0))
+    #             curfs.append([curf])   
+    #             sub_drs.setdefault(curc, list())
+    #             sub_drs[curc].append([curr, j])
+    #         # print(f"{len(curfs)}")
+                  
+    #         fss.append(curfs)
+    #     # print(f"fss:{len(fss)}, fss:{len(fss[0])}")
+    #         # assert False
+    #     return torch.tensor(fss).float().to(device)
+
+    def generate_forget(self, cs, rs):
+        css, fss = [], []
         for i in range(cs.shape[0]): # batch
             curfs = []
-            sub_drs = dict()
+            dlast = dict()
             for j in range(cs.shape[1]): # seqlen
                 curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                if curr == 1:
-                    sub_dr.setdefault(curc, 0)
-                    sub_dr[curc] += 1
-                elif curr == 0 and curc in sub_drs and sub_drs[curc][-1][0] == 1:
-                    sub_dr2w.setdefault(curc, 0)
-                    sub_dr2w[curc] += 1
-                if curc not in sub_dr:
-                    curf = 1 - self.dF.get(curc, self.avgf)
+                # 动态forget, 看前两步历史t-2, t-1
+                if curc not in dlast or len(dlast[curc]) < 2:
+                    curf = 1-self.dF.get(curc, self.avgf)
+                elif curc not in self.dfenzi: # 不存在1-》0 但是可能存在1
+                    curf = 1-self.dF.get(curc, self.avgf)
                 else:
-                    curf = 1 - (sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0))
-                curfs.append([curf])   
-                sub_drs.setdefault(curc, list())
-                sub_drs[curc].append([curr, j])
-            # print(f"{len(curfs)}")
-                  
+                    # print(f"self.dF: {self.dF[curc]}")
+                    fenzi = self.dfenzi[curc]
+                    fenmu = self.dfenmu[curc]
+                    if dlast[curc][-2][1] == 1:
+                        if dlast[curc][-1][1] == 0:
+                            fenzi = fenzi + 1
+                        fenmu = fenmu + 1
+                    curf = 1- fenzi / fenmu
+                curfs.append([curf])
+                dlast.setdefault(curc, [])
+                dlast[curc].append([j, curr])
+            # print(f"curfs: {curfs}")
             fss.append(curfs)
-        # print(f"fss:{len(fss)}, fss:{len(fss[0])}")
             # assert False
         return torch.tensor(fss).float().to(device)
 
@@ -276,7 +309,7 @@ class DeepBKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         if self.forgetting:
-            sLeft = self.calfseqs(q_data, target) #当前kc的遗忘率
+            sLeft = self.generate_forget(q_data, target) #当前kc的遗忘率
             # print(f"sLeft: {sLeft}")
             d_output = self.model(final_q_embed_data, final_qa_embed_data, sLeft)
         else:

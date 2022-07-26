@@ -40,10 +40,10 @@ def addF2AKT(model, train_loader, valid_loader, test_loader):
     
     # cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
     # model.calSkillF(cs.long(), rs.long(), sms.long(), istrain=True)
-    for data in valid_loader:
-        cs, rs, sms = prepare(data, cs, rs, sms)
-    for data in test_loader:
-        cs, rs, sms = prepare(data, cs, rs, sms)
+    # for data in valid_loader:
+    #     cs, rs, sms = prepare(data, cs, rs, sms)
+    # for data in test_loader:
+    #     cs, rs, sms = prepare(data, cs, rs, sms)
     model.calSkillF(cs.long(), rs.long(), sms.long())
 
     print(f"cs: {cs.shape}, rs: {rs.shape}")
@@ -113,7 +113,7 @@ def main(params):
         
     debug_print(text = "init_model",fuc_name="main")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-    if model_name in ["deepbkt"]:
+    if model_name in ["deepbkt"] and emb_type.find("forgetting") != -1 or emb_type.find("all") != -1:
         print(f"start addF2AKT to model: {model_name}!")
         addF2AKT(model, train_loader, valid_loader, test_loader)
     if model_name == "hawkes":
