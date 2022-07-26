@@ -440,7 +440,7 @@ class CDKT(Module):
                 qh, _ = self.qlstm(catemb)
             if train:
                 start = 0
-                cpreds = self.qclasifier(self.qdrop(qh[:,start:,:]))
+                cpreds = self.qclasifier(qh[:,start:,:])
                 flag = sm[:,start:]==1
                 y2 = self.closs(cpreds[flag], c[:,start:][flag])
                 # if emb_type.find("predr") != -1:
