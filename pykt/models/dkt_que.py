@@ -442,7 +442,7 @@ class DKTQue(QueBaseModel):
                 
         ts = np.concatenate(y_trues, axis=0)
         results['ts'] = ts
-        print(f"ts shape is {ts.shape}")
+        # print(f"ts shape is {ts.shape}")
 
         if "cc" in self.model.loss_mode:
             kc_ts = np.concatenate(y_qc_true_list, axis=0)
