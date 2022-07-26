@@ -186,6 +186,7 @@ class WandbUtils:
         
     def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100):
         """Check sweeps by pattern
+        
         Args:
             sweep_pattern (str): check the sweeps which sweep names start with sweep_pattern
             metric (str, optional): the metric to check. Defaults to testauc.
