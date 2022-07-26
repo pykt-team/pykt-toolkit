@@ -23,15 +23,15 @@ class DKTForget(Module):
         self.out_layer = Linear(self.hidden_size + ntotal, self.num_c)
         
 
-    def forward(self, q, r, d, dshft):
+    def forward(self, q, r, dgaps):
         emb_type = self.emb_type
         if emb_type == "qid":
             x = q + self.num_c * r
             xemb = self.interaction_emb(x)
-            theta_in = self.c_integration(xemb, d["rgaps"].long(), d["sgaps"].long(), d["pcounts"].long())
+            theta_in = self.c_integration(xemb, dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long())
 
         h, _ = self.lstm_layer(theta_in)
-        theta_out = self.c_integration(h, dshft["rgaps"].long(), dshft["sgaps"].long(), dshft["pcounts"].long())
+        theta_out = self.c_integration(h, dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long())
         theta_out = self.dropout_layer(theta_out)
         y = self.out_layer(theta_out)
         y = torch.sigmoid(y)
