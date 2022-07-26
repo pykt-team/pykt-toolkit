@@ -74,6 +74,7 @@ class CDKT(Module):
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = l1
             self.l2 = l2
+            self.l3 = l3
             if self.num_q > 0:
                 self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
             if self.emb_type.find("trans") != -1:
@@ -140,11 +141,8 @@ class CDKT(Module):
                 self.mattn_dropout = Dropout(dropout)
                 self.mattn_layer_norm = LayerNorm(emb_size)
             self.out_layer = nn.Sequential(
-                    nn.Linear(self.hidden_size,
-                            self.hidden_size), nn.ReLU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size, 256), nn.ReLU(
-                    ), nn.Dropout(dropout),
-                    nn.Linear(256, 1)
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size//2, 1)
                 )
 
         if self.emb_type.endswith("seq2seq"):
@@ -311,7 +309,7 @@ class CDKT(Module):
                 else:
                     h = self.attn(h, cshft, rshft) ### 
             # h = self.dropout_layer(h)
-            y = torch.sigmoid(self.out_layer(h).squeeze(-1)) 
+            y = torch.sigmoid(self.out_layer(self.dropout_layer(h)).squeeze(-1)) 
         elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
             qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
             # qemb, cemb, qavgcemb, qdiff = self.qlinear(qemb), self.clinear(cemb), self.qclinear(qavgcemb), self.dlinear(qdiff)
@@ -485,7 +483,7 @@ class CDKT(Module):
                 rtrues = dcur["historycorrs"][:,start:]
                 # rtrues = dcur["totalcorrs"][:,start:]
                 # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
-                y2 = y2+self.hisloss(rpreds[rflag], rtrues[rflag])
+                y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
             if emb_type.find("predr") != -1:
                 rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
                 flag = sm==1

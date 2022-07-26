@@ -212,9 +212,16 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
+                # x, x, y
+                # s0*f6, s1, ..., s5, s6*f6 # t=6, 
+                # s0 -> q6*f6*k0
+                # 0, s0, s1, ..., s5
                 query, key, values, mask=src_mask, zero_pad=True) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
+            # x, x, x
+            # s0*f6, s1, ..., s5, s6*f6 # t=6, 
+            # s0 ... S6
             query2 = self.masked_attn_head(
                 query, key, values, mask=src_mask, zero_pad=False)
 

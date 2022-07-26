@@ -75,7 +75,10 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
             # else:
             #     loss = loss1
         elif model.emb_type.find("predcurc") != -1:
-            loss = model.l1*loss1+model.l2*ys[1]
+            if model.emb_type.find("his") != -1:
+                loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
+            else:
+                loss = model.l1*loss1+model.l2*ys[1]
         # if model.emb_type.find("predcurc") != -1:
         #     mask = sm == 1
         #     loss2 = cross_entropy(ys[1][mask], ys[2][mask])
@@ -169,7 +172,7 @@ def model_forward(model, data, epoch):
     if model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
-        if model.emb_type.find("bkt") == -1:
+        if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft

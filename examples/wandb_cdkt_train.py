@@ -58,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_attn_heads", type=int, default=5)
     parser.add_argument("--l1", type=float, default=0.5)
     parser.add_argument("--l2", type=float, default=0.5)
+    parser.add_argument("--l3", type=float, default=0.5)
     parser.add_argument("--start", type=int, default=50)
     
     parser.add_argument("--emb_size", type=int, default=300)

@@ -71,7 +71,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
                 y = model(dcur)
-                if model.emb_type.find("bkt") == -1:
+                if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
                     y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cakt"]:
                 y, reg_loss = model(dcur)
