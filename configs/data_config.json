@@ -135,6 +135,9 @@
             "questions",
             "concepts"
         ],
+        "max_concepts": 1,
+        "min_seq_len": 3,
+        "maxlen": 200,
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv",
         "train_valid_file": "train_valid_sequences.csv",
@@ -148,8 +151,10 @@
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv",
-        "test_question_file": "test_question_sequences.csv",
-        "test_question_window_file": "test_question_window_sequences.csv"
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv"
     },
     "statics2011": {
         "dpath": "../data/statics2011",
