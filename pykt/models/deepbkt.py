@@ -43,14 +43,17 @@ class DeepBKT(nn.Module):
             self.augmentation = False
             self.bayesian = False
             self.forgetting = False
+            self.difficulty = False
         elif self.emb_type == "augmentation":
             self.augmentation = True
             self.bayesian = False
             self.forgetting = False
+            self.difficulty = False
         elif self.emb_type == "bayesian":
             self.augmentation = False
             self.bayesian = True
             self.forgetting = False
+            self.difficulty = False
         # elif self.emb_type == "bayesian_v2":
         #     self.augmentation = False
         #     self.bayesian = True
