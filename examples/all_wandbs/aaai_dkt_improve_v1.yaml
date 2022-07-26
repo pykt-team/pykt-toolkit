@@ -8,7 +8,7 @@ parameters:
     model_name:
         values: ["dkt_que"]
     dataset_name:
-        values: ["assist2009","assist2012","nips_task34"]
+        values: ["assist2009","nips_task34"]
     emb_type:
         values: ["iekt"]
     save_dir:
