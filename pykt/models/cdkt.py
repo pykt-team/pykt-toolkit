@@ -15,7 +15,7 @@ from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CDKT(Module):
-    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, num_attn_heads=5, l1=0.5, l2=0.5, l3=0.5, emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, num_attn_heads=5, l1=0.5, l2=0.5, l3=0.5, start=50, emb_path="", pretrain_dim=768):
         super().__init__()
         self.model_name = "cdkt"
         print(f"qnum: {num_q}, cnum: {num_c}")
@@ -119,6 +119,7 @@ class CDKT(Module):
             self.closs = CrossEntropyLoss()
             # 加一个预测历史准确率的任务
             if self.emb_type.find("his") != -1:
+                self.start = start
                 self.hisclasifier = nn.Sequential(
                     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
@@ -477,7 +478,7 @@ class CDKT(Module):
 
             # predict history correctness rates
             if emb_type.find("his") != -1:
-                start = 50
+                start = self.start
                 rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
                 rsm = sm[:,start:]
                 rflag = rsm==1
