@@ -169,7 +169,8 @@ def model_forward(model, data, epoch):
     if model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
-        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        if model.emb_type.find("bkt") == -1:
+            y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
     elif model_name in ["cakt"]:

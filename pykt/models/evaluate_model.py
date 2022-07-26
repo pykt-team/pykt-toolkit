@@ -71,7 +71,8 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
                 y = model(dcur)
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                if model.emb_type.find("bkt") == -1:
+                    y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cakt"]:
                 y, reg_loss = model(dcur)
                 y = y[:,1:]
@@ -374,7 +375,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 es = torch.cat((start_hemb, es), dim=1) # add the first hidden emb  
             elif model_name in ["cdkt"]:
                 y = model(dcurori)#c.long(), r.long(), q.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                if model.emb_type.find("bkt") == -1:
+                    y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)

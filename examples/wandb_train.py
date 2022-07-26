@@ -112,9 +112,9 @@ def main(params):
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-    # if model_name in ["cdkt", "akt"] and emb_type.find("forget")!=-1:
-    #     print(f"start addF2AKT to model: {model_name}!")
-    #     addF2AKT(model, train_loader, valid_loader, test_loader)
+    if model_name in ["cdkt", "akt"] and emb_type.find("forget")!=-1:
+        print(f"start addF2AKT to model: {model_name}!")
+        addF2AKT(model, train_loader, valid_loader, test_loader)
     # print(f"emb_type: {emb_type}, idx: {emb_type.find('sforget')}")
     # assert False
     

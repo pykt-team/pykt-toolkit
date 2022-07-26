@@ -39,6 +39,7 @@ class KTDataset(Dataset):
                 import json
                 obj = json.load(fin)
                 self.dq2c = obj["concepts"]
+        self.dfour = pd.read_pickle(os.path.join(dpath, "dfour.pkl"))
         # print(self.dq2c)
 
         if not os.path.exists(processed_data):
@@ -87,7 +88,7 @@ class KTDataset(Dataset):
         dcur = dict()
         mseqs = self.dori["masks"][index]
         for key in self.dori:
-            if key in ["masks", "smasks", "orics", "orisms", "futuresms"]:
+            if key in ["masks", "smasks", "orics", "orisms", "futuresms", "fsms"]:
                 continue
             if len(self.dori[key]) == 0:
                 dcur[key] = self.dori[key]
@@ -113,6 +114,7 @@ class KTDataset(Dataset):
         dcur["orisms"] = self.dori["orisms"][index]
 
         dcur["futuresms"] = self.dori["futuresms"][index]
+        dcur["fsms"] = self.dori["fsms"][index]
 
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
@@ -164,6 +166,91 @@ class KTDataset(Dataset):
         # assert False
         return allrates, ratessms[1:]
 
+    def __generate_correct_ratio__(self, cs, rs):
+        # 计算截止当前该学生的全局做题准确率
+        historyratios = []
+        right, total = 0, 0
+        for i in range(0, len(cs)):
+            if rs[i] == 1:
+                right += 1
+            total += 1
+            historyratios.append(right / total)
+        # 计算该学生每个知识点的全局准确率
+        totalratios = []
+        dr, dall = dict(), dict()
+        for i in range(0, len(cs)):
+            c = cs[i]
+            dr.setdefault(c, 0)
+            if rs[i] == 1:
+                dr[c] += 1
+            dall.setdefault(c, 0)
+            dall[c] += 1
+        for i in range(0, len(cs)):
+            c = cs[i]
+            totalratios.append(dr[c] / dall[c])
+
+        futureratios, fsms = [], []
+        reallen = len(cs) - cs.count(-1)
+        for i in range(0, len(cs)):
+            if i / reallen < 0.2 or i / reallen > 0.8 or reallen < 100:
+                futureratios.append(0)
+                fsms.append(0)
+                continue
+            right = rs[i+1:].count(1)
+            total = len(rs[i+1:])
+            futureratios.append(right / total)
+            fsms.append(1)
+        return historyratios, totalratios, futureratios, fsms[1:]
+
+    def __generate_lastresponse__(self, cs, rs):
+        res = []
+        dlast = dict()
+        for i in range(0, len(cs)):
+            c, r = cs[i], rs[i]
+            j = i - 1
+            flag = False
+            while j >= 0:
+                pc, pr = cs[j], rs[j]
+                if pc == c:
+                    dlast[i] = [j, pc, pr]
+                    flag = True
+                    break
+                j -= 1
+            if not flag:
+                res.append(-1)
+            else:
+                res.append(dlast[i])
+        return res
+
+    def __generate_slipping_guess__(self, cs):
+        slipping, guess, difficulty = [], [], []
+        firstcorr, totalcorr = [], []
+        for c in cs:
+            if c == -1:
+                slipping.append(0)
+                guess.append(0)
+                difficulty.append(0)
+                firstcorr.append(0)
+                totalcorr.append(0)
+                continue
+            slipping.append(self.dfour[c]["10"])
+            guess.append(self.dfour[c]["01"])
+            fenzi = (self.dfour[c]["00"]+self.dfour[c]["10"])
+            fenmu = 0
+            for k in self.dfour[c]:
+                if k in ["first", "total"]:
+                    continue
+                fenmu += self.dfour[c][k]
+            diff = int(fenzi*10/fenmu)
+            # print(f"fenzi: {fenzi}, fenmu: {fenmu}, diff: {diff}")
+            # assert diff < 100
+            difficulty.append(diff)
+
+            # difficulty: 1-total
+            totalcorr.append(self.dfour[c]["total"])
+            firstcorr.append(self.dfour[c]["first"])
+        return slipping, guess, difficulty, totalcorr, firstcorr
+            
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """
         Args:
@@ -181,7 +268,12 @@ class KTDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], "futurerates": [], "futuresms": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], 
+                "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], 
+                "futurerates": [], "futuresms": [],
+                "historycorrs": [], "totalcorrs": [], "futurecorrs": [], "fsms": [],
+                "slipping": [], "guess": [], "difficulty": [],
+                "totalcorr": [], "firstcorr": []}
 
         if "questions" in self.input_type:
             allcs = set()
@@ -215,10 +307,24 @@ class KTDataset(Dataset):
             curocs = [int(_) for _ in row["concepts"].split(",")]
             curors = [int(_) for _ in row["responses"].split(",")]
 
-            # 计算未来准确率
+            # 计算每个skill未来准确率
             futurerates, futuresms = self.__generate_future__(curocs, curors, numc)
             dori["futurerates"].append(futurerates)
             dori["futuresms"].append(futuresms)
+            # 计算全局历史做题准确率
+            historycorrs, totalcorrs, futurecorrs, fsms = self.__generate_correct_ratio__(curocs, curors)
+            dori["historycorrs"].append(historycorrs)
+            dori["totalcorrs"].append(totalcorrs)
+            dori["futurecorrs"].append(futurecorrs)
+            dori["fsms"].append(fsms)
+            # 计算01 / 10 etc.
+            slipping, guess, difficulty, totalcorr, firstcorr = self.__generate_slipping_guess__(curocs)
+            dori["slipping"].append(slipping)
+            dori["guess"].append(guess)
+            dori["difficulty"].append(difficulty)
+            dori["totalcorr"].append(totalcorr)
+            dori["firstcorr"].append(firstcorr)
+
             # ccs = []
             # for q, c in zip(dori["qseqs"][-1], dori["cseqs"][-1]):
             #     if q != -1:
@@ -256,7 +362,7 @@ class KTDataset(Dataset):
                 dqtest["rests"].append([int(_) for _ in row["rest"].split(",")])
                 dqtest["orirow"].append([int(_) for _ in row["orirow"].split(",")])
         for key in dori:
-            if key not in ["rseqs", "futurerates"]:#in ["smasks", "tseqs"]:
+            if key not in ["rseqs", "futurerates", "historycorrs", "futurecorrs", "slipping", "guess", "totalcorr", "firstcorr", "totalcorrs"]:#in ["smasks", "tseqs"]:
                 dori[key] = LongTensor(dori[key])
             else:
                 dori[key] = FloatTensor(dori[key])

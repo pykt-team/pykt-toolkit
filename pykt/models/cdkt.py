@@ -8,7 +8,7 @@ import torch
 
 from torch import nn
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
-        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss
+        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from .utils import transformer_FFN, ut_mask, pos_encode
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 
@@ -91,6 +91,22 @@ class CDKT(Module):
             if self.emb_type.find("cemb") != -1:
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
+            if self.emb_type.find("attn") != -1:
+                # self.qlinear = Linear(self.hidden_size, self.hidden_size)
+                # self.klinear = Linear(self.hidden_size, self.hidden_size)
+                # self.vlinear = Linear(self.hidden_size, self.hidden_size)
+                self.dF, self.dfenzi, self.dfenmu = dict(), dict(), dict()
+                self.avgf = 0
+                if self.emb_type.find("mattn") != -1:
+                    self.mattn = MultiheadAttention(emb_size, num_attn_heads, dropout=dropout)
+                    self.mattn_dropout = Dropout(dropout)
+                    self.mattn_layer_norm = LayerNorm(emb_size)
+                if self.emb_type.find("areaattn") != -1:
+                    from .cdkt_utils import AreaAttention, MultiHeadAreaAttention 
+                    area_core = AreaAttention(self.hidden_size, 4, dropout)
+                    self.area_attn = MultiHeadAreaAttention(area_core, 1, self.hidden_size,
+                        self.hidden_size, self.hidden_size, self.hidden_size)
+
             # concat response
             if self.emb_type.find("catr") != -1:
                 self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
@@ -98,8 +114,37 @@ class CDKT(Module):
                 self.response_emb = Embedding(2, self.emb_size)
             if self.emb_type.find("predr") != -1:
                 self.response_emb = Embedding(2, self.emb_size)
-                self.rclasifier = Linear(self.hidden_size, self.num_c)
+                self.rclasifier = Linear(self.hidden_size, 1)
+                # self.rloss = Bina
             self.closs = CrossEntropyLoss()
+            # 加一个预测历史准确率的任务
+            if self.emb_type.find("his") != -1:
+                self.hisclasifier = nn.Sequential(
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size//2, 1))
+                self.hisloss = nn.MSELoss()
+            if self.emb_type.find("diff") != -1:
+                self.difficulty_layer = Embedding(11, self.emb_size)
+            if self.emb_type.find("bkt") != -1:
+                self.bkt = nn.Parameter(torch.randn(self.num_c, 2).to(device), requires_grad=True)
+
+            # 
+        if self.emb_type.endswith("addcshft"):
+            self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
+            if self.emb_type.find("attn") != -1:
+                self.dF, self.dfenzi, self.dfenmu = dict(), dict(), dict()
+                self.avgf = 0
+                self.mattn = MultiheadAttention(emb_size, num_attn_heads, dropout=dropout)
+                self.mattn_dropout = Dropout(dropout)
+                self.mattn_layer_norm = LayerNorm(emb_size)
+            self.out_layer = nn.Sequential(
+                    nn.Linear(self.hidden_size,
+                            self.hidden_size), nn.ReLU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size, 256), nn.ReLU(
+                    ), nn.Dropout(dropout),
+                    nn.Linear(256, 1)
+                )
 
         if self.emb_type.endswith("seq2seq"):
             self.l1 = l1
@@ -195,6 +240,50 @@ class CDKT(Module):
         pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
         return pad_attn_mask.repeat(self.nhead, 1, 1)
 
+    def attn(self, lstm_output, cs, rs):
+        bz, seqlen, dim = lstm_output.shape[0], lstm_output.shape[1], lstm_output.shape[2]
+        # lstm_output = torch.rand(2,seq_len,4)
+        attn_mask = torch.triu(torch.ones(seqlen,seqlen),diagonal=1).to(dtype=torch.bool).to(device)
+
+        # q, k, v = self.qlinear(lstm_output), self.klinear(lstm_output), self.vlinear(lstm_output)
+        q, k, v = lstm_output, lstm_output, lstm_output
+
+        att_w = torch.matmul(q, k.transpose(1,2))# / math.sqrt(dim)
+        # change attn weight
+        if self.emb_type.find("matmulforget") != -1:
+            fss = self.generate_forget(cs, rs)
+            # print(f"att_w: {att_w.shape}, fss: {fss.shape}")
+            att_w = att_w * fss
+        #
+        att_w = att_w.transpose(1,2).expand(lstm_output.shape[0], lstm_output.shape[1], lstm_output.shape[1]).clone()
+        att_w = att_w.masked_fill_(attn_mask, float("-inf"))
+        alphas = torch.nn.functional.softmax(att_w, dim=-1)
+        if self.emb_type.find("softmaxforget") != -1:
+            fss = self.generate_forget(cs, rs)
+            # print(f"alphas: {alphas.shape}, fss: {fss.shape}")
+            alphas = alphas * fss
+        attn_ouput = torch.bmm(alphas, v)
+        return attn_ouput
+
+    def multi_head_attn(self, q, k, v):
+        q, k, v = q.permute(1, 0, 2), k.permute(1, 0, 2), v.permute(1, 0, 2)
+        # attn -> drop -> skip -> norm 
+        # transformer: attn -> drop -> skip -> norm transformer default
+        causal_mask = ut_mask(seq_len = k.shape[0])
+        attn_emb, _ = self.mattn(q, k, v, attn_mask=causal_mask)
+
+        attn_emb = self.mattn_dropout(attn_emb)
+        attn_emb, q = attn_emb.permute(1, 0, 2), q.permute(1, 0, 2)
+
+        attn_emb = self.mattn_layer_norm(q + attn_emb)
+        return attn_emb
+
+    def area_attn_fuc(self, q, k, v):
+        # q, k, v = q.permute(1, 0, 2), k.permute(1, 0, 2), v.permute(1, 0, 2)
+        causal_mask = ut_mask(seq_len = k.shape[1]).unsqueeze(0)
+        S = self.area_attn(q, k, v, attn_mask=causal_mask)#.permute(1,0,2)
+        return S
+
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -210,6 +299,18 @@ class CDKT(Module):
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
             y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("addcshft"):
+            cshft, rshft = dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
+            cemb, cshftemb = self.concept_emb(c), self.concept_emb(cshft)
+            h, _ = self.lstm_layer(torch.cat([cshftemb, xemb], dim=-1))
+            if emb_type.find("attn") != -1:
+                # h = generate_forget(c, r) * h
+                if emb_type.find("mattn") != -1:
+                    h = self.multi_head_attn(cshftemb, cemb, xemb)
+                else:
+                    h = self.attn(h, cshft, rshft) ### 
+            # h = self.dropout_layer(h)
+            y = torch.sigmoid(self.out_layer(h).squeeze(-1)) 
         elif emb_type.endswith("pretrainddiff"): # use pretrained difficulty for each question
             qemb, cemb, qavgcemb, qdiff = self.pretrain_qemb(q), self.pretrain_cemb(c), self.pretrain_qavgcemb(q), self.pretrain_qdifficulty(q)
             # qemb, cemb, qavgcemb, qdiff = self.qlinear(qemb), self.clinear(cemb), self.qclinear(qavgcemb), self.dlinear(qdiff)
@@ -320,6 +421,11 @@ class CDKT(Module):
             if emb_type.find("cemb") != -1:
                 cemb = self.concept_emb(c)
                 catemb += cemb
+
+            if emb_type.find("diff") != -1:
+                curdiff = dcur["difficulty"]
+                diffemb = self.difficulty_layer(curdiff)
+                catemb += diffemb
             # cemb = self.concept_emb(c)
             # catemb = cemb
             if emb_type.find("caddr") != -1:
@@ -334,15 +440,18 @@ class CDKT(Module):
             else:
                 qh, _ = self.qlstm(catemb)
             if train:
-                cpreds = self.qclasifier(qh) # 之前版本没加sigmoid，效果好过sigmoid和softmax
-                flag = sm==1
-                y2 = self.closs(cpreds[flag], c[flag])
-                if emb_type.find("predr") != -1:
-                    rpreds = self.rclasifier(qh)
-                    y2 = y2+self.closs(rpreds[flag], r[flag])
+                start = 0
+                cpreds = self.qclasifier(qh[:,start:,:])
+                flag = sm[:,start:]==1
+                y2 = self.closs(cpreds[flag], c[:,start:][flag])
+                # if emb_type.find("predr") != -1:
+                #     rpreds = torch.sigmoid(self.rclasifier(qh))
+                #     y2 = y2+self.closs(rpreds[flag], r[flag])
 
             # predict response
             xemb = xemb + qh + cemb
+            if emb_type.find("diff") != -1:
+                xemb = xemb + diffemb# + qemb
             if emb_type.find("catr") != -1:
                 remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
                 xemb = torch.cat([xemb, remb], dim=-1)
@@ -356,8 +465,61 @@ class CDKT(Module):
                 xemb = xemb + remb
 
             h, _ = self.lstm_layer(xemb)
+
+            if emb_type.find("hattn") != -1:
+                h = self.generate_forget(c, r) * h
+            elif emb_type.find("mattn") != -1:
+                h = self.multi_head_attn(h, h, h)
+            elif emb_type.find("areaattn") != -1:
+                h = self.area_attn_fuc(h, h, h)
+            elif emb_type.find("attn") != -1:
+                h = self.attn(h, c, r)# + h
+
+            # predict history correctness rates
+            if emb_type.find("his") != -1:
+                start = 50
+                rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
+                rsm = sm[:,start:]
+                rflag = rsm==1
+                rtrues = dcur["historycorrs"][:,start:]
+                # rtrues = dcur["totalcorrs"][:,start:]
+                # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
+                y2 = y2+self.hisloss(rpreds[rflag], rtrues[rflag])
+            if emb_type.find("predr") != -1:
+                rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
+                flag = sm==1
+                y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
+                # assert False
+            # predict response
             h = self.dropout_layer(h)
-            y = torch.sigmoid(self.out_layer(h))
+            # y = torch.sigmoid(self.out_layer(h))
+            y = self.out_layer(h)
+            # add IRT
+            
+            if emb_type.find("bkt") != -1:
+                cshft = dcur["shft_cseqs"].long()
+                ypreds = (y * one_hot(cshft.long(), self.num_c)).sum(-1)
+                slipshft, guessshft = dcur["shft_slipping"], dcur["shft_guess"]
+                # print(f"ypreds: {ypreds.shape}, slipshft: {slipshft.shape}, guessshft: {guessshft.shape}")
+                # print(f"slipping: {slipshft}")
+                # print(f"guess: {guessshft}")
+                ypreds = torch.sigmoid(ypreds)
+                # y = ypreds*(1-slipshft) + (1-ypreds)*guessshft)
+                # print(f"self.bkt[cshft][0]: {self.bkt[cshft].shape}, {self.bkt[cshft][:,:,0].shape}")
+                # TODO 根据上一次当前知识点的response来将01或者11融入模型
+                y = ypreds*(1-slipshft*torch.sigmoid(self.bkt[cshft][:,:,0])) + \
+                        (1-ypreds)*guessshft*torch.sigmoid(self.bkt[cshft][:,:,0]) # 0.8238
+                # y = torch.sigmoid(ypreds*(1-slipshft)*self.bkt[cshft][:,:,0] + (1-ypreds)*guessshft*self.bkt[cshft][:,:,1]) # 0.8218
+                # print(f"ypreds: {ypreds}")
+                # print(f"yfinal: {y}")
+                # print(f"ytrues: {dcur['shft_rseqs']}")
+                # assert False
+                # y = torch.sigmoid()
+                # TODO 1-first/全局准确率 当作难度 bkt后再irt？
+            else:
+                y = torch.sigmoid(y)
+                
+            
         elif emb_type.endswith("mergetwo"):
             if self.num_q > 0:
                 repqemb = self.question_emb(q)
@@ -440,3 +602,101 @@ class CDKT(Module):
             return y, y2, y3
         else:
             return y
+
+    # 计算每个技能的遗忘率
+    def calSkillF(self, cs, rs, sm):
+        dr2w, dr = dict(), dict()
+        concepts = set()
+        for i in range(cs.shape[0]): # batch
+            drs = dict()
+            for j in range(cs.shape[1]): # seqlen
+                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
+                # print(f"curc: {curc}")
+                if j != 0 and sm[i][j-1] != 1:
+                    break
+                
+                if curr == 1:
+                    dr.setdefault(curc, 0)
+                    dr[curc] += 1
+                elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
+                    dr2w.setdefault(curc, 0)
+                    dr2w[curc] += 1
+                drs.setdefault(curc, list())
+                drs[curc].append([curr, j])
+                concepts.add(curc)
+        print(f"dr2w: {dr2w}, dr: {dr}")
+        sum = 0
+        for c in dr:
+            if c not in dr2w:
+                self.dF[c] = 0
+            else:
+                self.dF[c] = dr2w[c] / dr[c]
+                self.dfenzi[c] = dr2w[c]
+                self.dfenmu[c] = dr[c]
+                sum += dr2w[c] / dr[c]
+        self.avgf = sum / len(dr)
+        print(f"dF: {self.dF}, avgf: {self.avgf}")
+
+    # forget
+    def generate_forget(self, cs, rs):
+        css, fss = [], []
+        for i in range(cs.shape[0]): # batch
+            curfs = []
+            dlast = dict()
+            for j in range(cs.shape[1]): # seqlen
+                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
+                # 动态forget, 看前两步历史t-2, t-1
+                if self.emb_type.find("t-2t-1") != -1:
+                    if curc not in dlast or len(dlast[curc]) < 2:
+                        curf = 1-self.dF.get(curc, self.avgf)
+                    elif curc not in self.dfenzi: # 不存在1-》0 但是可能存在1
+                        curf = 1-self.dF.get(curc, self.avgf)
+                    else:
+                        # print(f"self.dF: {self.dF[curc]}")
+                        fenzi = self.dfenzi[curc]
+                        fenmu = self.dfenmu[curc]
+                        if dlast[curc][-2][1] == 1:
+                            if dlast[curc][-1][1] == 0:
+                                fenzi = fenzi + 1
+                            fenmu = fenmu + 1
+                        curf = 1- fenzi / fenmu
+                    curfs.append([curf])
+                    dlast.setdefault(curc, [])
+                    dlast[curc].append([j, curr])
+                # 动态forget, 看前两步历史t-1, t
+                elif self.emb_type.find("tt-1") != -1:
+                    dlast.setdefault(curc, [])
+                    dlast[curc].append([j, curr])
+                    if len(dlast[curc]) < 2:
+                        curf = 1-self.dF.get(curc, self.avgf)
+                    elif curc not in self.dfenzi: # 不存在1-》0 但是可能存在1
+                        curf = 1-self.dF.get(curc, self.avgf)
+                    else:
+                        # print(f"self.dF: {self.dF[curc]}")
+                        fenzi = self.dfenzi[curc]
+                        fenmu = self.dfenmu[curc]
+                        if dlast[curc][-2][1] == 1:
+                            if dlast[curc][-1][1] == 0:
+                                fenzi = fenzi + 1
+                            fenmu = fenmu + 1
+                        curf = 1- fenzi / fenmu
+                    curfs.append([curf])
+                else:
+                    # 静态forget
+                    if curc not in dlast:
+                        curf = 1
+                    else:
+                        # delta = j - dlast[curc]
+                        curf = (1-self.dF.get(curc, self.avgf))#**delta
+                    curfs.append([curf])
+                    dlast.setdefault(curc, [])
+                    dlast[curc].append([j, curr])
+                    
+                
+            # print(f"curfs: {curfs}")
+            fss.append(curfs)
+            # assert False
+        return torch.tensor(fss).float().to(device)
+
+
+    
