@@ -12,6 +12,14 @@ pykt.models.akt module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.akt\_que module
+---------------------------
+
+.. automodule:: pykt.models.akt_que
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.atkt module
 -----------------------
 
@@ -36,10 +44,26 @@ pykt.models.dkt\_forget module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.dkt\_iekt module
+----------------------------
+
+.. automodule:: pykt.models.dkt_iekt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.dkt\_plus module
 ----------------------------
 
 .. automodule:: pykt.models.dkt_plus
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.dkt\_que module
+---------------------------
+
+.. automodule:: pykt.models.dkt_que
    :members:
    :undoc-members:
    :show-inheritance:
@@ -76,6 +100,38 @@ pykt.models.gkt\_utils module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.hawkes module
+-------------------------
+
+.. automodule:: pykt.models.hawkes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.iekt module
+-----------------------
+
+.. automodule:: pykt.models.iekt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.iekt\_ce module
+---------------------------
+
+.. automodule:: pykt.models.iekt_ce
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.iekt\_utils module
+------------------------------
+
+.. automodule:: pykt.models.iekt_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.init\_model module
 ------------------------------
 
@@ -92,6 +148,30 @@ pykt.models.kqn module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.lpkt module
+-----------------------
+
+.. automodule:: pykt.models.lpkt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.lpkt\_utils module
+------------------------------
+
+.. automodule:: pykt.models.lpkt_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.que\_base\_model module
+-----------------------------------
+
+.. automodule:: pykt.models.que_base_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.saint module
 ------------------------
 
@@ -100,10 +180,26 @@ pykt.models.saint module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.saint\_plus\_plus module
+------------------------------------
+
+.. automodule:: pykt.models.saint_plus_plus
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.sakt module
 -----------------------
 
 .. automodule:: pykt.models.sakt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.skvmn module
+------------------------
+
+.. automodule:: pykt.models.skvmn
    :members:
    :undoc-members:
    :show-inheritance:

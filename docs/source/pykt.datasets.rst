@@ -28,6 +28,30 @@ pykt.datasets.init\_dataset module
    :undoc-members:
    :show-inheritance:
 
+pykt.datasets.lpkt\_dataloader module
+-------------------------------------
+
+.. automodule:: pykt.datasets.lpkt_dataloader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.datasets.lpkt\_utils module
+--------------------------------
+
+.. automodule:: pykt.datasets.lpkt_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.datasets.que\_data\_loader module
+--------------------------------------
+
+.. automodule:: pykt.datasets.que_data_loader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
