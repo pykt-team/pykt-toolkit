@@ -51,6 +51,11 @@ class DKTQueNet(nn.Module):
 
         self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,model_name=self.model_name,device=device,
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
+        self.input_attn = False
+        if self.input_attn:
+            self.qc_attn = nn.MultiheadAttention(self.hidden_size*2, num_heads=1,batch_first=True)
+            self.qca_attn = nn.MultiheadAttention(self.hidden_size*4, num_heads=1,batch_first=True)
+            self.qc_attn_linear = nn.Linear(self.hidden_size*4,self.hidden_size*2)
 
         if self.emb_type in ["iekt"]:
             self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
@@ -84,7 +89,7 @@ class DKTQueNet(nn.Module):
                 self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
             else:
                 pass
-
+        
         if self.output_mode in ["an_irt"]:
             trainable = self.other_config.get("irt_w_trainable",1)==1
             # self.irt_w = nn.Parameter(torch.randn(3).to(device), requires_grad=True)
@@ -126,8 +131,15 @@ class DKTQueNet(nn.Module):
                     self.out_concept_classifier = nn.Linear(self.hidden_size, num_c)
 
     
+    def attn_help(self,seq_len,emb,x):
+        nopeek_mask = np.triu(np.ones((seq_len, seq_len)), k=1)
+        attn_mask = torch.from_numpy(nopeek_mask).to(self.device)
+        attn_mask = attn_mask + attn_mask*(-100000)#-100000 is used to mask the attention not use -inf to avoid nan value
+        attn_output, _ = emb(x, x, x,attn_mask=attn_mask)
+        return attn_output
         
     def forward(self, q, c ,r,data=None):
+        seq_len = q.shape[-1]
         if self.emb_type in ["qcaid","qcaid_h"]:
             xemb,emb_q,emb_c = self.que_emb(q,c,r)
         elif self.emb_type in ["iekt"]:
@@ -138,6 +150,18 @@ class DKTQueNet(nn.Module):
         else:
             xemb = self.que_emb(q,c,r)
 
+        if self.input_attn:
+            emb_qc_attn = self.attn_help(seq_len,self.qc_attn,emb_qc)
+            emb_qc += emb_qc_attn
+            # emb_qc = torch.cat([torch.sigmoid(emb_qc)*emb_qc_attn,emb_qc],axis=-1)
+            # emb_qc = self.qc_attn_linear(emb_qc)
+            
+            emb_qca_attn = self.attn_help(seq_len,self.qca_attn,emb_qca)
+            emb_qca+=emb_qca_attn
+          
+            emb_qc_shift = emb_qc[:,1:,:]
+            emb_qca_current = emb_qca[:,:-1,:]
+            
 
         if self.emb_type in ["iekt"]:
             h, _ = self.lstm_layer(emb_qca_current)
@@ -175,7 +199,6 @@ class DKTQueNet(nn.Module):
         else:
             if self.predict_next:
                 if self.emb_type in ['iekt']:
-                    seq_len = q.shape[-1]
                     if self.attention_mode in ["attention"]:
                         nopeek_mask = np.triu(np.ones((seq_len, seq_len)), k=0)
                         attn_mask = torch.from_numpy(nopeek_mask).to(self.device)
@@ -267,9 +290,10 @@ class DKTQue(QueBaseModel):
     def get_avg_fusion_concepts(self,y_concept,cshft):
         """获取知识点 fusion 的预测结果
         """
+        max_num_concept = cshft.shape[-1]
         concept_mask = torch.where(cshft.long()==-1,False,True)
         concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.model.num_c)
-        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,4,1)*concept_index).sum(-1)
+        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,max_num_concept,1)*concept_index).sum(-1)
         concept_sum = concept_sum*concept_mask#remove mask
         y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
         return y_concept
