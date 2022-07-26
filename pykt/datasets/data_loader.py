@@ -39,7 +39,7 @@ class KTDataset(Dataset):
                 import json
                 obj = json.load(fin)
                 self.dq2c = obj["concepts"]
-        self.dfour = pd.read_pickle(os.path.join(dpath, "dfour.pkl"))
+        #self.dfour = pd.read_pickle(os.path.join(dpath, "dfour.pkl"))
         # print(self.dq2c)
 
         if not os.path.exists(processed_data):
@@ -271,9 +271,9 @@ class KTDataset(Dataset):
         dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], 
                 "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], 
                 "futurerates": [], "futuresms": [],
-                "historycorrs": [], "totalcorrs": [], "futurecorrs": [], "fsms": [],
-                "slipping": [], "guess": [], "difficulty": [],
-                "totalcorr": [], "firstcorr": []}
+                "historycorrs": [], "totalcorrs": [], "futurecorrs": [], "fsms": []}#,
+                #"slipping": [], "guess": [], "difficulty": [],
+                #"totalcorr": [], "firstcorr": []}
 
         if "questions" in self.input_type:
             allcs = set()
@@ -317,6 +317,7 @@ class KTDataset(Dataset):
             dori["totalcorrs"].append(totalcorrs)
             dori["futurecorrs"].append(futurecorrs)
             dori["fsms"].append(fsms)
+            '''
             # 计算01 / 10 etc.
             slipping, guess, difficulty, totalcorr, firstcorr = self.__generate_slipping_guess__(curocs)
             dori["slipping"].append(slipping)
@@ -324,6 +325,7 @@ class KTDataset(Dataset):
             dori["difficulty"].append(difficulty)
             dori["totalcorr"].append(totalcorr)
             dori["firstcorr"].append(firstcorr)
+            '''
 
             # ccs = []
             # for q, c in zip(dori["qseqs"][-1], dori["cseqs"][-1]):
