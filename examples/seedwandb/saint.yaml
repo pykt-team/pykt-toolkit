@@ -1,0 +1,28 @@
+program: wandb_saint_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["saint"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["saint_tiaocan"]
+    emb_size:
+        values: [256, 512]
+    learning_rate:
+        values: [1e-2, 1e-3, 1e-4]
+    num_attn_heads:
+        values: [4, 8]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    n_blocks:
+        values: [1, 2, 3, 4]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

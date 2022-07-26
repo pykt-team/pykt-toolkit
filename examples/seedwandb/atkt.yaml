@@ -1,0 +1,34 @@
+program: wandb_atkt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["atkt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["atkt_tiaocan"]
+    skill_dim:
+        values: [128, 256, 512]
+    answer_dim:
+        values: [64, 96, 128]
+    hidden_dim:
+        values: [40, 80, 160, 240]
+    attention_dim:
+        values: [40, 80, 160, 240]
+    epsilon:
+        values: [1, 5, 10, 12, 15]
+    beta:
+        values: [0, 0.2, 0.5, 1, 2]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    learning_rate:
+        values: [1e-2, 1e-3, 1e-4]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

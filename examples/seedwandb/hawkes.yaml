@@ -1,0 +1,24 @@
+program: wandb_hawkes_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["hawkes"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["hawkes_tiaocan"]
+    emb_size:
+        values: [32, 64, 128]
+    learning_rate:
+        values: [5e-3, 1e-3, 5e-4, 1e-4]
+    l2:
+        values: [1e-3, 1e-4, 1e-5, 1e-6, 0]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

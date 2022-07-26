@@ -1,9 +1,7 @@
 import os
 import pandas as pd
-from .utils import sta_infos, write_txt, change2timestamp
+from .utils import sta_infos, write_txt, change2timestamp,format_list2str
 
-def format_list2str(input_list):
-    return [str(x) for x in input_list]
 
 
 def load_nips_data(primary_data_path,meta_data_dir,task_name):
