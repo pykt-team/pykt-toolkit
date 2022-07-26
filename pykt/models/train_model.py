@@ -9,7 +9,7 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbation_rshft=[]):
+def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbation_rshft=[], pred_diffs=[], target_diffs=[]):
     model_name = model.model_name
 
     if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
@@ -30,6 +30,15 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbati
                 pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
             perturbation_loss = mse_loss(y, augmentation_y)
             loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
+        elif model.emb_type.find("difficulty") != -1:
+            y = torch.masked_select(ys[0], sm)
+            t = torch.masked_select(rshft, sm)
+            pred_diff = torch.masked_select(pred_diffs[0], sm)
+            target_diff = torch.masked_select(target_diffs[0], sm)
+            # print(f"augmentation_t: {augmentation_t.shape}")
+            diff_loss = mse_loss(pred_diff, target_diff)
+            pred_loss = binary_cross_entropy(y.double(), t.double())
+            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * diff_loss              
         else:
             y = torch.masked_select(ys[0], sm)
             t = torch.masked_select(rshft, sm)
@@ -81,7 +90,7 @@ def model_forward(model, data):
     qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
     m, sm = dcur["masks"], dcur["smasks"]
 
-    ys, preloss, perturbation_ys, perturbation_rshft = [], [], [], []
+    ys, preloss, perturbation_ys, perturbation_rshft, pred_diffs, target_diffs = [], [], [], [], [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
@@ -115,6 +124,10 @@ def model_forward(model, data):
             y, perturbation_y, perturbation_rshft = model(cc.long(), cr.long(), cq.long())
             perturbation_ys.append(perturbation_y[:,1:])  
             perturbation_rshft = perturbation_rshft[:,1:]
+        elif model.emb_type.find("difficulty") != -1:
+            y, target_diff, pred_diff = model(cc.long(), cr.long(), cq.long())
+            target_diffs.append(target_diff[:,1:])  
+            pred_diffs.append(pred_diff[:,1:])  
         else:   
             y = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
@@ -159,7 +172,7 @@ def model_forward(model, data):
     elif model_name == "iekt":
         y,loss = model.train_one_step(data)
     if model_name not in ["atkt", "atktfix","iekt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys, perturbation_rshft)
+        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys, perturbation_rshft, pred_diffs, target_diffs)
     return loss
     
 

@@ -90,6 +90,8 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:
                     # y, perturbation_y = model(cc.long(), cr.long(), cq.long())
                     y, perturbation_y, perturbation_rshft = model(cc.long(), cr.long(), cq.long())
+                elif model.emb_type.find("difficulty") != -1:
+                    y, target_diff, pred_diff = model(cc.long(), cr.long(), cq.long())
                 else:                      
                     y = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
