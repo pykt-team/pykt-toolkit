@@ -24,10 +24,10 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbati
             t = torch.masked_select(rshft, sm)
             augmentation_t = torch.masked_select(perturbation_rshft, sm).detach()
             # print(f"augmentation_t: {augmentation_t.shape}")
-            # if model.emb_type == "augmentation_bayesian_v2":
-            #     pred_loss = binary_cross_entropy(y.double(), t.double())
-            # else:
-            pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
+            if model.emb_type == "augmentation_bayesian_v2":
+                pred_loss = binary_cross_entropy(y.double(), t.double())
+            else:
+                pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
             perturbation_loss = mse_loss(y, augmentation_y)
             loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
         else:
