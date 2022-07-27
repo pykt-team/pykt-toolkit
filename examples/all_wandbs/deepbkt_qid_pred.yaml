@@ -4,6 +4,10 @@ metric:
   name: testauc
 name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/all_wandbs/deepbkt_qid
 parameters:
+  bz:
+    values: 64
+  fusion_type:
+    values: late_fusion
   save_dir:
     values:
     - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_224_0_0.2_256_512_512_4_2_0.0001_0.5_0.05_0.2_1_1_37b58b5e-8ecc-4340-b6ed-dbf42137c293/

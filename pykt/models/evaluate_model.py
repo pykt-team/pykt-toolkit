@@ -364,9 +364,6 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name in ["deepbkt"]:
                 y, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
-            elif model_name in ["deepbkt"]:
-                y, h = model(cc.long(), cr.long(), cq.long(), True)
-                y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
                 y = y[:,1:]
