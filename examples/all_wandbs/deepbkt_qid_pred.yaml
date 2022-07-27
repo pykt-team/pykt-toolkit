@@ -1,0 +1,14 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: /data/huangshuyan/shyann_dev/pykt-toolkit/examples/all_wandbs/deepbkt_qid
+parameters:
+  save_dir:
+    values:
+    - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_224_0_0.2_256_512_512_4_2_0.0001_0.5_0.05_0.2_1_1_37b58b5e-8ecc-4340-b6ed-dbf42137c293/
+    - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_42_1_0.15_256_512_256_4_4_0.0001_0.5_0.01_0.05_1_1_dd7a0e69-319b-436c-98a9-5f8541bc5cef/
+    - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_3407_2_0.2_256_512_256_4_3_0.0001_0.1_0.025_0.1_1_1_0fafbf1a-41c6-4cee-a0ea-44fec6fccc9b/
+    - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_42_3_0.2_256_512_256_4_4_0.0001_0.5_0.01_0.1_1_1_f6a997c9-8aec-405f-b4a2-9b68df617804/
+    - deepbkt_tiaocan_assist2009/assist2009_deepbkt_qid_deepbkt_tiaocan_assist2009_42_4_0.15_256_512_512_4_4_0.0001_0.1_0.01_0.05_1_1_86c482e0-96ab-4328-a5a5-6f7c61bc5c58/
+program: ./wandb_predict.py
