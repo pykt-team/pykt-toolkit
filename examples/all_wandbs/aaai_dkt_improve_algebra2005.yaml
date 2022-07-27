@@ -1,0 +1,36 @@
+name: aaai_dkt_improve_algebra2005
+program: wandb_dkt_que_train.py
+method: grid
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["dkt_que"]
+    dataset_name:
+        values: ["algebra2005"]
+    emb_type:
+        values: ["iekt"]
+    save_dir:
+        values: ["aaai_dkt_improve_v1"]
+    emb_size:
+        values: [50, 100, 200, 300]
+    learning_rate:
+        values: [1e-2, 1e-3]
+    dropout:
+        values: [0,0.2,0.4,0.6]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0,1,2,3,4]
+    mlp_layer_num:
+        values: [1,2]
+    predict_mode:
+        values: ["qc-c"]
+    loss_mode:
+        values: ["qc-c"]
+    output_mode:
+        values: ["an_irt"]
+    irt_w_trainable:
+        values: [0]
+
