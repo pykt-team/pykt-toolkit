@@ -53,12 +53,12 @@ def main(params):
 
     model.compile(optimizer='adam', lr = params['learning_rate'])
 
-    model.train(train_dataset, valid_dataset, batch_size=128,
+    model.train(train_dataset, valid_dataset, batch_size=params['batch_size'],
                 num_epochs=params['num_epochs'], patient=5, shuffle=False, save_model=True, save_dir=save_dir)
     model.load_model(model.save_dir)
-    eval_result = model.evaluate(test_dataset,batch_size=64)
+    eval_result = model.evaluate(test_dataset,batch_size=params['batch_size']//2)
     auc,acc = eval_result['auc'],eval_result['acc']
-    win_eval_result = model.evaluate(test_win_dataset,batch_size=64)
+    win_eval_result = model.evaluate(test_win_dataset,batch_size=params['batch_size']//2)
     auc_win,acc_win = win_eval_result['auc'],win_eval_result['acc']
 
     
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     
     
     parser.add_argument("--dropout", type=float, default=0.2)
-    
+    parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--emb_size", type=int, default=200)
     parser.add_argument("--mlp_layer_num", type=int, default=1)
     parser.add_argument("--loss_mode", type=str, default='q')#keep same with predict_mode
