@@ -513,6 +513,9 @@ class DKTQue(QueBaseModel):
             return outputs,data_new
         else:
             if "an" in self.model.output_mode:
+                # y_question_all,[batch_size,seq_len,question_num]
+                # one-hot, [batch_size,seq_len,question_num]
+                # qshft,[batch_size,seq_len]
                 outputs["y_question_next"] = outputs["y_question_next"].squeeze(-1)
                 outputs["y_concept_next"] = self.get_avg_fusion_concepts(outputs["y_concept_next"],data_new['cshft'])
 
