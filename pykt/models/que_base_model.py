@@ -75,6 +75,7 @@ class QueEmb(nn.Module):
 
         if emb_type == "iekt":
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
+            # self.que_emb.weight.requires_grad = False
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
         
