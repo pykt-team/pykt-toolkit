@@ -1,4 +1,4 @@
-name: aaai_dkt_improve_bridge2algebra2006
+name: aaai_dkt_improve_algebra2005
 program: wandb_dkt_que_train.py
 method: grid
 metric:
@@ -8,7 +8,7 @@ parameters:
     model_name:
         values: ["dkt_que"]
     dataset_name:
-        values: ["bridge2algebra2006"]
+        values: ["algebra2005","bridge2algebra2006"]
     emb_type:
         values: ["iekt"]
     save_dir:
@@ -33,4 +33,6 @@ parameters:
         values: ["an_irt"]
     irt_w_trainable:
         values: [0]
+    batch_size:
+        values: [20]
 
