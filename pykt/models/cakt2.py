@@ -91,8 +91,8 @@ class CAKT(nn.Module):
                 self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             # self.qdrop = Dropout(dropout)
             self.qclasifier = Linear(self.hidden_size, self.num_c)
-            # if self.emb_type.find("cemb") != -1:
-            #     self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            if self.emb_type.find("cemb") != -1:
+                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
             self.closs = CrossEntropyLoss()
             # 加一个预测历史准确率的任务
             if self.emb_type.find("his") != -1:
@@ -159,6 +159,37 @@ class CAKT(nn.Module):
             xemb = xemb+qemb
         
         return y2, xemb
+
+    def predcurc2(self, qemb, cemb, xemb, dcur, train):
+        y2 = 0
+        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
+        padsm = torch.ones(sm.shape[0], 1).to(device)
+        sm = torch.cat([padsm, sm], dim=-1)
+        c = torch.cat([c[:,0:1], cshft], dim=-1)
+        chistory = cemb
+        if self.num_q > 0:
+            catemb = qemb + chistory
+        else:
+            catemb = chistory
+
+        if self.emb_type.find("trans") != -1:
+            mask = ut_mask(seq_len = catemb.shape[1])
+            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
+        else:
+            qh, _ = self.qlstm(catemb)
+        if train:
+            start = 0
+            cpreds = self.qclasifier(qh[:,start:,:])
+            flag = sm[:,start:]==1
+            y2 = self.closs(cpreds[flag], c[:,start:][flag])
+
+        cemb = cemb + qh
+        xemb = xemb+qh
+        if self.emb_type.find("qemb") != -1:
+            cemb = cemb+qemb
+            xemb = xemb+qemb
+        
+        return y2, cemb, xemb
 
     def changecemb(self, qemb, cemb):
         catemb = cemb
@@ -260,7 +291,11 @@ class CAKT(nn.Module):
 
             # predcurc(self, qemb, cemb, xemb, dcur, train):
             cemb = q_embed_data
-            y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
+            if emb_type.find("noxemb") != -1:
+                y2, q_embed_data, qa_embed_data = self.predcurc2(qemb, cemb, qa_embed_data, dcur, train)
+            else:
+                y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
+            
             # q_embed_data = self.changecemb(qemb, cemb)
 
             # predict response

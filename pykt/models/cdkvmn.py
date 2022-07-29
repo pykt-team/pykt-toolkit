@@ -67,6 +67,7 @@ class CDKVMN(Module):
             # 加一个预测历史准确率的任务
             if self.emb_type.find("his") != -1:
                 self.start = start
+                self.hf_layer = Linear(self.hidden_size * 2, self.hidden_size)
                 self.hisclasifier = nn.Sequential(
                     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
@@ -85,7 +86,7 @@ class CDKVMN(Module):
         sm = torch.cat([padsm, sm], dim=-1)
         c = torch.cat([c[:,0:1], cshft], dim=-1)
         chistory = xemb
-        if self.emb_type.find("qemb") != -1: #self.num_q > 0:
+        if self.emb_type.find("qemb") != -1 and self.num_q > 0:
             catemb = qemb + chistory
         else:
             catemb = chistory
@@ -111,6 +112,36 @@ class CDKVMN(Module):
             xemb = xemb+qemb
         
         return y2, xemb
+
+    def predcurc2(self, qemb, cemb, xemb, dcur, train):
+        y2 = 0
+        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
+        padsm = torch.ones(sm.shape[0], 1).to(device)
+        sm = torch.cat([padsm, sm], dim=-1)
+        c = torch.cat([c[:,0:1], cshft], dim=-1)
+
+        catemb = cemb
+        if self.emb_type.find("qemb") != -1 and self.num_q > 0:
+            catemb += qemb
+
+        if self.emb_type.find("trans") != -1:
+            mask = ut_mask(seq_len = catemb.shape[1])
+            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
+        else:
+            qh, _ = self.qlstm(catemb)
+        if train:
+            start = 0
+            cpreds = self.qclasifier(qh[:,start:,:])
+            flag = sm[:,start:]==1
+            y2 = self.closs(cpreds[flag], c[:,start:][flag])
+
+        cemb = cemb + qh
+        xemb = xemb + qh
+        if self.emb_type.find("qemb") != -1 and self.num_q > 0:
+            cemb = cemb+qemb
+            xemb = xemb+qemb
+        
+        return y2, cemb, xemb
 
     def predhis(self, h, dcur):
         sm = dcur["smasks"]
@@ -159,7 +190,10 @@ class CDKVMN(Module):
 
             # predcurc(self, qemb, cemb, xemb, dcur, train):
             cemb = k
-            y2, v = self.predcurc(qemb, cemb, v, dcur, train)
+            if emb_type.find("noxemb") != -1:
+                y2, k, v = self.predcurc2(qemb, cemb, v, dcur, train)
+            else:
+                y2, v = self.predcurc(qemb, cemb, v, dcur, train)
         
         Mvt = self.Mv0.unsqueeze(0).repeat(batch_size, 1, 1)
 
@@ -181,20 +215,18 @@ class CDKVMN(Module):
         Mv = torch.stack(Mv, dim=1)
 
         # Read Process
-        f = torch.tanh(
-            self.f_layer(
-                torch.cat(
+        info = torch.cat(
                     [
                         (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
                         k
                     ],
                     dim=-1
                 )
-            )
-        )
+        f = torch.tanh(self.f_layer(info))
 
         if emb_type.find("his") != -1:
-            y3 = self.predhis(f, dcur)
+            hf = torch.tanh(self.hf_layer(info))
+            y3 = self.predhis(hf, dcur)
             
         p = self.p_layer(self.dropout_layer(f))
 
