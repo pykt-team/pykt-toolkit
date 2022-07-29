@@ -31,7 +31,7 @@ class MLP(nn.Module):
         return self.out(self.dropout(x))
 
 class TchKTNet(nn.Module):
-    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
+    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={},stu_tch_type='stu'):
         super().__init__()
         self.model_name = "dkt_que"
         self.num_q = num_q
@@ -44,6 +44,7 @@ class TchKTNet(nn.Module):
         self.qc_predict_mode_lambda = self.other_config.get('qc_predict_mode_lambda',1)
         self.qc_loss_mode_lambda = self.other_config.get('qc_loss_mode_lambda',1)
         self.loss_question_concept_lambda = self.other_config.get('loss_question_concept_lambda',1)
+        self.stu_tch_type = stu_tch_type
 
     
         self.emb_type,self.loss_mode,self.predict_mode,self.output_mode,self.attention_mode = emb_type.split("|-|")
@@ -74,6 +75,8 @@ class TchKTNet(nn.Module):
             trainable = self.other_config.get("irt_w_trainable",1)==1
             self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
 
+        if self.stu_tch_type == 'tch':
+            self.tch_stu_input_fusion = MLP(1,self.hidden_size*8,self.hidden_size*4,dpo=0)
 
 
     def get_avg_fusion_concepts(self,y_concept,cshft):
@@ -88,31 +91,28 @@ class TchKTNet(nn.Module):
         return y_concept
 
     def forward(self, q, c ,r,data=None):
-        seq_len = q.shape[-1]
-        if self.emb_type in ["qcaid","qcaid_h"]:
-            xemb,emb_q,emb_c = self.que_emb(q,c,r)
-        elif self.emb_type in ["iekt"]:
-            _,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q,c,r)#[batch_size,emb_size*4],[batch_size,emb_size*2],[batch_size,emb_size*1],[batch_size,emb_size*1]
-            emb_qc_shift = emb_qc[:,1:,:]
-            emb_qca_current = emb_qca[:,:-1,:]
- 
-        else:
-            xemb = self.que_emb(q,c,r)
+        
+        _,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q,c,r)#[batch_size,emb_size*4],[batch_size,emb_size*2],[batch_size,emb_size*1],[batch_size,emb_size*1]
+        emb_qc_shift = emb_qc[:,1:,:]
+        emb_qca_current = emb_qca[:,:-1,:]
+        emb_qc_current = emb_qc[:,:-1,:]
 
-       
+
+        if self.stu_tch_type == 'tch':
+            stu_model_outputs = data['stu_model_outputs']
+            y_pred = torch.where(stu_model_outputs['y'] > 0.5, torch.tensor(1).to(self.device), torch.tensor(0).to(self.device)) 
+            emb_qca_current_pred = torch.cat([emb_qc_current.mul((1-y_pred).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
+                                emb_qc_current.mul((y_pred).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
+            emb_qc_shift = emb_qc[:,2:,:]
+            emb_qca_current = torch.cat([emb_qca_current[:,1:],emb_qca_current_pred[:,:-1]],dim=-1)
+            emb_qca_current = self.tch_stu_input_fusion(emb_qca_current)
             
-
-        if self.emb_type in ["iekt"]:
-            h, _ = self.lstm_layer(emb_qca_current)
-        else:
-            h, _ = self.lstm_layer(xemb)
-
+        
+        h, _ = self.lstm_layer(emb_qca_current)
+      
         h = self.dropout_layer(h)
-        if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
-            h_ccs,_ = self.kcs_lstm_layer(emb_q[:,1:,:])
-            # print(f"h.shape is {h.shape}")
-            h = torch.cat([h,h_ccs],dim=-1)#add the last hidden state of kcs lstm to the last hidden state of lstm
-            # print(f"h.shape is {h.shape}")
+        
+     
     
         #next predict
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
@@ -130,9 +130,19 @@ class TchKTNet(nn.Module):
 
         #for all model select results
         outputs["y_question_next"] = outputs["y_question_next"].squeeze(-1)
-        outputs["y_concept_next"] = self.get_avg_fusion_concepts(outputs["y_concept_next"],data['cshft'])
-        outputs["y_question_all"] = (outputs["y_question_all"] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
-        outputs["y_concept_all"] = self.get_avg_fusion_concepts(outputs["y_concept_all"],data['cshft'])
+        if self.stu_tch_type == 'tch':
+            outputs["y_concept_next"] = self.get_avg_fusion_concepts(outputs["y_concept_next"],data['cshft'][:,1:])
+            outputs["y_question_all"] = (outputs["y_question_all"] * F.one_hot(data['qshft'].long()[:,1:], self.num_q)).sum(-1)
+            outputs["y_concept_all"] = self.get_avg_fusion_concepts(outputs["y_concept_all"],data['cshft'][:,1:])
+            #concat student result
+            for k in ['y_question_next','y_concept_next','y_question_all','y_concept_all']:
+                outputs[k] = torch.cat([stu_model_outputs[k][:,:1],outputs[k]],dim=-1)
+            
+        else:
+            outputs["y_concept_next"] = self.get_avg_fusion_concepts(outputs["y_concept_next"],data['cshft'])
+            outputs["y_question_all"] = (outputs["y_question_all"] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
+            outputs["y_concept_all"] = self.get_avg_fusion_concepts(outputs["y_concept_all"],data['cshft'])
+        
         return outputs
 
 class TchKT(QueBaseModel):
@@ -142,10 +152,16 @@ class TchKT(QueBaseModel):
         debug_print(f"emb_type is {emb_type}",fuc_name="DKTQue")
 
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
+  
+        self.stu_model = TchKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
+                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config,stu_tch_type='stu').to(device)
+
+
         self.model = TchKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
-                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config)
+                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config,stu_tch_type='tch').to(device)
+        self.model.que_emb = self.stu_model.que_emb
+
        
-        self.model = self.model.to(device)
         self.emb_type = self.model.emb_type
         self.eval_result = {}
     
@@ -168,6 +184,9 @@ class TchKT(QueBaseModel):
    
 
     def train_one_step(self,data,process=True,return_all=False):
+        self.stu_model.train()
+        self.model.train()
+
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
 
         #all 
@@ -183,6 +202,7 @@ class TchKT(QueBaseModel):
         loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
         loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
         loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
+        loss_stu = self.get_loss(outputs['outputs_student']['y'],data_new['rshft'],data_new['sm'])
         if self.model.output_mode=="an_irt":
             loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
             l2 = self.model.other_config.get("l2",1e-5)
@@ -194,12 +214,17 @@ class TchKT(QueBaseModel):
             loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
             loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
             loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
-            loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
+            loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda+loss_stu)
+
+            
+
+            
             print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
         return outputs['y'],loss#y_question没用
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
         test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
+        self.stu_model.eval()
         self.model.eval()
         with torch.no_grad():
             y_trues = []
@@ -290,9 +315,17 @@ class TchKT(QueBaseModel):
 
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
+        # student
+        outputs_student = self.stu_model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)#[1,seq_len]'s result
+        y_qc_all = self.get_merge_y(outputs_student['y_question_all'],outputs_student['y_concept_all'],'qc')
+        y_qc_next = self.get_merge_y(outputs_student['y_question_next'],outputs_student['y_concept_next'],'c')
+        outputs_student['y'] = (y_qc_all + y_qc_next)/2
+        data_new['stu_model_outputs'] = outputs_student
         
-        outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-        
+        #teacher
+        outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)#[2,seq_len]'s result
+        del data_new['stu_model_outputs']#remove predict result
+
         # print(y_question.shape,y_concept.shape)
         if return_raw:#return raw probability, for future reward
             return outputs,data_new
@@ -314,6 +347,7 @@ class TchKT(QueBaseModel):
             y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
             
         outputs['y'] = y
+        outputs['outputs_student'] = outputs_student
 
         if return_details:
             return outputs,data_new
