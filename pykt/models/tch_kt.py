@@ -159,7 +159,7 @@ class TchKT(QueBaseModel):
 
         self.model = TchKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config,stu_tch_type='tch').to(device)
-        self.model.que_emb = self.stu_model.que_emb
+        # self.model.que_emb = self.stu_model.que_emb
 
        
         self.emb_type = self.model.emb_type
@@ -186,7 +186,6 @@ class TchKT(QueBaseModel):
     def train_one_step(self,data,process=True,return_all=False):
         self.stu_model.train()
         self.model.train()
-
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
 
         #all 
@@ -195,7 +194,6 @@ class TchKT(QueBaseModel):
         #next
         loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
         loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
-        
         loss_question_concept = -1
 
         all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
@@ -203,6 +201,8 @@ class TchKT(QueBaseModel):
         loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
         loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
         loss_stu = self.get_loss(outputs['outputs_student']['y'],data_new['rshft'],data_new['sm'])
+        loss_tch = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
+
         if self.model.output_mode=="an_irt":
             loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
             l2 = self.model.other_config.get("l2",1e-5)
@@ -214,12 +214,11 @@ class TchKT(QueBaseModel):
             loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
             loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
             loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
-            loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda+loss_stu)
+            loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
+            loss = loss + loss_stu + loss_tch
 
-            
-
-            
-            print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
+    
+            print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f},loss_stu={loss_stu:.4f},loss_tch={loss_tch:.4f}")
         return outputs['y'],loss#y_question没用
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
@@ -345,8 +344,8 @@ class TchKT(QueBaseModel):
             output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
             output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
             y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
-            
-        outputs['y'] = y
+        # outputs['y'] = y
+        outputs['y'] = outputs_student['y']
         outputs['outputs_student'] = outputs_student
 
         if return_details:
