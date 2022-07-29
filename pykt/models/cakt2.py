@@ -9,6 +9,10 @@ import numpy as np
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss
 from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
 from .sakt import Blocks
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
+        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
+from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,7 +22,7 @@ class Dim(IntEnum):
     feature = 2
 
 class CAKT(nn.Module):
-    def __init__(self, n_question, n_pid, seq_len, d_model, n_blocks, dropout, loss1=0.5, loss2=0.5, loss3=0.5,
+    def __init__(self, n_question, n_pid, seq_len, d_model, n_blocks, dropout, loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4,
             d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
@@ -67,77 +71,37 @@ class CAKT(nn.Module):
             nn.Linear(256, 1)
         )
 
-        if emb_type.endswith("sharepredcurc"):
+        if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = loss1
             self.l2 = loss2
-            self.question_emb = nn.Embedding(self.n_pid, embed_l) # 1.2
-            self.qclasifier = nn.Sequential(
-                nn.Linear(d_model + embed_l + embed_l,
-                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-                nn.Linear(final_fc_dim, 256), nn.ReLU(
-                ), nn.Dropout(self.dropout),
-                nn.Linear(256, self.n_question)
-            )
-            self.out = nn.Sequential(
-                nn.Linear(d_model + embed_l + embed_l,
-                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-                nn.Linear(final_fc_dim, 256), nn.ReLU(
-                ), nn.Dropout(self.dropout),
-                nn.Linear(256, 1)
-            )
-
-        if emb_type.endswith("predcurc"):
-            self.l1 = loss1
-            self.l2 = loss2
-            self.question_emb = nn.Embedding(self.n_pid, embed_l) # 1.2
-            self.qlstm = nn.LSTM(embed_l, embed_l, batch_first=True)
+            self.l3 = loss3
+            num_layers = num_layers
+            self.emb_size, self.hidden_size = d_model, d_model
+            self.num_q, self.num_c = n_pid, n_question
             
-            self.qdrop = nn.Dropout(dropout)
-            self.qclasifier = nn.Linear(embed_l, self.n_question)
-
-        if emb_type.endswith("mergetwo"):
-            self.l1, self.l2, self.l3 = loss1, loss2, loss3
-            self.nhead = num_attn_heads
-            encoder_layer1 = TransformerEncoderLayer(d_model, nhead=self.nhead)
-            encoder_norm1 = LayerNorm(d_model)
-            self.embed_l = embed_l
-
-            if self.n_pid > 0:
-                self.question_emb = Embedding(self.n_pid, embed_l) # 1.2
-
+            if self.num_q > 0:
+                self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
             if self.emb_type.find("trans") != -1:
-                self.qnet1 = TransformerEncoder(encoder_layer1, num_layers=2, norm=encoder_norm1)
-            else:    
-                self.qnet1 = LSTM(embed_l, d_model, batch_first=True)
-            # self.qdrop1 = Dropout(dropout)
-            self.qclasifier1 = Linear(d_model, self.n_question)
-            self.closs1 = CrossEntropyLoss()
+                self.nhead = nheads
+                # d_model = self.hidden_size# * 2
+                encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
+                encoder_norm = LayerNorm(d_model)
+                self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
+            elif self.emb_type.find("lstm") != -1:    
+                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
+            # self.qdrop = Dropout(dropout)
+            self.qclasifier = Linear(self.hidden_size, self.num_c)
+            # if self.emb_type.find("cemb") != -1:
+            #     self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            self.closs = CrossEntropyLoss()
+            # 加一个预测历史准确率的任务
+            if self.emb_type.find("his") != -1:
+                self.start = start
+                self.hisclasifier = nn.Sequential(
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size//2, 1))
+                self.hisloss = nn.MSELoss()
 
-            # seq2seq
-            self.position_emb = Embedding(seq_len, embed_l)
-            encoder_layer2 = TransformerEncoderLayer(d_model, nhead=self.nhead)
-            encoder_norm2 = LayerNorm(d_model)
-            self.base_qnet21 = TransformerEncoder(encoder_layer2, num_layers=1, norm=encoder_norm2)
-            self.base_qnet22 = TransformerEncoder(encoder_layer2, num_layers=n_blocks, norm=encoder_norm2)
-            self.qnet2 = nn.Sequential(
-                nn.Linear(d_model, d_model), nn.ReLU(), nn.Dropout(dropout),
-                nn.Linear(d_model, d_model), nn.ReLU(), nn.Dropout(dropout)
-            )
-            self.qclasifier2 = nn.Linear(d_model, self.n_question)
-            self.closs2 = MultiLabelSoftMarginLoss()# MultiLabelMarginLoss()   
-
-            # predict kt
-            self.model = nn.ModuleList([
-                TransformerLayer(d_model=d_model, d_feature=d_model // num_attn_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=num_attn_heads, kq_same=kq_same)
-                for _ in range(n_blocks)
-            ])
-            # self.model = get_clones(Blocks(d_model, num_attn_heads, dropout), n_blocks)
-            # self.n_blocks = n_blocks
-            # encoder_layer3 = TransformerEncoderLayer(d_model, nhead=self.nhead)
-            # encoder_norm3 = LayerNorm(d_model)
-            # self.model = TransformerEncoder(encoder_layer3, num_layers=n_blocks, norm=encoder_norm3) # q&k: seq2seq' hidden; v: predcurc' hidden
-        
         self.reset()
 
     def reset(self):
@@ -155,85 +119,99 @@ class CAKT(nn.Module):
             qa_embed_data = self.qa_embed(target)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def get_avg_skill_emb(self, c):
-        # add zero for padding
-        concept_emb_cat = torch.cat(
-            [torch.zeros(1, self.embed_l).to(device), 
-            self.q_embed], dim=0)
-        # shift c
-        related_concepts = (c+1).long()
-        #[batch_size, seq_len, emb_dim]
-        concept_emb_sum = concept_emb_cat[related_concepts, :].sum(
-            axis=-2).to(device)
-
-        #[batch_size, seq_len,1]
-        concept_num = torch.where(related_concepts != 0, 1, 0).sum(
-            axis=-1).unsqueeze(-1)
-        concept_num = torch.where(concept_num == 0, 1, concept_num).to(device)
-        concept_avg = (concept_emb_sum / concept_num)
-        return concept_avg
-
     def get_attn_pad_mask(self, sm):
         batch_size, l = sm.size()
         pad_attn_mask = sm.data.eq(0).unsqueeze(1)
         pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
         return pad_attn_mask.repeat(self.nhead, 1, 1)
 
-    def predcurc(self, repqemb, repcemb, cc, sm, emb_type, xemb, train):
-        # predcurc
+    def predcurc(self, qemb, cemb, xemb, dcur, train):
         y2 = 0
-        if self.n_pid > 0:
-            catemb = xemb + repqemb
+        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
+        padsm = torch.ones(sm.shape[0], 1).to(device)
+        sm = torch.cat([padsm, sm], dim=-1)
+        c = torch.cat([c[:,0:1], cshft], dim=-1)
+        chistory = xemb
+        if self.num_q > 0:
+            catemb = qemb + chistory
         else:
-            catemb = xemb
-        if emb_type.find("cemb") != -1:
-            catemb += repcemb
-        if emb_type.find("trans") != -1:
+            catemb = chistory
+        if self.separate_qa:
+            catemb += cemb
+        # if self.emb_type.find("cemb") != -1: akt本身就加了cemb
+        #     catemb += cemb
+
+        if self.emb_type.find("trans") != -1:
             mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.qnet1(catemb.transpose(0,1), mask).transpose(0,1)
+            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
         else:
-            qh, _ = self.qnet1(catemb)
+            qh, _ = self.qlstm(catemb)
         if train:
-            cpreds = self.qclasifier1(qh) # 之前版本没加sigmoid
-            padsm = torch.ones(sm.shape[0], 1).to(device)
-            sm = torch.cat([padsm, sm], dim=-1)
-            flag = sm==1
-            y2 = self.closs1(cpreds[flag], cc[flag])
-        xemb1 = xemb + qh
-        return y2, xemb1
+            start = 0
+            cpreds = self.qclasifier(qh[:,start:,:])
+            flag = sm[:,start:]==1
+            y2 = self.closs(cpreds[flag], c[:,start:][flag])
 
-    def predmultilabel(self, repcemb, repqemb, dcur, train):
-        y3 = 0
-        if train:
-            oriqs, orics, orisms = dcur["oriqs"].long(), dcur["orics"].long(), dcur["orisms"].long()#self.generate_oriqcs(q, c, sm)
-            oriqshft, oricshft = dcur["shft_oriqs"].long(), dcur["shft_orics"].long()
-            oriqs, orics = torch.cat([oriqs[:,0:1], oriqshft], dim=-1), torch.cat([orics[:,0:1,:], oricshft], dim=1)
-            concept_avg = self.get_avg_skill_emb(orics)
-            qemb = self.question_emb(oriqs)
-            oriposemb = self.position_emb(pos_encode(qemb.shape[1]))
-            # print(f"concept_avg: {concept_avg.shape}, qemb: {qemb.shape}, posemb: {posemb.shape}")
-            que_c_emb = concept_avg + qemb + oriposemb#torch.cat([concept_avg, qemb],dim=-1)
+        xemb = xemb + qh# + cemb
+        if self.separate_qa:
+            xemb = xemb + cemb
+        if self.emb_type.find("qemb") != -1:
+            xemb = xemb+qemb
+        
+        return y2, xemb
 
-            # add mask
-            # mask = self.get_attn_pad_mask(orisms)
-            mask = ut_mask(seq_len = que_c_emb.shape[1])
-            qh = self.qnet2(self.base_qnet22(self.base_qnet21(que_c_emb.transpose(0,1), mask).transpose(0,1)))
-            cpreds = torch.sigmoid(self.qclasifier2(qh))
-            padsm = torch.ones(orisms.shape[0], 1).to(device)
-            orisms = torch.cat([padsm, orisms], dim=-1)
-            flag = orisms==1
-            masked = cpreds[flag]
-            pad = torch.ones(cpreds.shape[0], cpreds.shape[1], self.n_question-10).to(device)
-            pad = -1 * pad
-            ytrues = torch.cat([orics, pad], dim=-1).long()[flag]
-            y3 = self.closs2(masked, ytrues)
-        posemb = self.position_emb(pos_encode(repcemb.shape[1]))
-        qcemb = repcemb+repqemb+posemb#torch.cat([repcemb, repqemb], dim=-1)
-        # qcmask = self.get_attn_pad_mask(sm)
-        qcmask = ut_mask(seq_len = qcemb.shape[1])
-        qcemb = self.qnet2(self.base_qnet22(self.base_qnet21(qcemb.transpose(0,1), qcmask).transpose(0,1)))
-        xemb2 = qcemb + repcemb+repqemb
-        return y3, xemb2
+    def changecemb(self, qemb, cemb):
+        catemb = cemb
+        if self.emb_type.find("qemb") != -1:
+            catemb += qemb
+        if self.emb_type.find("trans") != -1:
+            mask = ut_mask(seq_len = catemb.shape[1])
+            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
+        else:
+            qh, _ = self.qlstm(catemb)
+        
+        cemb = cemb + qh
+        if self.emb_type.find("qemb") != -1:
+            cemb = cemb+qemb
+        
+        return cemb
+
+    def afterpredcurc(self, h, dcur):
+        y2 = 0
+        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
+        padsm = torch.ones(sm.shape[0], 1).to(device)
+        sm = torch.cat([padsm, sm], dim=-1)
+        c = torch.cat([c[:,0:1], cshft], dim=-1)
+        
+        start = 1
+        cpreds = self.qclasifier(h[:,start:,:])
+        flag = sm[:,start:]==1
+        y2 = self.closs(cpreds[flag], c[:,start:][flag])
+        
+        return y2
+
+    def predhis(self, h, dcur):
+        sm = dcur["smasks"]
+        padsm = torch.ones(sm.shape[0], 1).to(device)
+        sm = torch.cat([padsm, sm], dim=-1)
+
+        # predict history correctness rates
+        
+        start = self.start
+        rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
+        rsm = sm[:,start:]
+        rflag = rsm==1
+        # rtrues = torch.cat([dcur["historycorrs"][:,0:1], dcur["shft_historycorrs"]], dim=-1)[:,start:]
+        padr = torch.zeros(h.shape[0], 1).to(device)
+        rtrues = torch.cat([padr, dcur["historycorrs"]], dim=-1)[:,start:]
+        # rtrues = dcur["historycorrs"][:,start:]
+        # rtrues = dcur["totalcorrs"][:,start:]
+        # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
+        y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
+
+        # h = self.dropout_layer(h)
+        # y = torch.sigmoid(self.out_layer(h))
+        return y3
 
     def forward(self, dcur, qtest=False, train=False):#q_data, target, pid_data=None, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -248,7 +226,7 @@ class CAKT(nn.Module):
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
 
-        if self.n_pid > 0 and not emb_type.endswith("mergetwo"): # have problem id
+        if self.n_pid > 0: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
             q_embed_data = q_embed_data + pid_embed_data * \
@@ -276,70 +254,23 @@ class CAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type.endswith("mergetwo"): #
-            if self.n_pid > 0:
-                repqemb = self.question_emb(pid_data)
-            repcemb = self.q_embed[q_data] # 原来的q_embed_data
-            if emb_type.find("predcurc") != -1:
-                y2, xemb1 = self.predcurc(repqemb, repcemb, q_data, sm, emb_type, qa_embed_data, train)
-            if emb_type.find("ml") != -1:
-                y3, xemb2 = self.predmultilabel(repcemb, repqemb, dcur, train)
-            q_embed_data, qa_embed_data = xemb2, xemb1
-
-            # TODO!!!
-            x, y = q_embed_data, qa_embed_data
-            for block in self.model:
-                if emb_type.find("decay") != -1:
-                    x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
-                else:
-                    x = block(mask=0, query=x, key=x, values=y, apply_pos=True, decay=False)
-            # value = qa_embed_data
-            # for i in range(self.n_blocks):
-            #     value = self.model[i](q_embed_data, q_embed_data, value)
-            # d_output = value
-            # d_output = self.model(q_embed_data, qa_embed_data)
-            concat_q = torch.cat([x, q_embed_data], dim=-1)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
-            
-        elif emb_type.endswith("sharepredcurc"):
-            d_output = self.model(q_embed_data, qa_embed_data)
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-
-            qemb = self.question_emb(pid_data)
-            concat_qemb = torch.cat([concat_q, qemb], dim=-1)
-            cout = self.qclasifier(concat_qemb).squeeze(-1)
-            m = nn.Sigmoid()
-            y2 = m(cout)
-
-            output = self.out(concat_qemb).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
             # predict concept
             qemb = self.question_emb(pid_data)
 
-            pad = torch.zeros(qa_embed_data.shape[0], 1, qa_embed_data.shape[2]).to(device)
-            chistory = torch.cat((pad, qa_embed_data[:,0:-1,:]), dim=1)
-            # chistory = qa_embed_data
-            catemb = qemb + chistory
-            if emb_type.find("cemb") != -1:
-                cemb = q_embed_data
-                catemb += cemb
-            qh, _ = self.qlstm(catemb)
-            y2 = self.qclasifier(qh)
+            # predcurc(self, qemb, cemb, xemb, dcur, train):
+            cemb = q_embed_data
+            y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
+            # q_embed_data = self.changecemb(qemb, cemb)
 
             # predict response
-            # pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
-            # chistory = torch.cat((pad, xemb[:,0:-1,:]), dim=1)
-            qa_embed_data = qa_embed_data + qh + cemb if emb_type.find("cemb") != -1 else qa_embed_data + qh
-            # if emb_type.find("qemb") != -1:
-            #     qa_embed_data += qemb
             d_output = self.model(q_embed_data, qa_embed_data)
+            # if emb_type.find("after") != -1:
+            #     curh = self.model(q_embed_data+qemb, qa_embed_data+qemb)
+            #     y2 = self.afterpredcurc(curh, dcur)
+            if emb_type.find("his") != -1:
+                y3 = self.predhis(d_output, dcur)
 
-            if emb_type.find("addfinal") != -1:
-                d_output += cemb + qh
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()

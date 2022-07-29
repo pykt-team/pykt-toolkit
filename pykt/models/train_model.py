@@ -59,7 +59,7 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "cakt"]:
+    if model_name in ["cdkt", "cakt", "cdkvmn"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -74,6 +74,8 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
             #     loss = model.l1*loss1+model.l2/2*ys[1]+model.l3/2*ys[2]
             # else:
             #     loss = loss1
+        elif model.emb_type.find("predhis") != -1:
+            loss = model.l1*loss1+model.l2*ys[1]
         elif model.emb_type.find("predcurc") != -1:
             if model.emb_type.find("his") != -1:
                 loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
@@ -181,6 +183,9 @@ def model_forward(model, data, epoch):
         ys = [y[:,1:], y2, y3]
         # ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
         preloss.append(reg_loss)
+    elif model_name in ["cdkvmn"]:
+        y, y2, y3 = model(dcur, train=True)
+        ys = [y[:,1:], y2, y3]
     elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)

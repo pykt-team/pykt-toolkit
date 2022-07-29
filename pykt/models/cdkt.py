@@ -71,6 +71,22 @@ class CDKT(Module):
                 self.qclasifier = Linear(self.hidden_size, self.num_c)
                 self.closs = CrossEntropyLoss()
 
+        if self.emb_type.endswith("predhis"):
+            self.l1 = l1
+            self.l2 = l2
+            self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            if self.emb_type.find("predr") != -1:
+                self.response_emb = Embedding(2, self.emb_size)
+                self.rclasifier = Linear(self.hidden_size, 1)
+                # self.rloss = Bina
+            # 加一个预测历史准确率的任务
+            if self.emb_type.find("his") != -1:
+                self.start = start
+                self.hisclasifier = nn.Sequential(
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size//2, 1))
+                self.hisloss = nn.MSELoss()
+
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = l1
             self.l2 = l2
@@ -129,6 +145,10 @@ class CDKT(Module):
                 self.difficulty_layer = Embedding(11, self.emb_size)
             if self.emb_type.find("bkt") != -1:
                 self.bkt = nn.Parameter(torch.randn(self.num_c, 2).to(device), requires_grad=True)
+            if self.emb_type.find("lr") != -1:
+                self.level = Embedding(51,self.emb_size)
+                self.confidence = nn.Parameter(torch.randn(seq_len, 1).to(device), requires_grad=True)
+                # self.confidence = nn.Parameter(torch.randn(seq_len, self.emb_size).to(device), requires_grad=True)
 
             # 
         if self.emb_type.endswith("addcshft"):
@@ -407,6 +427,31 @@ class CDKT(Module):
                 h, _ = self.lstm_layer(xemb)
                 h = self.dropout_layer(h)
                 y = torch.sigmoid(self.out_layer(h))
+        elif emb_type.endswith("predhis"): # only predict history correct ratios
+            # predict response
+            cemb = self.concept_emb(c)
+            xemb = xemb + cemb
+            h, _ = self.lstm_layer(xemb)
+            # predict history correctness rates
+            if emb_type.find("his") != -1:
+                start = self.start
+                rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
+                rsm = sm[:,start:]
+                rflag = rsm==1
+                rtrues = dcur["historycorrs"][:,start:]
+                # rtrues = dcur["totalcorrs"][:,start:]
+                # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
+                y2 = self.hisloss(rpreds[rflag], rtrues[rflag])
+            if emb_type.find("predr") != -1:
+                rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
+                flag = sm==1
+                y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
+                # assert False
+
+            h = self.dropout_layer(h)
+            # y = torch.sigmoid(self.out_layer(h))
+            y = self.out_layer(h)
+            y = torch.sigmoid(y)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
             # predict concept
             # pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
@@ -449,6 +494,8 @@ class CDKT(Module):
 
             # predict response
             xemb = xemb + qh + cemb
+            if emb_type.find("qemb") != -1:
+                xemb = xemb+qemb
             if emb_type.find("diff") != -1:
                 xemb = xemb + diffemb# + qemb
             if emb_type.find("catr") != -1:
@@ -462,6 +509,20 @@ class CDKT(Module):
             if emb_type.find("addr") != -1:
                 remb = self.response_emb(r)
                 xemb = xemb + remb
+            # 截止当前的学习能力
+            if emb_type.find("lr") != -1:
+                # print(torch.ceil(dcur["historycorrs"]*5).long())
+                # assert False
+                levelemb = self.level(torch.ceil(dcur["historycorrs"]*50).long()) # 共101个级别
+                conf = torch.sigmoid(self.confidence[xemb.shape[0]]).unsqueeze(-1).expand_as(levelemb)
+                # conf = torch.sigmoid(self.confidence[xemb.shape[0]]).expand_as(levelemb)
+                levelemb = conf * levelemb
+                pad = torch.zeros(xemb.shape[0], 50, xemb.shape[2]).to(device)
+                # levelemb[:,self.start:,:] = pad
+                xemb = xemb + torch.cat([pad, levelemb[:,50:,:]], dim=1)
+                
+                # xemb = xemb + levelemb
+                # assert False
 
             h, _ = self.lstm_layer(xemb)
 
@@ -490,6 +551,10 @@ class CDKT(Module):
                 y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
                 # assert False
             # predict response
+            if emb_type.find("alphas") != -1:
+                alphas = dcur["alphas"].unsqueeze(-1).expand_as(h)
+                h = alphas * h
+
             h = self.dropout_layer(h)
             # y = torch.sigmoid(self.out_layer(h))
             y = self.out_layer(h)

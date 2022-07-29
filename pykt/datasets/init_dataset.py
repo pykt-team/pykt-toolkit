@@ -87,8 +87,9 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
                         input_type=data_config["input_type"], folds=all_folds - {i}, 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     else:
-        curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
+        
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     

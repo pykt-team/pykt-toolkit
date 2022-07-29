@@ -76,6 +76,9 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["cakt"]:
                 y, reg_loss = model(dcur)
                 y = y[:,1:]
+            elif model_name in ["cdkvmn"]:
+                y = model(dcur)
+                y = y[:,1:]
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
