@@ -57,6 +57,9 @@ class DKTQueNet(nn.Module):
             self.qca_attn = nn.MultiheadAttention(self.hidden_size*4, num_heads=1,batch_first=True)
             self.qc_attn_linear = nn.Linear(self.hidden_size*4,self.hidden_size*2)
 
+        self.contrast_mode = self.other_config.get("contrast_mode")#cm_v1,cm_v2
+
+
         if self.emb_type in ["iekt"]:
             self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
             if self.attention_mode in ["attention"]:
@@ -89,13 +92,11 @@ class DKTQueNet(nn.Module):
                 self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
             else:
                 pass
-        
-        if self.output_mode in ["an_irt"]:
+        elif self.output_mode in ["an_irt"]:
             trainable = self.other_config.get("irt_w_trainable",1)==1
             # self.irt_w = nn.Parameter(torch.randn(3).to(device), requires_grad=True)
             self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
             # self.irt_w = nn.Parameter(torch.tensor([0.75,0.75,1.5]).to(device), requires_grad=True)
-
         else:#单独预测模式
             if self.predict_next:
                 if self.emb_type in ["iekt"]:
@@ -300,72 +301,27 @@ class DKTQue(QueBaseModel):
 
 
     def train_one_step(self,data,process=True,return_all=False):
-        
-        if "fr" in self.model.loss_mode:#only for predict all
-            y_question_raw,y_concept_raw,y_question_concepts_raw,data_new = self.predict_one_step(data,return_details=True,process=process,return_raw=True)
-            seq_len = data_new['qshft'].shape[1]
-            loss_question = 0
-            loss_concept = 0
-            num_inter = 0
-            for i in range(seq_len):
-                #new mask
-                fr_window = self.model.other_config.get("fr_window",1)
-                sm_step = data_new['sm'][:,i:i+fr_window]
-                num_inter_step = sm_step.sum()
-                if num_inter_step==0:
-                    break
-                rshft_step = data_new['rshft'][:,i:i+fr_window]
-                cshft_step = data_new['cshft'][:,i:i+fr_window]
-                qshft_step = data_new['qshft'][:,i:i+fr_window]
-
-                valid_seq_len = min(fr_window,rshft_step.shape[1])
-                num_inter+=num_inter_step
-                #new y_concept
-                current_step_concept_raw = y_concept_raw[:,i].unsqueeze(1)
-                # print(f"current_step_concept_raw shape is {current_step_concept_raw.shape}")
-                current_concept_expand = current_step_concept_raw.repeat(1,valid_seq_len,1)
-                # current_concept_expand = current_step_concept_raw.repeat(-1,valid_seq_len,-1)
-                y_concept_step = self.get_avg_fusion_concepts(current_concept_expand,cshft_step)
-      
-                loss_concept_step =self.get_loss(y_concept_step,rshft_step,sm_step)
-                loss_concept = loss_concept+loss_concept_step*num_inter_step
+        outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
+        if "an" in self.model.output_mode:
+            #all 
+            loss_question_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
+            #next
+            loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
             
-               
-                #new y_question
-                current_step_question_raw = y_question_raw[:,i].unsqueeze(1)
-                current_question_expand = current_step_question_raw.repeat(1,valid_seq_len,1)
-                # current_question_expand = current_step_question_raw.repeat(-1,valid_seq_len,-1)
-                # print(f"current_question_expand shape is {current_question_expand.shape}")
-                y_question_step = (current_question_expand * F.one_hot(qshft_step.long(), self.model.num_q)).sum(-1)
-                loss_question_step = self.get_loss(y_question_step,rshft_step,sm_step)#question level loss
-                loss_question = loss_question + loss_question_step*num_inter_step
-               
-
-            loss_question = loss_question/num_inter
-            loss_concept = loss_concept/num_inter
-            loss_question_concept = 0
-        else: 
-            outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-            if "an" in self.model.output_mode:
-                #all 
-                loss_question_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
-                #next
-                loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
-                
-                loss_question_concept = -1
+            loss_question_concept = -1
+        else:
+            loss_question = self.get_loss(outputs['y_question'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept = self.get_loss(outputs['y_concept'],data_new['rshft'],data_new['sm'])#kc level loss
+            if "cc" in self.model.loss_mode:
+                # 知识点分类当作多分类
+                loss_func = Loss(self.model.other_config.get("loss_type","ce"),
+                                    epsilon=self.model.other_config.get("epsilon",1.0),
+                                    gamma=self.model.other_config.get("gamma",2)).get_loss
+                loss_question_concept = loss_func(outputs['y_qc_predict'],outputs['qc_target'])#question concept level loss
             else:
-                loss_question = self.get_loss(outputs['y_question'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept = self.get_loss(outputs['y_concept'],data_new['rshft'],data_new['sm'])#kc level loss
-                if "cc" in self.model.loss_mode:
-                    # 知识点分类当作多分类
-                    loss_func = Loss(self.model.other_config.get("loss_type","ce"),
-                                     epsilon=self.model.other_config.get("epsilon",1.0),
-                                     gamma=self.model.other_config.get("gamma",2)).get_loss
-                    loss_question_concept = loss_func(outputs['y_qc_predict'],outputs['qc_target'])#question concept level loss
-                else:
-                    loss_question_concept = -1
+                loss_question_concept = -1
 
         if "an" in self.model.output_mode:
             all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
