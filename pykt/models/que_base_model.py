@@ -272,6 +272,9 @@ class QueBaseModel(nn.Module):
             for data in train_loader:
                 train_step += 1
                 self.model.train()
+                # self.stu_model.train()
+                
+
                 y,loss = self.train_one_step(data,process=process)
                 self.opt.zero_grad()
                 loss.backward()#compute gradients 
@@ -293,7 +296,7 @@ class QueBaseModel(nn.Module):
                 validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_dataset, emb_type)
                 testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
                 max_auc = round(max_auc, 4)
-            print(f"Epoch: {i},validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, train loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
+            print(f"Epoch: {i},validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, train loss: {loss_mean:.4f}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
             print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
             if i - best_epoch >= patient:
