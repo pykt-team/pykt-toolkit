@@ -272,9 +272,6 @@ class QueBaseModel(nn.Module):
             for data in train_loader:
                 train_step += 1
                 self.model.train()
-                # self.stu_model.train()
-                
-
                 y,loss = self.train_one_step(data,process=process)
                 self.opt.zero_grad()
                 loss.backward()#compute gradients 
