@@ -76,7 +76,7 @@ class TchKTNet(nn.Module):
             self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
 
         if self.stu_tch_type == 'tch':
-            self.tch_stu_input_fusion = MLP(1,self.hidden_size*8,self.hidden_size*4,dpo=0)
+            self.tch_stu_input_fusion = MLP(2,self.hidden_size*8,self.hidden_size*4,dpo=0)
 
 
     def get_avg_fusion_concepts(self,y_concept,cshft):
@@ -109,20 +109,16 @@ class TchKTNet(nn.Module):
             
         
         h, _ = self.lstm_layer(emb_qca_current)
-      
         h = self.dropout_layer(h)
         
-     
-    
         #next predict
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
         y_question_next = torch.sigmoid(self.out_question_next(h_next))
         y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
 
         #all predict
-        h_all = h
-        y_question_all = torch.sigmoid(self.out_question_all(h_all))
-        y_concept_all = torch.sigmoid(self.out_concept_all(h_all))
+        y_question_all = torch.sigmoid(self.out_question_all(h))
+        y_concept_all = torch.sigmoid(self.out_concept_all(h))
 
 
         outputs = {"y_question_next":y_question_next,"y_concept_next":y_concept_next,
@@ -145,14 +141,10 @@ class TchKTNet(nn.Module):
         
         return outputs
 
-class TchKT(QueBaseModel):
-    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1,other_config={}):
-        model_name = "dkt_que"
-       
-        debug_print(f"emb_type is {emb_type}",fuc_name="DKTQue")
 
-        super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
-  
+class TchKTCore(nn.Module):
+    def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
+        super().__init__()
         self.stu_model = TchKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config,stu_tch_type='stu').to(device)
 
@@ -160,8 +152,74 @@ class TchKT(QueBaseModel):
         self.model = TchKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config,stu_tch_type='tch').to(device)
         # self.model.que_emb = self.stu_model.que_emb
-
        
+        self.model_name = "dkt_que"
+        self.num_q = num_q
+        self.num_c = num_c
+        self.emb_size = emb_size
+        self.hidden_size = emb_size
+        self.mlp_layer_num = mlp_layer_num
+        self.device = device
+        self.other_config = other_config
+        self.qc_predict_mode_lambda = self.other_config.get('qc_predict_mode_lambda',1)
+        self.qc_loss_mode_lambda = self.other_config.get('qc_loss_mode_lambda',1)
+        self.loss_question_concept_lambda = self.other_config.get('loss_question_concept_lambda',1)
+
+        self.emb_type,self.loss_mode,self.predict_mode,self.output_mode,self.attention_mode = emb_type.split("|-|")
+        self.predict_next = self.output_mode == "next"#predict all question
+
+
+    def get_merge_y(self,y_question,y_concept,predict_mode):
+        if predict_mode=="c":
+            y = y_concept
+        elif predict_mode=="q":
+            y = y_question
+        elif predict_mode in ["qc","qc_cc"]:
+            y = (y_question+y_concept*self.model.qc_predict_mode_lambda)/(1+self.model.qc_predict_mode_lambda)
+        return y
+
+    def forward(self,data):
+        # student
+        outputs_student = self.stu_model(data['cq'].long(),data['cc'],data['cr'].long(),data=data)#[1,seq_len]'s result
+        y_qc_all = self.get_merge_y(outputs_student['y_question_all'],outputs_student['y_concept_all'],'qc')
+        y_qc_next = self.get_merge_y(outputs_student['y_question_next'],outputs_student['y_concept_next'],'c')
+        outputs_student['y'] = (y_qc_all + y_qc_next)/2
+        data['stu_model_outputs'] = outputs_student
+        
+        #teacher
+        outputs = self.model(data['cq'].long(),data['cc'],data['cr'].long(),data=data)#[2,seq_len]'s result
+        del data['stu_model_outputs']#remove predict result
+        outputs["outputs_student"] = outputs_student
+
+        if self.model.output_mode=="an_irt":
+            def sigmoid_inverse(x):
+                # return x
+                return torch.log(x/(1-x+1e-7)+1e-7)
+            y = self.model.irt_w[0]*sigmoid_inverse(outputs['y_question_all']) + self.model.irt_w[1]*sigmoid_inverse(outputs['y_concept_all']) - self.model.irt_w[2]*sigmoid_inverse(outputs['y_question_next'])
+            # print(f"y is {y}")
+            y = torch.sigmoid(y)
+        else:
+            all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
+            y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
+            outputs['y_qc_all'] = y_qc_all
+            y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
+            output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
+            output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
+            y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
+        outputs['y'] = y
+        return outputs
+
+
+class TchKT(QueBaseModel):
+    def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1,other_config={}):
+        model_name = "dkt_que"
+       
+        debug_print(f"emb_type is {emb_type}",fuc_name="DKTQue")
+
+        super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
+        self.model = TchKTCore(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
+                               emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config).to(device)
+        
         self.emb_type = self.model.emb_type
         self.eval_result = {}
     
@@ -184,7 +242,6 @@ class TchKT(QueBaseModel):
    
 
     def train_one_step(self,data,process=True,return_all=False):
-        self.stu_model.train()
         self.model.train()
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
 
@@ -201,6 +258,8 @@ class TchKT(QueBaseModel):
         loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
         loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
         loss_stu = self.get_loss(outputs['outputs_student']['y'],data_new['rshft'],data_new['sm'])
+        # loss_same = -1
+        # loss_stu = -1
         loss_tch = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
 
         if self.model.output_mode=="an_irt":
@@ -215,15 +274,12 @@ class TchKT(QueBaseModel):
             loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
             loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
             loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-            loss = loss + loss_stu + loss_tch
-
-    
+            loss = loss + loss_stu
             print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f},loss_stu={loss_stu:.4f},loss_tch={loss_tch:.4f}")
         return outputs['y'],loss#y_question没用
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
         test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
-        self.stu_model.eval()
         self.model.eval()
         with torch.no_grad():
             y_trues = []
@@ -303,52 +359,15 @@ class TchKT(QueBaseModel):
         y_qc_predict = y_question_concepts[concept_target!=-1,:]
         return qc_target,y_qc_predict
 
-    def get_merge_y(self,y_question,y_concept,predict_mode):
-        if predict_mode=="c":
-            y = y_concept
-        elif predict_mode=="q":
-            y = y_question
-        elif predict_mode in ["qc","qc_cc"]:
-            y = (y_question+y_concept*self.model.qc_predict_mode_lambda)/(1+self.model.qc_predict_mode_lambda)
-        return y
+    
 
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
-        # student
-        outputs_student = self.stu_model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)#[1,seq_len]'s result
-        y_qc_all = self.get_merge_y(outputs_student['y_question_all'],outputs_student['y_concept_all'],'qc')
-        y_qc_next = self.get_merge_y(outputs_student['y_question_next'],outputs_student['y_concept_next'],'c')
-        outputs_student['y'] = (y_qc_all + y_qc_next)/2
-        data_new['stu_model_outputs'] = outputs_student
-        
-        #teacher
-        outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)#[2,seq_len]'s result
-        del data_new['stu_model_outputs']#remove predict result
-
-        # print(y_question.shape,y_concept.shape)
+        outputs = self.model(data_new)
         if return_raw:#return raw probability, for future reward
             return outputs,data_new
             
-        all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
-        y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
-        outputs['y_qc_all'] = y_qc_all
-        y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
-        if self.model.output_mode=="an_irt":
-            def sigmoid_inverse(x):
-                # return x
-                return torch.log(x/(1-x+1e-7)+1e-7)
-            y = self.model.irt_w[0]*sigmoid_inverse(outputs['y_question_all']) + self.model.irt_w[1]*sigmoid_inverse(outputs['y_concept_all']) - self.model.irt_w[2]*sigmoid_inverse(outputs['y_question_next'])
-            # print(f"y is {y}")
-            y = torch.sigmoid(y)
-        else:
-            output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
-            output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
-            y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
-        # outputs['y'] = y
-        outputs['y'] = outputs_student['y']
-        outputs['outputs_student'] = outputs_student
-
         if return_details:
             return outputs,data_new
         else:
-            return y
+            return outputs['y']
