@@ -49,19 +49,36 @@ class DeepBKT(nn.Module):
             self.bayesian = False
             self.forgetting = False
             self.difficulty = False
+        elif self.emb_type == "augmentation_v2":
+            self.augmentation = True
+            self.bayesian = False
+            self.forgetting = False
+            self.difficulty = False
+        elif self.emb_type == "augmentation_v3":
+            self.augmentation = True
+            self.bayesian = False
+            self.forgetting = False
+            self.difficulty = False
         elif self.emb_type == "bayesian":
             self.augmentation = False
             self.bayesian = True
             self.forgetting = False
             self.difficulty = False
-        # elif self.emb_type == "bayesian_v2":
-        #     self.augmentation = False
-        #     self.bayesian = True
-        #     self.forgetting = False
-        # elif self.emb_type == "bayesian_limited":
-        #     self.augmentation = False
-        #     self.bayesian = True
-        #     self.forgetting = False
+        elif self.emb_type == "bayesian_v2":
+            self.augmentation = False
+            self.bayesian = True
+            self.forgetting = False
+            self.difficulty = False
+        elif self.emb_type == "bayesian_v3":
+            self.augmentation = False
+            self.bayesian = True
+            self.forgetting = False
+            self.difficulty = False
+        elif self.emb_type == "bayesian_v4":
+            self.augmentation = False
+            self.bayesian = True
+            self.forgetting = False
+            self.difficulty = False
         elif self.emb_type.find("forgetting") != -1:
             self.augmentation = False
             self.bayesian = False
@@ -73,6 +90,11 @@ class DeepBKT(nn.Module):
             self.forgetting = False
             self.difficulty = False
         elif self.emb_type == "augmentation_bayesian_v2":
+            self.augmentation = True
+            self.bayesian = True
+            self.forgetting = False
+            self.difficulty = False
+        elif self.emb_type == "augmentation_bayesian_v3":
             self.augmentation = True
             self.bayesian = True
             self.forgetting = False
@@ -97,6 +119,16 @@ class DeepBKT(nn.Module):
             self.augmentation = False
             self.bayesian = False
             self.forgetting = False
+        elif self.emb_type == "difficulty_v2":
+            self.difficulty = True
+            self.augmentation = False
+            self.bayesian = False
+            self.forgetting = False
+        elif self.emb_type == "difficulty_v3":
+            self.difficulty = True
+            self.augmentation = False
+            self.bayesian = False
+            self.forgetting = False
 
         if self.n_pid > 0:
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
@@ -107,27 +139,20 @@ class DeepBKT(nn.Module):
         self.qa_embed = nn.Embedding(2, embed_l)
         self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
 
-        # -----------------old version------------------
-        # if self.augmentation or self.bayesian:
-        #     self.guess = nn.Embedding(self.n_question + 1, embed_l)
-        #     self.slipping = nn.Embedding(self.n_question + 1, embed_l)
-        #     self.Sigmoid = nn.Sigmoid()
-        #     if self.augmentation:
-        #         self.slip_linear = nn.Linear(embed_l, 1)
-        #         self.guess_linear = nn.Linear(embed_l, 1)
-        #     if self.bayesian:
-        #         self.correct = nn.Embedding(1, embed_l)
-        #         self.mastery = nn.Embedding(self.n_question + 1, embed_l)
-
-        # -----------------new version------------------
         if self.augmentation or self.bayesian:
             self.guess = nn.Embedding(self.n_question + 1, 1)
             self.slipping = nn.Embedding(self.n_question + 1, 1)
             self.Sigmoid = nn.Sigmoid()
             if self.bayesian:
                 self.mastery = nn.Embedding(self.n_question + 1, embed_l)
-                # self.mastery = nn.Embedding(self.n_question + 1, 1)
-
+                self.tanh = nn.Tanh()
+                self.sigmoid = nn.Sigmoid()
+                self.bayesian_linear1 = nn.Linear(embed_l + d_model, embed_l)
+                if emb_type in ["bayesian_v2", "bayesian_v3"]:
+                    self.bayesian_linear2 = nn.Linear(embed_l, 2 * embed_l)
+                    self.bayesian_linear3 = nn.Linear(embed_l, 2 * embed_l)
+                    self.bayesian_linear4 = nn.Linear(2*embed_l, embed_l)
+            
         if self.forgetting:
             self.dF = dict()
             self.dr2w = dict()
@@ -139,39 +164,40 @@ class DeepBKT(nn.Module):
             self.d_corr = dict()
             self.d_diff = dict()
             self.avgdiff = 0
-            self.diff_linear = nn.Sequential(
-            nn.Linear(embed_l,
-                    final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 1)
-        )
+            if emb_type != "difficulty_v2":
+                self.diff_linear = nn.Sequential(
+                nn.Linear(embed_l,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, 1)
+            )
+            else:
+                self.diff_linear = nn.Linear(embed_l, 1)                
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  seq_len=seq_len, kq_same=self.kq_same, model_type=self.model_type, emb_type=self.emb_type, use_pos=self.use_pos)
 
-
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
-                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
-            )
-        # if self.bayesian:
-        #     self.out = nn.Sequential(
-        #         nn.Linear(final_fc_dim, embed_l), nn.ReLU(
-        #         ), nn.Dropout(self.dropout)
-        #     )
-        #     self.bayesian_linear = nn.Linear(embed_l, final_fc_dim)
-
-        self.pred_linear = nn.Sequential(
-            nn.Linear(embed_l,
-                    final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                      embed_l), nn.ReLU(), nn.Dropout(self.dropout),
+            nn.Linear(embed_l, final_fc_dim), nn.ReLU(
+            ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 1)
         )
+
+        # self.out = nn.Sequential(
+        #     nn.Linear(d_model + embed_l,
+        #             embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+        #     )
+        # self.pred_linear = nn.Sequential(
+        #     nn.Linear(embed_l,
+        #             final_fc_dim), nn.ReLu(), nn.Dropout(self.dropout),
+        #     nn.Linear(final_fc_dim, 1)
+        # )
+
         self.reset()
 
         self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
-
-    # def mySigmoid(self, x):
-    #     return torch.div(torch.ones_like(x), torch.ones_like(x) + torch.exp(-torch.mul(x,self.sigmoida)-torch.ones_like(x)*self.sigmoidb))
 
     def calSkillF(self, cs, rs, sm):
         concepts = set()
@@ -203,6 +229,7 @@ class DeepBKT(nn.Module):
         self.avgf = sum / len(self.dr)
         print(f"dF: {self.dF}, avgf: {self.avgf}")
 
+    #----------forgetting version_v4-------------
     def generate_forget(self, cs, rs):
         fss = []
         sub_dr2w, sub_dr = dict(), dict()
@@ -210,13 +237,19 @@ class DeepBKT(nn.Module):
         for i in range(cs.shape[0]): # batch
             curfs = []
             sub_drs = dict()
+            dlast = dict()
             for j in range(cs.shape[1]): # seqlen
                 curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                if curc not in sub_dr:
-                    curf = 1 - self.dF.get(curc, self.avgf)
+                if curc not in dlast:
+                    delta = 1
                 else:
-                    curf = 1 - ((sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0)))
+                    delta = j - dlast[curc]
+                if curc not in sub_dr:
+                    curf = (1 - self.dF.get(curc, self.avgf)) ** delta
+                else:
+                    curf = (1 - ((sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0)))) ** delta
                 curfs.append([curf]) 
+                dlast[curc] = j
                 if curr == 1:
                     sub_dr.setdefault(curc, 0)
                     sub_dr[curc] += 1
@@ -225,9 +258,9 @@ class DeepBKT(nn.Module):
                     sub_dr2w[curc] += 1
                 sub_drs.setdefault(curc, list())
                 sub_drs[curc].append([curr, j]) 
-            # print(f"{len(curfs)}")
-                  
+            # print(f"{len(curfs)}")                  
             fss.append(curfs)
+
         # print(f"fss:{len(fss)}, fss:{len(fss[0])}")
             # assert False
         return torch.tensor(fss).float().to(device)
@@ -276,31 +309,12 @@ class DeepBKT(nn.Module):
         seqlen = q_data.shape[1]
         emb_type = self.emb_type
 
-        # -----------------old version-------------------
-        # if self.augmentation:
-        #     kc_slipping = self.slipping(q_data)
-        #     kc_slipping = self.slip_linear(kc_slipping)
-        #     kc_slipping = torch.squeeze(self.Sigmoid(kc_slipping))
-        #     kc_slipping = torch.clamp(kc_slipping, min=0, max=0.1)
-        #     kc_guess = self.guess(q_data)
-        #     kc_guess = self.guess_linear(kc_guess)
-        #     kc_guess = torch.squeeze(self.Sigmoid(kc_guess))
-        #     kc_guess = torch.clamp(kc_guess, min=0, max=0.1)
-        #     new_target = torch.where(target == 0, torch.bernoulli(kc_slipping), 1 - torch.bernoulli(kc_guess))
-        #     q_data = q_data.repeat(2,1,1).reshape(-1, seqlen)
-        #     pid_data = pid_data.repeat(2,1,1).reshape(-1, seqlen)
-        #     target = torch.stack([target, new_target]).reshape(-1,seqlen).long()
-
         # -----------------new version-------------------
         if self.augmentation:
             kc_slipping = self.slipping(q_data)
-            # kc_slipping = torch.squeeze(self.Sigmoid(kc_slipping))
             kc_slipping = torch.squeeze(self.Sigmoid(kc_slipping) * self.sigmoidb)
-            # print(f"kc_slipping: {kc_slipping.shape}")
             kc_guess = self.guess(q_data)
-            # kc_guess = torch.squeeze(self.Sigmoid(kc_guess))
             kc_guess = torch.squeeze(self.Sigmoid(kc_guess) * self.sigmoida)
-            # print(f"kc_guess: {kc_guess.shape}")
             new_target = torch.where(target == 0, torch.bernoulli(kc_slipping), 1 - torch.bernoulli(kc_guess))
             q_data = q_data.repeat(2,1,1).reshape(-1, seqlen)
             pid_data = pid_data.repeat(2,1,1).reshape(-1, seqlen)
@@ -313,8 +327,6 @@ class DeepBKT(nn.Module):
         if self.n_pid > 0: # have problem id
             q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
             pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-            # q_embed_data = q_embed_data + pid_embed_data * \
-            #     q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             final_q_embed_data = q_embed_data + pid_embed_data + \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
             if self.augmentation:
@@ -340,90 +352,50 @@ class DeepBKT(nn.Module):
             d_output = self.model(final_q_embed_data, final_qa_embed_data, sLeft)
         else:
             d_output = self.model(final_q_embed_data, final_qa_embed_data)
-
-        concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
-        output = self.out(concat_q)
-        
-        # #-----------------old version--------------
-        # if self.bayesian and not self.augmentation:
-        #     # print(f"using bayesian")
-        #     # kc_slipping = self.Sigmoid(self.slipping(q_data))
-        #     # # kc_slipping = torch.squeeze(m(kc_slipping))
-        #     # kc_guess = self.Sigmoid(self.guess(q_data))
-        #     # # kc_guess = torch.squeeze(m(kc_guess))
-        #     kc_slipping = self.slipping(q_data)
-        #     kc_guess = self.guess(q_data)
-        #     d_ones = torch.zeros(1, 1).expand_as(q_data).long().to(device)
-        #     d_correct = self.correct(d_ones)
-        #     d_mastery = self.mastery(d_ones)
-        #     output = output * (d_correct - kc_slipping) + (d_mastery - output) * kc_guess
-        #     # output = self.bayesian_linear(output)
-        #     # print(f"output: {output.shape}")
-        # elif self.bayesian and self.augmentation:
-        #     # print(f"using augmentation and bayesian")
-        #     tmp_output = output.reshape(2, batch_size, seqlen, -1)
-        #     new_qdata = q_data.reshape(2, batch_size, -1)
-        #     kc_slipping = self.slipping(new_qdata[0])
-        #     kc_guess = self.guess(new_qdata[0])
-        #     d_ones = torch.zeros(1, 1).expand_as(new_qdata[0]).long().to(device)
-        #     d_correct = self.correct(d_ones)
-        #     d_mastery = self.mastery(d_ones)
-        #     # print(f"output: {output[0].shape}")
-        #     # print(f"d_ones: {d_correct.shape}")
-        #     # print(f"kc_slipping: {kc_slipping.shape}")
-        #     # print(f"kc_guess: {kc_guess.shape}")
-        #     new_ouput = tmp_output[0] * (d_correct - kc_slipping) + (d_mastery - tmp_output[0]) * kc_guess
-        #     # original_preds = self.bayesian_linear(original_preds)
-        #     output = torch.stack([new_ouput, tmp_output[1]])
-        #     # output = new_output.reshape(2*batch_size * seqlen, -1)
-        #     # print(f"output: {output.shape}")
-        
+            
         #-----------------new version--------------
-        # if self.bayesian and not self.augmentation and emb_type == "bayesian":
-        #     # print(f"using bayesian")
-        #     # kc_slipping = self.Sigmoid(self.slipping(q_data))
-        #     # # kc_slipping = torch.squeeze(m(kc_slipping))
-        #     # kc_guess = self.Sigmoid(self.guess(q_data))
-        #     # # kc_guess = torch.squeeze(m(kc_guess))
-        #     kc_slipping = self.slipping(q_data)
-        #     kc_slipping = self.Sigmoid(kc_slipping)
-        #     kc_guess = self.guess(q_data)
-        #     kc_guess = self.Sigmoid(kc_guess)
-        #     d_mastery = self.mastery(q_data)
-        #     output = output * (1 - kc_slipping) + (d_mastery - output) * kc_guess
-        #     # output = self.bayesian_linear(output)
-        #     # print(f"output: {output.shape}")
-        # elif self.bayesian and not self.augmentation and emb_type == "bayesian_v2":
-        #     # print(f"using bayesian")
-        #     # kc_slipping = self.Sigmoid(self.slipping(q_data))
-        #     # # kc_slipping = torch.squeeze(m(kc_slipping))
-        #     # kc_guess = self.Sigmoid(self.guess(q_data))
-        #     # # kc_guess = torch.squeeze(m(kc_guess))
-        #     output = self.Sigmoid(output)
-        #     kc_slipping = self.slipping(q_data)
-        #     kc_slipping = self.Sigmoid(kc_slipping)
-        #     kc_guess = self.guess(q_data)
-        #     kc_guess = self.Sigmoid(kc_guess)
-        #     d_mastery = self.mastery(q_data)
-        #     d_mastery = self.Sigmoid(d_mastery)
-        #     output = output * (1 - kc_slipping) + (d_mastery - output) * kc_guess
-        #     # output = self.bayesian_linear(output)
-        #     # print(f"output: {output.shape}")
-        if self.bayesian and not self.augmentation:
-            # print(f"using bayesian")
-            # kc_slipping = self.Sigmoid(self.slipping(q_data))
-            # # kc_slipping = torch.squeeze(m(kc_slipping))
-            # kc_guess = self.Sigmoid(self.guess(q_data))
-            # # kc_guess = torch.squeeze(m(kc_guess))
+        if self.bayesian and not self.augmentation and emb_type == "bayesian":
             kc_slipping = self.slipping(q_data)
-            kc_slipping = self.Sigmoid(kc_slipping) * self.sigmoidb
+            kc_slipping = self.Sigmoid(kc_slipping)
             kc_guess = self.guess(q_data)
-            kc_guess = self.Sigmoid(kc_guess)  * self.sigmoida
+            kc_guess = self.Sigmoid(kc_guess)
             d_mastery = self.mastery(q_data)
-            # output = output * (1 - kc_slipping) + (d_mastery * 1 - output) * kc_guess
-            output = output * (1 - kc_slipping) + (d_mastery - output) * kc_guess
-            # output = self.bayesian_linear(output)
-            # print(f"output: {output.shape}")
+            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
+            bayesian_input = self.bayesian_linear1(bayesian_input)
+            output = bayesian_input * (1 - kc_slipping) + (d_mastery - bayesian_input) * kc_guess
+        # 先归一化再进行bayesian
+        elif self.bayesian and not self.augmentation and emb_type == "bayesian_v2":
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess)
+            d_mastery = self.mastery(q_data)
+            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
+            bayesian_input = self.bayesian_linear1(bayesian_input)
+            # print(f"bayesian_input: {bayesian_input.shape}")
+            bayesian_input1 = self.bayesian_linear2(bayesian_input)
+            bayesian_input_tmp = self.tanh(bayesian_input1)
+            bayesian_input2 = self.bayesian_linear3(bayesian_input)
+            bayesian_gain = self.sigmoid(bayesian_input2)
+            bayesian_final_input = (bayesian_input_tmp + 1)/2 * bayesian_gain
+            bayesian_final_input = self.bayesian_linear4(bayesian_final_input)
+            output = bayesian_final_input * (1 - kc_slipping) + (d_mastery - bayesian_final_input) * kc_guess
+        # 先bayesian再进行归一化
+        elif self.bayesian and not self.augmentation and emb_type == "bayesian_v3":
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess)
+            d_mastery = self.mastery(q_data)
+            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
+            bayesian_input = self.bayesian_linear1(bayesian_input)
+            bayesian_output = bayesian_input * (1 - kc_slipping) + (d_mastery - bayesian_input) * kc_guess
+            bayesian_output1 = self.bayesian_linear2(bayesian_output)
+            output_tmp = self.tanh(bayesian_output1)
+            bayesian_output2 = self.bayesian_linear3(bayesian_output)
+            output_gain = self.sigmoid(bayesian_output2)
+            output = (output_tmp + 1)/2 * output_gain
+            output = self.bayesian_linear4(output)
         elif self.bayesian and self.augmentation:
             # print(f"using augmentation and bayesian")
             tmp_output = output.reshape(2, batch_size, seqlen, -1)
@@ -433,18 +405,18 @@ class DeepBKT(nn.Module):
             kc_guess = self.guess(new_qdata[0])
             kc_guess = self.Sigmoid(kc_guess)
             d_mastery = self.mastery(new_qdata[0])
-            # print(f"output: {output[0].shape}")
-            # print(f"d_ones: {d_correct.shape}")
-            # print(f"kc_slipping: {kc_slipping.shape}")
-            # print(f"kc_guess: {kc_guess.shape}")
             new_ouput = tmp_output[0] * (1 - kc_slipping) + (d_mastery - tmp_output[0]) * kc_guess
-            # original_preds = self.bayesian_linear(original_preds)
             output = torch.stack([new_ouput, tmp_output[1]])
-            # output = new_output.reshape(2*batch_size * seqlen, -1)
-            # print(f"output: {output.shape}")
 
+        if emb_type == "qid":
+            concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
+        else:
+            concat_q = torch.cat([output, final_q_embed_data], dim=-1)
+
+        output = self.out(concat_q).squeeze(-1)
+        # output = self.out(concat_q)
         m = nn.Sigmoid()
-        output = self.pred_linear(output).squeeze(-1)
+        # output = self.pred_linear(output).squeeze(-1)
         preds = m(output)
 
         if not qtest and emb_type.find("difficulty") != -1:
@@ -454,10 +426,15 @@ class DeepBKT(nn.Module):
             return preds, target_diff, pred_diff
         elif not qtest and not self.augmentation:
             return preds
-        elif not qtest and self.augmentation:
+        elif not qtest and self.augmentation and emb_type == "augmentation":
             preds = preds.reshape(-1, batch_size, seqlen)
             # print(f"preds: {preds[0].shape}")
             return preds[0], preds[1], new_target
+        elif not qtest and self.augmentation and emb_type in ["augmentation_v2", "augmentation_v3", "augmentation_bayesian_v2", "augmentation_bayesian_v3"]:
+            d_output = d_output.reshape(-1, batch_size, seqlen)
+            preds = preds.reshape(-1, batch_size, seqlen)
+            # print(f"preds: {preds[0].shape}")
+            return preds[0], d_output[0], d_output[1]
         elif qtest and self.augmentation:
             preds = preds.reshape(-1, batch_size, seqlen)
             concat_q = concat_q.reshape(-1, batch_size, seqlen)
@@ -692,10 +669,13 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forget_rate=Non
     #         (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
     # scores = scores * total_effect
     # print(f"forget_rate: {forget_rate.shape}")
+    # print(f"scores: {scores}")
     if forget_rate is not None:
-        forget_rate = forget_rate.repeat(1,1,scores.shape[3]).unsqueeze(-1).permute(0,3,1,2)
-        # print(f"forget_rate: {forget_rate.shape}")
+        # print(f"scores: {scores}")
+        forget_rate = forget_rate.repeat(1,1,scores.shape[3]).unsqueeze(-1).permute(0,3,2,1)
+        # print(f"forget_rate: {forget_rate}")
         scores = scores * forget_rate
+        # print(f"scores * forget_rate: {scores}")
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
     # print(f"before zero pad scores: {scores.shape}")
