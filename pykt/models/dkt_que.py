@@ -1,4 +1,5 @@
 import os
+from turtle import forward
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,6 +30,28 @@ class MLP(nn.Module):
         for lin in self.lins:
             x = F.relu(lin(x))
         return self.out(self.dropout(x))
+
+
+
+def get_outputs(self,emb_qc_shift,h,data,add_name=""):
+    if "an" in self.output_mode:
+        #next predict
+        h_next = torch.cat([emb_qc_shift,h],axis=-1)
+        y_question_next = torch.sigmoid(self.out_question_next(h_next))
+        y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
+        #all predict
+        y_question_all = torch.sigmoid(self.out_question_all(h))
+        y_concept_all = torch.sigmoid(self.out_concept_all(h))
+        outputs = {"y_question_next"+add_name:y_question_next,"y_concept_next"+add_name:y_concept_next,
+                    "y_question_all"+add_name:y_question_all,"y_concept_all"+add_name:y_concept_all}
+        
+        outputs["y_question_next"+add_name] = outputs["y_question_next"+add_name].squeeze(-1)
+        outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(outputs["y_concept_next"+add_name],data['cshft'])
+        outputs["y_question_all"+add_name] = (outputs["y_question_all"+add_name] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
+        outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(outputs["y_concept_all"+add_name],data['cshft'])
+    return outputs
+
+
 class DKTQueNet(nn.Module):
     def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
         super().__init__()
@@ -56,6 +79,10 @@ class DKTQueNet(nn.Module):
             self.qc_attn = nn.MultiheadAttention(self.hidden_size*2, num_heads=1,batch_first=True)
             self.qca_attn = nn.MultiheadAttention(self.hidden_size*4, num_heads=1,batch_first=True)
             self.qc_attn_linear = nn.Linear(self.hidden_size*4,self.hidden_size*2)
+
+        self.contrast_mode = self.other_config.get("contrast_mode")#cm_v1,cm_v2
+        self.cm_add_name = f"_{self.contrast_mode}"
+        
 
         if self.emb_type in ["iekt"]:
             self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
@@ -87,15 +114,14 @@ class DKTQueNet(nn.Module):
                     self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*(3+self.kcs_input_num),num_c,dropout)
                 self.out_question_all = MLP(self.mlp_layer_num,self.hidden_size,num_q,dropout)
                 self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
+
             else:
                 pass
-        
-        if self.output_mode in ["an_irt"]:
+        elif self.output_mode in ["an_irt"]:
             trainable = self.other_config.get("irt_w_trainable",1)==1
             # self.irt_w = nn.Parameter(torch.randn(3).to(device), requires_grad=True)
             self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
             # self.irt_w = nn.Parameter(torch.tensor([0.75,0.75,1.5]).to(device), requires_grad=True)
-
         else:#单独预测模式
             if self.predict_next:
                 if self.emb_type in ["iekt"]:
@@ -129,8 +155,8 @@ class DKTQueNet(nn.Module):
                     self.out_layer_question = nn.Linear(self.hidden_size, num_q)
                     self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
                     self.out_concept_classifier = nn.Linear(self.hidden_size, num_c)
-
-    
+        
+           
     def attn_help(self,seq_len,emb,x):
         nopeek_mask = np.triu(np.ones((seq_len, seq_len)), k=1)
         attn_mask = torch.from_numpy(nopeek_mask).to(self.device)
@@ -138,6 +164,17 @@ class DKTQueNet(nn.Module):
         attn_output, _ = emb(x, x, x,attn_mask=attn_mask)
         return attn_output
         
+    def get_avg_fusion_concepts(self,y_concept,cshft):
+        """获取知识点 fusion 的预测结果
+        """
+        max_num_concept = cshft.shape[-1]
+        concept_mask = torch.where(cshft.long()==-1,False,True)
+        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.num_c)
+        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,max_num_concept,1)*concept_index).sum(-1)
+        concept_sum = concept_sum*concept_mask#remove mask
+        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
+        return y_concept
+
     def forward(self, q, c ,r,data=None):
         seq_len = q.shape[-1]
         if self.emb_type in ["qcaid","qcaid_h"]:
@@ -164,30 +201,27 @@ class DKTQueNet(nn.Module):
             
 
         if self.emb_type in ["iekt"]:
-            h, _ = self.lstm_layer(emb_qca_current)
+            h_raw, _ = self.lstm_layer(emb_qca_current)
         else:
         # print(f"xemb.shape is {xemb.shape}")
-            h, _ = self.lstm_layer(xemb)
+            h_raw, _ = self.lstm_layer(xemb)
 
-        h = self.dropout_layer(h)
+        h = self.dropout_layer(h_raw)
+        if self.contrast_mode in ['cm_v1','cm_v2']:
+            h2 = nn.Dropout(0.8)(h_raw)
 
         if self.loss_mode in ["q_ccs","c_ccs","qc_ccs"]:
             h_ccs,_ = self.kcs_lstm_layer(emb_q[:,1:,:])
             # print(f"h.shape is {h.shape}")
             h = torch.cat([h,h_ccs],dim=-1)#add the last hidden state of kcs lstm to the last hidden state of lstm
             # print(f"h.shape is {h.shape}")
-        if "an" in self.output_mode:
-            #next predict
-            h_next = torch.cat([emb_qc_shift,h],axis=-1)
-            y_question_next = torch.sigmoid(self.out_question_next(h_next))
-            y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
 
-            #all predict
-            h_all = h
-            y_question_all = torch.sigmoid(self.out_question_all(h_all))
-            y_concept_all = torch.sigmoid(self.out_concept_all(h_all))
-            outputs = {"y_question_next":y_question_next,"y_concept_next":y_concept_next,
-                        "y_question_all":y_question_all,"y_concept_all":y_concept_all}
+        if "an" in self.output_mode:
+            outputs = get_outputs(self,emb_qc_shift,h,data,add_name="")
+            #h2
+            if self.contrast_mode in ['cm_v1','cm_v2']:
+                outputs2 = get_outputs(self,emb_qc_shift,h2,data,add_name=self.cm_add_name)
+                outputs.update(outputs2)
 
             if "cc" in self.loss_mode:
                 y_question_concepts_next,y_question_concepts_all = None,None
@@ -287,97 +321,50 @@ class DKTQue(QueBaseModel):
         
         return loss
    
-    def get_avg_fusion_concepts(self,y_concept,cshft):
-        """获取知识点 fusion 的预测结果
-        """
-        max_num_concept = cshft.shape[-1]
-        concept_mask = torch.where(cshft.long()==-1,False,True)
-        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.model.num_c)
-        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,max_num_concept,1)*concept_index).sum(-1)
-        concept_sum = concept_sum*concept_mask#remove mask
-        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
-        return y_concept
 
 
     def train_one_step(self,data,process=True,return_all=False):
         
-        if "fr" in self.model.loss_mode:#only for predict all
-            y_question_raw,y_concept_raw,y_question_concepts_raw,data_new = self.predict_one_step(data,return_details=True,process=process,return_raw=True)
-            seq_len = data_new['qshft'].shape[1]
-            loss_question = 0
-            loss_concept = 0
-            num_inter = 0
-            for i in range(seq_len):
-                #new mask
-                fr_window = self.model.other_config.get("fr_window",1)
-                sm_step = data_new['sm'][:,i:i+fr_window]
-                num_inter_step = sm_step.sum()
-                if num_inter_step==0:
-                    break
-                rshft_step = data_new['rshft'][:,i:i+fr_window]
-                cshft_step = data_new['cshft'][:,i:i+fr_window]
-                qshft_step = data_new['qshft'][:,i:i+fr_window]
-
-                valid_seq_len = min(fr_window,rshft_step.shape[1])
-                num_inter+=num_inter_step
-                #new y_concept
-                current_step_concept_raw = y_concept_raw[:,i].unsqueeze(1)
-                # print(f"current_step_concept_raw shape is {current_step_concept_raw.shape}")
-                current_concept_expand = current_step_concept_raw.repeat(1,valid_seq_len,1)
-                # current_concept_expand = current_step_concept_raw.repeat(-1,valid_seq_len,-1)
-                y_concept_step = self.get_avg_fusion_concepts(current_concept_expand,cshft_step)
-      
-                loss_concept_step =self.get_loss(y_concept_step,rshft_step,sm_step)
-                loss_concept = loss_concept+loss_concept_step*num_inter_step
+        outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
+        if "an" in self.model.output_mode:
+            #all 
+            loss_question_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
+            #next
+            loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
             
-               
-                #new y_question
-                current_step_question_raw = y_question_raw[:,i].unsqueeze(1)
-                current_question_expand = current_step_question_raw.repeat(1,valid_seq_len,1)
-                # current_question_expand = current_step_question_raw.repeat(-1,valid_seq_len,-1)
-                # print(f"current_question_expand shape is {current_question_expand.shape}")
-                y_question_step = (current_question_expand * F.one_hot(qshft_step.long(), self.model.num_q)).sum(-1)
-                loss_question_step = self.get_loss(y_question_step,rshft_step,sm_step)#question level loss
-                loss_question = loss_question + loss_question_step*num_inter_step
-               
-
-            loss_question = loss_question/num_inter
-            loss_concept = loss_concept/num_inter
-            loss_question_concept = 0
-        else: 
-            outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-            if "an" in self.model.output_mode:
-                #all 
-                loss_question_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
-                #next
-                loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
-                
-                loss_question_concept = -1
+            loss_question_concept = -1
+        else:
+            loss_question = self.get_loss(outputs['y_question'],data_new['rshft'],data_new['sm'])#question level loss
+            loss_concept = self.get_loss(outputs['y_concept'],data_new['rshft'],data_new['sm'])#kc level loss
+            if "cc" in self.model.loss_mode:
+                # 知识点分类当作多分类
+                loss_func = Loss(self.model.other_config.get("loss_type","ce"),
+                                    epsilon=self.model.other_config.get("epsilon",1.0),
+                                    gamma=self.model.other_config.get("gamma",2)).get_loss
+                loss_question_concept = loss_func(outputs['y_qc_predict'],outputs['qc_target'])#question concept level loss
             else:
-                loss_question = self.get_loss(outputs['y_question'],data_new['rshft'],data_new['sm'])#question level loss
-                loss_concept = self.get_loss(outputs['y_concept'],data_new['rshft'],data_new['sm'])#kc level loss
-                if "cc" in self.model.loss_mode:
-                    # 知识点分类当作多分类
-                    loss_func = Loss(self.model.other_config.get("loss_type","ce"),
-                                     epsilon=self.model.other_config.get("epsilon",1.0),
-                                     gamma=self.model.other_config.get("gamma",2)).get_loss
-                    loss_question_concept = loss_func(outputs['y_qc_predict'],outputs['qc_target'])#question concept level loss
-                else:
-                    loss_question_concept = -1
+                loss_question_concept = -1
 
         if "an" in self.model.output_mode:
             all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
             loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
             loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
             loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
+            loss_raw_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
+            if self.model.contrast_mode in ['cm_v1','cm_v2']:
+                loss_raw_kt2 = self.get_loss(outputs['y'+self.model.cm_add_name],data_new['rshft'],data_new['sm'])
+                loss_cm = F.mse_loss(outputs['y'],outputs['y'+self.model.cm_add_name])*100
+            else:
+                loss_raw_kt2 = -1
+                loss_cm = -1
             if self.model.output_mode=="an_irt":
                 loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
                 l2 = self.model.other_config.get("l2",1e-5)
                 w_norm = (self.model.irt_w ** 2.).sum() * l2
                 loss = loss_kt + w_norm #+ loss_all#+loss_next
-                print(f"loss={loss:.4f},loss_kt={loss_kt:.4f},w_norm={w_norm:.4f},self.model.irt_w is {self.model.irt_w}")
+                print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},w_norm={w_norm:.3f},self.model.irt_w is {self.model.irt_w}")
             else:
                 if "dyn" in self.model.loss_mode:
                     dyn_a = self.model.other_config.get("dyn_a",0)
@@ -395,10 +382,11 @@ class DKTQue(QueBaseModel):
                     loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
                     loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
                     loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-                print(f"loss={loss:.4f},loss_all={loss_all:.4f},loss_next={loss_next:.4f},loss_same={loss_same:.4f}")
+                    loss = loss + loss_raw_kt2 + loss_cm
+                print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_same={loss_same:.3f},loss_raw_kt={loss_raw_kt:.3f},loss_raw_kt2={loss_raw_kt2:.3f},loss_cm={loss_cm:.3f}")
             return outputs['y'],loss#y_question没用
         else:
-            print(f"loss_question is {loss_question:.4f},loss_concept is {loss_concept:.4f},loss_question_concept is {loss_question_concept:.4f}")
+            print(f"loss_question is {loss_question:.3f},loss_concept is {loss_concept:.3f},loss_question_concept is {loss_question_concept:.3f}")
             
             loss = self.get_merge_loss(loss_question,loss_concept,loss_question_concept,loss_mode=self.model.loss_mode)
 
@@ -499,14 +487,10 @@ class DKTQue(QueBaseModel):
 
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
-        if "an" in self.model.output_mode:
+        if self.model.emb_type in ["iekt"]:
             outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
         else:
-            if self.model.emb_type in ["iekt"]:
-                outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-                
-            else:
-                outputs = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
+            outputs = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
                 
         # print(y_question.shape,y_concept.shape)
         if return_raw:#return raw probability, for future reward
@@ -516,12 +500,7 @@ class DKTQue(QueBaseModel):
                 # y_question_all,[batch_size,seq_len,question_num]
                 # one-hot, [batch_size,seq_len,question_num]
                 # qshft,[batch_size,seq_len]
-                outputs["y_question_next"] = outputs["y_question_next"].squeeze(-1)
-                outputs["y_concept_next"] = self.get_avg_fusion_concepts(outputs["y_concept_next"],data_new['cshft'])
-
-                outputs["y_question_all"] = (outputs["y_question_all"] * F.one_hot(data_new['qshft'].long(), self.model.num_q)).sum(-1)
-                outputs["y_concept_all"] = self.get_avg_fusion_concepts(outputs["y_concept_all"],data_new['cshft'])
-               
+                pass
             else:
                 if self.model.predict_next:
                     outputs['y_question'] = outputs['y_question'].squeeze(-1)
@@ -540,6 +519,13 @@ class DKTQue(QueBaseModel):
             y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
             outputs['y_qc_all'] = y_qc_all
             y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
+            outputs['y_qc_next'] = y_qc_next
+
+            if self.model.contrast_mode in ['cm_v1','cm_v2']: 
+                y_qc_all2 = self.get_merge_y(outputs['y_question_all'+self.model.cm_add_name],outputs['y_concept_all'+self.model.cm_add_name],all_predict_mode)
+                y_qc_next2 = self.get_merge_y(outputs['y_question_next'+self.model.cm_add_name],outputs['y_concept_next'+self.model.cm_add_name],next_predict_mode)
+                outputs["y"+self.model.cm_add_name] = (y_qc_all2+y_qc_next2)/2
+
             if self.model.output_mode=="an_irt":
                 def sigmoid_inverse(x):
                     # return x
@@ -551,7 +537,6 @@ class DKTQue(QueBaseModel):
                 output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
                 output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
                 y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
-                
             outputs['y'] = y
         else:
             y = self.get_merge_y(outputs['y_question'],outputs['y_concept'],self.model.predict_mode)

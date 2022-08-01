@@ -1,4 +1,4 @@
-name: aaai_dkt_improve_algebra2005
+name: aaai_dkt_improve_algebra2005-6
 program: wandb_dkt_que_train.py
 method: grid
 metric:
