@@ -364,6 +364,7 @@ class TchKT(QueBaseModel):
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
         outputs = self.model(data_new)
+        outputs['y'] = outputs['outputs_student']['y']
         if return_raw:#return raw probability, for future reward
             return outputs,data_new
             
