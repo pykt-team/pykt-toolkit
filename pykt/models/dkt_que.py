@@ -104,6 +104,8 @@ class DKTQueNet(nn.Module):
             self.h_q_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
             self.h_c_merge = nn.Linear(self.hidden_size*2, self.hidden_size)
         
+        
+
         if "an" in self.output_mode:#all and next merge, qc-c_an#all 使用qc，next使用 c
             if self.emb_type in ["iekt"]:
                 if self.attention_mode in ["attention"]:
@@ -117,10 +119,6 @@ class DKTQueNet(nn.Module):
 
             else:
                 pass
-        elif self.output_mode in ["an_irt"]:
-            trainable = self.other_config.get("irt_w_trainable",1)==1
-            self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
-
         else:#单独预测模式
             if self.predict_next:
                 if self.emb_type in ["iekt"]:
@@ -155,6 +153,9 @@ class DKTQueNet(nn.Module):
                     self.out_layer_concept = nn.Linear(self.hidden_size, num_c)
                     self.out_concept_classifier = nn.Linear(self.hidden_size, num_c)
         
+        if self.output_mode in ["an_irt"]:#only for an_irt
+            trainable = self.other_config.get("irt_w_trainable",1)==1
+            self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
            
     def attn_help(self,seq_len,emb,x):
         nopeek_mask = np.triu(np.ones((seq_len, seq_len)), k=1)
