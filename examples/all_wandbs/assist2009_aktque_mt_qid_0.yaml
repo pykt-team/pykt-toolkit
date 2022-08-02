@@ -25,6 +25,8 @@ parameters:
         values: [4, 8]
     n_blocks:
         values: [1, 2, 3, 4]
+    predict_mode:
+        values: ["q-q", "q-c", "q-qc", "qc-q","qc-c","qc-qc","c-q","c-c","c-qc"]
     seed:
         values: [42, 224, 3407]
     fold:
