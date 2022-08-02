@@ -363,7 +363,12 @@ class DKTQue(QueBaseModel):
                 loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
                 l2 = self.model.other_config.get("l2",1e-5)
                 w_norm = (self.model.irt_w ** 2.).sum() * l2
-                loss = loss_kt + w_norm #+ loss_all#+loss_next
+               
+                loss_c_all_lambda = self.model.other_config['loss_c_all_lambda']
+                loss_q_all_lambda = self.model.other_config['loss_q_all_lambda']
+
+                loss = loss_kt + w_norm + loss_q_all_lambda * loss_question_all + loss_c_all_lambda* loss_concept_all
+
                 print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},w_norm={w_norm:.3f},self.model.irt_w is {self.model.irt_w}")
             else:
                 if "dyn" in self.model.loss_mode:
