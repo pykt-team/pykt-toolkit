@@ -119,6 +119,9 @@ if __name__ == "__main__":
     parser.add_argument("--loss_same_lambda", type=float, default=0.0)
     parser.add_argument("--output_next_lambda", type=float, default=0.5)
     parser.add_argument("--output_all_lambda", type=float, default=0.5)
+    #loss
+    parser.add_argument("--loss_c_all_lambda", type=float, default=0)
+    parser.add_argument("--loss_q_all_lambda", type=float, default=0)
     
 
     #an_irt

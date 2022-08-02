@@ -105,9 +105,7 @@ if __name__ == "__main__":
     #merge modes
     parser.add_argument("--predict_mode", type=str, default='qc-c')
     parser.add_argument("--output_mode", type=str, default='an',help="all/next/an")
-    #loss
-    parser.add_argument("--loss_c_all_lambda", type=float, default=0)
-    parser.add_argument("--loss_q_all_lambda", type=float, default=0)
+    
     
     args = parser.parse_args()
     args.loss_mode = args.predict_mode 
