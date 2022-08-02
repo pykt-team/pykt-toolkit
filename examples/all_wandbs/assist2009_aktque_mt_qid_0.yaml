@@ -31,3 +31,5 @@ parameters:
         values: [42, 224, 3407]
     fold:
         values: ['0']
+    batch_size:
+        values: [64]
