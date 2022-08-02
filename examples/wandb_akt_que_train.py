@@ -53,6 +53,7 @@ def main(params):
                    n_blocks=params['n_blocks'],
                    d_ff=params['d_ff'],
                    emb_size=params['emb_size'], 
+                   dropout=params['dropout'],
                    device=device, emb_type=emb_type
                    )
 
@@ -87,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--num_epochs", type=int, default=200)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--dropout", type=float, default=0.2)
 
     #log
     parser.add_argument("--use_wandb", type=int, default=1)
