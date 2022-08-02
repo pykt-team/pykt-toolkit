@@ -119,9 +119,8 @@ class DKTQueNet(nn.Module):
                 pass
         elif self.output_mode in ["an_irt"]:
             trainable = self.other_config.get("irt_w_trainable",1)==1
-            # self.irt_w = nn.Parameter(torch.randn(3).to(device), requires_grad=True)
             self.irt_w = nn.Parameter(torch.tensor([1.0,1.0,1.0]).to(device), requires_grad=trainable)
-            # self.irt_w = nn.Parameter(torch.tensor([0.75,0.75,1.5]).to(device), requires_grad=True)
+
         else:#单独预测模式
             if self.predict_next:
                 if self.emb_type in ["iekt"]:
@@ -382,7 +381,8 @@ class DKTQue(QueBaseModel):
                     loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
                     loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
                     loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-                    loss = loss + loss_raw_kt2 + loss_cm
+                    if self.model.contrast_mode in ['cm_v1','cm_v2']:
+                        loss = loss + loss_raw_kt2 + loss_cm
                 print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_same={loss_same:.3f},loss_raw_kt={loss_raw_kt:.3f},loss_raw_kt2={loss_raw_kt2:.3f},loss_cm={loss_cm:.3f}")
             return outputs['y'],loss#y_question没用
         else:
