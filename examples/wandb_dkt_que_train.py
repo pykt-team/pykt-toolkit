@@ -1,4 +1,6 @@
 import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 import json
 import torch
 from pykt.models.dkt_que import DKTQue
