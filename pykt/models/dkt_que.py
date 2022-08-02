@@ -357,8 +357,8 @@ class DKTQue(QueBaseModel):
                 loss_raw_kt2 = self.get_loss(outputs['y'+self.model.cm_add_name],data_new['rshft'],data_new['sm'])
                 loss_cm = F.mse_loss(outputs['y'],outputs['y'+self.model.cm_add_name])*100
             else:
-                loss_raw_kt2 = -1
-                loss_cm = -1
+                loss_raw_kt2 = 0
+                loss_cm = 0
             if self.model.output_mode=="an_irt":
                 loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
                 l2 = self.model.other_config.get("l2",1e-5)
