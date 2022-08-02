@@ -14,6 +14,7 @@ dname2paths = {
     "slepemapy": "../data/slepemapy/answer.csv",
     "assist2017": "../data/assist2017/anonymized_full_release_competition_dataset.csv",
     "junyi2015": "../data/junyi2015/junyi_ProblemLog_original.csv"
+    "ednet": "../data/ednet/"
 }
 configf = "../configs/data_config.json"
 
