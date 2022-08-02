@@ -1,6 +1,8 @@
 import os
 import json
 import torch
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 from pykt.models.akt_que import AKTQue
 from pykt.utils import debug_print,set_seed
 from pykt.datasets.que_data_loader import KTQueDataset
