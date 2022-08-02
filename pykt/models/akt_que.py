@@ -7,7 +7,8 @@ import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
 from .que_base_model import QueBaseModel,QueEmb
-
+from sklearn import metrics
+from torch.utils.data import DataLoader
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Dim(IntEnum):
@@ -53,12 +54,27 @@ class AKTQueNet(nn.Module):
         self.model = Architecture(num_q=num_q, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=emb_size, d_feature=emb_size / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
 
-        self.out = nn.Sequential(
+        self.out_que_next = nn.Sequential(
             nn.Linear(emb_size + emb_size,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 256), nn.ReLU(
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
+        )
+        self.out_que_all = nn.Sequential(
+            nn.Linear(emb_size,
+                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+            nn.Linear(final_fc_dim, 256), nn.ReLU(
+            ), nn.Dropout(self.dropout),
+            nn.Linear(256, self.num_q)
+        )
+
+        self.out_concept_all = nn.Sequential(
+            nn.Linear(emb_size,
+                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+            nn.Linear(final_fc_dim, 256), nn.ReLU(
+            ), nn.Dropout(self.dropout),
+            nn.Linear(256, self.num_c)
         )
 
         # self.out_layer_concept = MLP(self.mlp_layer_num,self.hidden_size*(4+self.kcs_input_num),num_c,dropout)
@@ -83,8 +99,18 @@ class AKTQueNet(nn.Module):
             qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
+    def get_avg_fusion_concepts(self,y_concept,cshft):
+        """获取知识点 fusion 的预测结果
+        """
+        concept_mask = torch.where(cshft.long()==-1,False,True)
+        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.num_c)
+        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,4,1)*concept_index).sum(-1)
+        concept_sum = concept_sum*concept_mask#remove mask
+        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
+        return y_concept
+
     # def forward(self, q_data, target, pid_data=None, qtest=False):
-    def forward(self, q, c, r):
+    def forward(self, q, c, r,data=None):
         # Batch First
         q_embed_data, qa_embed_data = self.base_emb(q,c,r)
 
@@ -102,20 +128,28 @@ class AKTQueNet(nn.Module):
             else:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
-            c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
+            reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
-            c_reg_loss = 0.
+            reg_loss = 0.
 
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data)
+        h = self.model(q_embed_data, qa_embed_data)
 
-        concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-        output = self.out(concat_q).squeeze(-1)
-        preds = torch.sigmoid(output)
-       
-        return preds, c_reg_loss
+        h_q = torch.cat([h, q_embed_data], dim=-1)
+        y_question_next = torch.sigmoid(self.out_que_next(h_q).squeeze(-1))[:,1:]
+        y_question_all = torch.sigmoid(self.out_que_all(h))[:,1:]
+        y_concept_all = torch.sigmoid(self.out_concept_all(h))[:,1:]
+
+        # print(f"y_question_next:{y_question_next.shape},y_question_all:{y_question_all.shape},y_concept_all:{y_concept_all.shape}")
+        outputs = {"y_question_next":y_question_next,"reg_loss":reg_loss,"y_question_all":y_question_all,"y_concept_all":y_concept_all}
+
+        # all to next question  
+        outputs['y_concept_all'] = self.get_avg_fusion_concepts(outputs['y_concept_all'],data['cshft'])
+        outputs['y_question_all'] = (outputs["y_question_all"] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
+        
+        return outputs
        
 
 
@@ -128,33 +162,75 @@ class AKTQue(QueBaseModel):
             kq_same=kq_same, final_fc_dim=final_fc_dim, num_attn_heads=num_attn_heads, separate_qa=separate_qa, 
             l2=l2, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim)
         self.model = self.model.to(device)
-    
-    def get_avg_fusion_concepts(self,y_concept,cshft):
-        """获取知识点 fusion 的预测结果
-        """
-        concept_mask = torch.where(cshft.long()==-1,False,True)
-        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.model.num_c)
-        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,4,1)*concept_index).sum(-1)
-        concept_sum = concept_sum*concept_mask#remove mask
-        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
-        return y_concept
+
+    def predict(self,dataset,batch_size,return_ts=False,process=True):
+        test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
+        self.model.eval()
+        with torch.no_grad():
+            y_trues = []
+            y_pred_dict = {}
+            for data in test_loader:
+                new_data = self.batch_to_device(data,process=process)
+                outputs,data_new = self.predict_one_step(data,return_details=True)
+               
+                for key in outputs:
+                    # print(f"key is {key},shape is {outputs[key].shape}")
+                    if not key.startswith("y") or key in ['y_qc_predict']:
+                        continue
+                    elif key not in y_pred_dict:
+                       y_pred_dict[key] = []
+                    # print(f"outputs is {outputs}")
+                    y = torch.masked_select(outputs[key], new_data['sm']).detach().cpu()#get label
+                    y_pred_dict[key].append(y.numpy())
+                
+                t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
+                y_trues.append(t.numpy())
+        results = y_pred_dict
+        for key in results:
+            results[key] = np.concatenate(results[key], axis=0)
+        ts = np.concatenate(y_trues, axis=0)
+        results['ts'] = ts
+        return results
+
+    def evaluate(self,dataset,batch_size,acc_threshold=0.5):
+        results = self.predict(dataset,batch_size=batch_size)
+        eval_result = {}
+        ts = results["ts"]
+        for key in results:
+            if not key.startswith("y") or key in ['y_qc_predict']:
+                pass
+            else:
+                ps = results[key]
+                kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
+                prelabels = [1 if p >= acc_threshold else 0 for p in ps]
+                kt_acc = metrics.accuracy_score(ts, prelabels)
+                if key!="y":
+                    eval_result["{}_kt_auc".format(key)] = kt_auc
+                    eval_result["{}_kt_acc".format(key)] = kt_acc
+                else:
+                    eval_result["auc"] = kt_auc
+                    eval_result["acc"] = kt_acc
+        self.eval_result = eval_result
+        return eval_result
 
     def train_one_step(self,data,process=True,return_all=False):
-        y,reg_loss,data_new = self.predict_one_step(data,return_details=True,process=process)
-        loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
+        outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
+        loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#get loss
+        loss_all_question = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
+        loss_all_concept = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
         # print(f"reg_loss is {reg_loss}")
-        loss = loss+reg_loss
-        return y,loss
+        loss = loss_kt + outputs['reg_loss'] + loss_all_question + loss_all_concept
+        print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},loss_all_question={loss_all_question:.3f},loss_all_concept={loss_all_concept:.3f}")
+        return outputs['y'],loss
 
 
     def predict_one_step(self,data,return_details=False,process=True):
         data_new = self.batch_to_device(data,process=process)
-        # q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
-        y, reg_loss = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long())
-        y = y[:,1:]
-        # y = self.get_avg_fusion_concepts(y,data_new['cshft'])
+        outputs = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long(),data_new)
+        y = outputs['y_question_next'] + (outputs['y_question_all']+outputs['y_concept_all'])/2
+        outputs['y'] = y/2
         if return_details:
-            return y,reg_loss,data_new
+            return outputs,data_new
         else:
             return y
 
