@@ -197,6 +197,7 @@ class AKTQue(QueBaseModel):
             kq_same=kq_same, final_fc_dim=final_fc_dim, num_attn_heads=num_attn_heads, separate_qa=separate_qa, 
             l2=l2, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim)
         self.model = self.model.to(device)
+        self.emb_type = self.model.emb_type
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
         test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
