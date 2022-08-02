@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     #an_irt
     parser.add_argument("--irt_w_trainable", type=int, default=0)
-    # parser.add_argument("--irt_w_trainable", type=int, default=0)
+   
     
     #model
     parser.add_argument("--learning_rate", type=float, default=1e-3)
