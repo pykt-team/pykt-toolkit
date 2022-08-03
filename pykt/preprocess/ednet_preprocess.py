@@ -34,33 +34,17 @@ def read_data_from_csv(read_file, write_file):
     print(count)
     all_sa = pd.concat(file_list)
     all_sa["index"] = range(all_sa.shape[0])
-    # all_sa = all_sa.sort_values(by=["user_id"])
     all_sa.to_csv(os.path.join(read_file, 'ednet_sample.csv'), index=False)
-
-    # sam = pd.read_csv(read_file + 'ednet_sample.csv')
     ca = pd.read_csv(os.path.join(read_file, 'contents', 'questions.csv'))
-    # ca = pd.read_csv(read_file + 'contents/questions.csv')
-
-
     ca['tags'] = ca['tags'].apply(lambda x:x.replace(";","_"))
-
     co = all_sa.merge(ca, sort=False,how='left')
-    # co = co.drop(labels=['explanation_id', 'part', 'deployed_at'], axis=1)
-    # co.to_csv(read_file + '/' + 'ednet_ans.csv', index=False)
     co = co.dropna(subset=["user_id", "question_id", "elapsed_time", "timestamp", "tags", "user_answer"])
-
     co['correct'] = (co['correct_answer']==co['user_answer']).apply(int)
 
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(co, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
-    # co["index"] = range(co.shape[0])
-
-    
-    # df = df.dropna(subset=["user_id", "question_id", "elapsed_time", "timestamp"])
-    # co = co[co['correct'].isin([0, 1])] # filter responses
-    # co['correct'] = co['correct'].astype(int)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(co, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -86,9 +70,7 @@ def read_data_from_csv(read_file, write_file):
             [[str(user), str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_response_cost])
 
     write_txt(write_file, user_inters)
-
     print("\n".join(stares))
-
     return
 
 
