@@ -10,7 +10,7 @@ parameters:
     dataset_name:
         values: ["assist2009"]
     emb_type:
-        values: ['qid']
+        values: ['iekt']
     save_dir:
         values: ["akt_que_tiaocan_assist2009"]
     emb_size:
