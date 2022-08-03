@@ -20,7 +20,7 @@ parameters:
     dropout:
         values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
     learning_rate:
-        values: [5e-6, 1e-5, 1e-4]
+        values: [1e-3,1e-4,1e-5,5e-6]
     num_attn_heads:
         values: [4, 8]
     n_blocks:
@@ -32,4 +32,4 @@ parameters:
     fold:
         values: ['0']
     batch_size:
-        values: [64]
+        values: [128]
