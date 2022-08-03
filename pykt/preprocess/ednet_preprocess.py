@@ -37,6 +37,7 @@ def read_data_from_csv(read_file, write_file):
     all_sa.to_csv(os.path.join(read_file, 'ednet_sample.csv'), index=False)
     ca = pd.read_csv(os.path.join(read_file, 'contents', 'questions.csv'))
     ca['tags'] = ca['tags'].apply(lambda x:x.replace(";","_"))
+    ca = ca[ca['tags']!='-1']
     co = all_sa.merge(ca, sort=False,how='left')
     co = co.dropna(subset=["user_id", "question_id", "elapsed_time", "timestamp", "tags", "user_answer"])
     co['correct'] = (co['correct_answer']==co['user_answer']).apply(int)
