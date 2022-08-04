@@ -964,6 +964,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         if finalqs.shape[0] > 0:
             curq = finalqs[bidx: bidx+bz]
             curqshft = finalqshfts[bidx: bidx+bz]
+        curt, curtshft = torch.tensor([[]]), torch.tensor([[]])
         if finalts.shape[0] > 0:
             curt = finalts[bidx: bidx+bz]
             curtshft = finaltshfts[bidx: bidx+bz]
