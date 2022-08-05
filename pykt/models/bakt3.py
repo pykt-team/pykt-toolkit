@@ -6,10 +6,10 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
+from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
-from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -103,6 +103,16 @@ class BAKT(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
+    def base_emb(self, q_data, target):
+        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
+        if self.separate_qa:
+            qa_data = q_data + self.n_question * target
+            qa_embed_data = self.qa_embed(qa_data)
+        else:
+            # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
+            qa_embed_data = self.qa_embed(target)+q_embed_data
+        return q_embed_data, qa_embed_data
+
     def get_attn_pad_mask(self, sm):
         batch_size, l = sm.size()
         pad_attn_mask = sm.data.eq(0).unsqueeze(1)
@@ -120,6 +130,8 @@ class BAKT(nn.Module):
             catemb = qemb + chistory
         else:
             catemb = chistory
+        if self.separate_qa:
+            catemb += cemb
         # if self.emb_type.find("cemb") != -1: akt本身就加了cemb
         #     catemb += cemb
 
@@ -135,6 +147,8 @@ class BAKT(nn.Module):
             y2 = self.closs(cpreds[flag], c[:,start:][flag])
 
         xemb = xemb + qh# + cemb
+        if self.separate_qa:
+            xemb = xemb + cemb
         if self.emb_type.find("qemb") != -1:
             xemb = xemb+qemb
         
@@ -226,16 +240,6 @@ class BAKT(nn.Module):
         # h = self.dropout_layer(h)
         # y = torch.sigmoid(self.out_layer(h))
         return y3
-
-    def base_emb(self, q_data, target):
-        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
-        if self.separate_qa:
-            qa_data = q_data + self.n_question * target
-            qa_embed_data = self.qa_embed(qa_data)
-        else:
-            # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            qa_embed_data = self.qa_embed(target)+q_embed_data
-        return q_embed_data, qa_embed_data
 
     def forward(self, dcur, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
