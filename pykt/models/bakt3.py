@@ -60,9 +60,9 @@ class BAKT(nn.Module):
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.ReLU(
+            nn.Linear(final_fc_dim, final_fc_dim // 2), nn.ReLU(
             ), nn.Dropout(self.dropout),
-            nn.Linear(256, 1)
+            nn.Linear(final_fc_dim // 2, 1)
         )
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
@@ -340,7 +340,7 @@ class Architecture(nn.Module):
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
-                for _ in range(n_blocks*2)
+                for _ in range(n_blocks)
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
