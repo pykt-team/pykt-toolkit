@@ -59,7 +59,7 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "cakt", "cdkvmn"]:
+    if model_name in ["cdkt", "cakt", "cdkvmn", "bakt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -111,15 +111,14 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
         # y2 = torch.masked_select(y2, sm)
         # t2 = torch.ones(y2.shape[0]).to(device)
         # loss2 = binary_cross_entropy(y2.double(), t2.double())
-        # loss = 0.5*loss1 + 0.5*loss2
-
-        
+        # loss = 0.5*loss1 + 0.5*loss2   
     #elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
     elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
+        
     elif model_name == "dkt+":
         y_curr = torch.masked_select(ys[1], sm)
         y_next = torch.masked_select(ys[0], sm)
@@ -183,6 +182,9 @@ def model_forward(model, data, epoch):
         ys = [y[:,1:], y2, y3]
         # ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
         preloss.append(reg_loss)
+    elif model_name in ["bakt"]:
+        y, y2, y3 = model(dcur, train=True)
+        ys = [y[:,1:], y2, y3]
     elif model_name in ["cdkvmn"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]

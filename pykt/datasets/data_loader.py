@@ -20,7 +20,7 @@ class KTDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds, qtest=False):
+    def __init__(self, file_path, input_type, folds, qtest=False, focusfold=[0]):
         super(KTDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
@@ -43,22 +43,24 @@ class KTDataset(Dataset):
             fleft = "_".join([str(s) for s in list(set([0,1,2,3,4])-set(folds))])
         elif folds[-1] != -1:
             fleft = "_".join([str(s) for s in folds])
-        fleft = "0" ### 多折时需要修改！
-        self.fourf = fleft + "_dfour.pkl"
-        if len(folds) > 1 and not os.path.exists(self.fourf):
-            self.dfour = dict()
         else:
-            self.dfour = pd.read_pickle(self.fourf)
+            fleft = "_".join([str(s) for s in focusfold])
+        self.fourf = fleft + "_dfour.pkl"
         # print(self.dq2c)
 
-        if not os.path.exists(processed_data):
+        if not os.path.exists(processed_data) or not os.path.exists(self.fourf):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
+            if len(folds) > 1:
+                self.dfour = dict()
+            else:
+                self.dfour = pd.read_pickle(self.fourf)
             if self.qtest:
                 self.dori, self.dqtest = self.__load_data__(sequence_path, folds)
                 save_data = [self.dori, self.dqtest]
             else:
                 self.dori = self.__load_data__(sequence_path, folds)
                 save_data = self.dori
+            
             pd.to_pickle(save_data, processed_data)
         else:
             print(f"Read data from processed file: {processed_data}")
@@ -113,10 +115,6 @@ class KTDataset(Dataset):
             shft_seqs = self.dori[key][index][1:] * mseqs
             dcur[key] = seqs
             dcur["shft_"+key] = shft_seqs
-        # if index == 30:
-        #     print(f"qs: {dcur['qseqs']}")
-        #     print(f"oriqs: {dcur['oriqs']}")
-        #     assert False
         
         dcur["orics"] = self.dori["orics"][index][:-1]
         dcur["shft_orics"] = self.dori["orics"][index][1:]
@@ -265,7 +263,7 @@ class KTDataset(Dataset):
 
     def __caldfour__(self, css, rss):
         dc, da = dict(), dict()
-        dfirsttrue, dfirsttotal = dict(), dict()
+        dfirst, dtotal = dict(), dict()
         dinit = {"00": 0, "01": 0, "10": 0, "11": 0, "first": 0, "total": 0}
         dinit2 = {"0": 0, "1": 0}
         for cs, rs in zip(css, rss):
@@ -288,11 +286,6 @@ class KTDataset(Dataset):
                     # print(f"dc: {dc}")
                 dlast.setdefault(c, [])
                 dlast[c].append([i, r])
-            # print(f"cs: {cs}")
-            # print(f"rs: {rs}")
-            # print(f"dlast: {dlast}")
-            # print(f"dc: {dc}")
-            # assert False
             # 计算每个知识点的first
             dcur = dict()
             for i in range(0, len(cs)):
@@ -300,19 +293,28 @@ class KTDataset(Dataset):
                     continue
                 dcur[cs[i]] = rs[i]
             for c in dcur:
-                if dcur[c] == 1:
-                    dfirsttrue.setdefault(c, 0)
-                    dfirsttrue[c] += 1
-                dfirsttotal.setdefault(c, 0)
-                dfirsttotal[c] += 1
+                ntrue = 1 if dcur[c] == 1 else 0
+                dfirst.setdefault(c, [0, 0])
+                dfirst[c][0] += 1
+                dfirst[c][1] += 1
+            # 计算每个知识点的total
+            dcur = dict()
+            for i in range(0, len(cs)):
+                if cs[i] == -1:
+                    continue
+                dcur.setdefault(cs[i], [])
+                dcur[cs[i]].append(rs[i])
+            for c in dcur:
+                ntrue = dcur[c].count(1)
+                dtotal.setdefault(c, [0, 0])
+                dtotal[c][0] += ntrue
+                dtotal[c][1] += len(dcur[c])
         # print(f"dc: {len(dc)}, dfirst: {len(dfirsttotal)}")
         # for i in range(0, 112):
         #     if i not in dc:
         #         print(i)
         dres = dict()
         for c in dc:
-            # if c in [0, 35, 110, 111]:
-            #     print(f"dc: {dc[c]}")
             for key in dc[c]:
                 if key in ["first", "total"]:
                     continue
@@ -323,15 +325,12 @@ class KTDataset(Dataset):
                 else:
                     dres[c][key] = 0
 
-            if c not in dfirsttrue:
-                ratio = 0
-            else:
-                ratio = dfirsttrue[c] / dfirsttotal[c]
+            ratio = 0 if c not in dfirst else dfirst[c][0] / dfirst[c][1]
             dres[c]["first"] = ratio
-            
-        # print(dres[35])
-        # assert False
-        return dres ###
+
+            ratio = 0 if c not in dtotal else dtotal[c][0] / dtotal[c][1]
+            dres[c]["total"] = ratio
+        return dres
 
     def __generate_alphas__(self, cs, rs):
         calphas = []
@@ -374,9 +373,9 @@ class KTDataset(Dataset):
                 "smasks": [], "is_repeat": [], "oriqs": [], "orics": [], "orisms": [], 
                 "futurerates": [], "futuresms": [],
                 "historycorrs": [], "totalcorrs": [], "futurecorrs": [], "fsms": [],
-                # "slipping": [], "guess": [], "difficulty": [],
-                # "totalcorr": [], "firstcorr": [],
-                # "alphas": []}
+                "slipping": [], "guess": [], "difficulty": [],
+                "totalcorr": [], "firstcorr": [],
+                "alphas": []
                 }
 
         if "questions" in self.input_type:
@@ -426,15 +425,15 @@ class KTDataset(Dataset):
             dori["fsms"].append(fsms)
 
             # 计算01 / 10 etc.
-            # slipping, guess, difficulty, totalcorr, firstcorr = self.__generate_slipping_guess__(curocs)
-            # dori["slipping"].append(slipping)
-            # dori["guess"].append(guess)
-            # dori["difficulty"].append(difficulty)
-            # dori["totalcorr"].append(totalcorr)
-            # dori["firstcorr"].append(firstcorr)
+            slipping, guess, difficulty, totalcorr, firstcorr = self.__generate_slipping_guess__(curocs)
+            dori["slipping"].append(slipping)
+            dori["guess"].append(guess)
+            dori["difficulty"].append(difficulty)
+            dori["totalcorr"].append(totalcorr)
+            dori["firstcorr"].append(firstcorr)
 
-            # alphas = self.__generate_alphas__(curocs, curors)
-            # dori["alphas"].append(alphas)
+            alphas = self.__generate_alphas__(curocs, curors)
+            dori["alphas"].append(alphas)
 
             # ccs = []
             # for q, c in zip(dori["qseqs"][-1], dori["cseqs"][-1]):

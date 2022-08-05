@@ -21,6 +21,7 @@ from .iekt import IEKT
 from .cdkt import CDKT
 from .cakt2 import CAKT
 from .cdkvmn import CDKVMN
+from .bakt import BAKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -38,7 +39,15 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = CAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "cdkvmn":
         model = CDKVMN(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    
+    elif model_name == "bakt":
+        qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
+        if os.path.exists(qmatrix_path):
+            q_matrix = torch.tensor(np.load(qmatrix_path, allow_pickle=True)['matrix']).float()
+        else:
+            q_matrix = generate_qmatrix(data_config)
+            q_matrix = torch.tensor(q_matrix).float()
+        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], qmatrix=q_matrix).to(device)
+        # model = AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
