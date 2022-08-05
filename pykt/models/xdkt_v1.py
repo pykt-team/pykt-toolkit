@@ -33,24 +33,24 @@ class MLP(nn.Module):
 
 
 
-def get_outputs(self,emb_qc_shift,h,data,add_name=""):
-    if "an" in self.output_mode:
-        #next predict
+def get_outputs(self,emb_qc_shift,h,data,add_name="",model_type='question'):
+    outputs = {}
+  
+    if model_type == 'question':
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
         y_question_next = torch.sigmoid(self.out_question_next(h_next))
+        y_question_all = torch.sigmoid(self.out_question_all(h))
+        outputs["y_question_next"+add_name] = y_question_next.squeeze(-1)
+        outputs["y_question_all"+add_name] = (y_question_all * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
+    else: 
+        h_next = torch.cat([emb_qc_shift,h],axis=-1)
         y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
         #all predict
-        y_question_all = torch.sigmoid(self.out_question_all(h))
         y_concept_all = torch.sigmoid(self.out_concept_all(h))
-        outputs = {"y_question_next"+add_name:y_question_next,"y_concept_next"+add_name:y_concept_next,
-                    "y_question_all"+add_name:y_question_all,"y_concept_all"+add_name:y_concept_all}
-        
-        outputs["y_question_next"+add_name] = outputs["y_question_next"+add_name].squeeze(-1)
-        outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(outputs["y_concept_next"+add_name],data['cshft'])
-        outputs["y_question_all"+add_name] = (outputs["y_question_all"+add_name] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
-        outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(outputs["y_concept_all"+add_name],data['cshft'])
-    return outputs
+        outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
+        outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(y_concept_all,data['cshft'])
 
+    return outputs
 
 class xDKTV1Net(nn.Module):
     def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
@@ -75,18 +75,17 @@ class xDKTV1Net(nn.Module):
                              emb_path=emb_path,pretrain_dim=pretrain_dim)
        
        
-        self.lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
+        self.que_lstm_layer = nn.LSTM(self.emb_size*4, self.hidden_size, batch_first=True)
+        self.concept_lstm_layer = nn.LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
        
         self.dropout_layer = nn.Dropout(dropout)
         
 
-       
-            
-        self.out_question_next = MLP(self.mlp_layer_num,self.hidden_size*(3),1,dropout)
-        self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*(3),num_c,dropout)
+        self.out_question_next = MLP(self.mlp_layer_num,self.hidden_size*3,1,dropout)
         self.out_question_all = MLP(self.mlp_layer_num,self.hidden_size,num_q,dropout)
-        self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
 
+        self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*2,num_c,dropout)
+        self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
 
         if self.output_mode in ["an_irt"]:#only for an_irt
             trainable = self.other_config.get("irt_w_trainable",1)==1
@@ -105,26 +104,28 @@ class xDKTV1Net(nn.Module):
         return y_concept
 
     def forward(self, q, c ,r,data=None):
-       
-        if self.emb_type in ["qcaid","qcaid_h"]:
-            xemb,emb_q,emb_c = self.que_emb(q,c,r)
-        elif self.emb_type in ["iekt"]:
-            _,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q,c,r)#[batch_size,emb_size*4],[batch_size,emb_size*2],[batch_size,emb_size*1],[batch_size,emb_size*1]
-            emb_qc_shift = emb_qc[:,1:,:]
-            emb_qca_current = emb_qca[:,:-1,:]
- 
-        else:
-            xemb = self.que_emb(q,c,r)
-
+    
+        _,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q,c,r)#[batch_size,emb_size*4],[batch_size,emb_size*2],[batch_size,emb_size*1],[batch_size,emb_size*1]
         
-        if self.emb_type in ["iekt"]:
-            h_raw, _ = self.lstm_layer(emb_qca_current)
-        else:
-        # print(f"xemb.shape is {xemb.shape}")
-            h_raw, _ = self.lstm_layer(xemb)
 
-        h = self.dropout_layer(h_raw)
-        outputs = get_outputs(self,emb_qc_shift,h,data,add_name="")
+        emb_qc_shift = emb_qc[:,1:,:]
+        emb_qca_current = emb_qca[:,:-1,:]
+        # question model
+        que_h = self.dropout_layer(self.que_lstm_layer(emb_qca_current)[0])
+        que_outputs = get_outputs(self,emb_qc_shift,que_h,data,add_name="",model_type="question")
+        outputs = que_outputs
+
+        # concept model
+        emb_ca = torch.cat([emb_c.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size)),
+                                emb_c.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
+                                
+        emb_ca_current = emb_ca[:,:-1,:]
+        emb_c_shift = emb_c[:,1:,:]
+        concept_h = self.dropout_layer(self.concept_lstm_layer(emb_ca_current)[0])
+        concept_outputs = get_outputs(self,emb_c_shift,concept_h,data,add_name="",model_type="concept")
+        outputs['y_concept_all'] = concept_outputs['y_concept_all']
+        outputs['y_concept_next'] = concept_outputs['y_concept_next']
+        
         return outputs
 
 class xDKTV1(QueBaseModel):
@@ -153,18 +154,14 @@ class xDKTV1(QueBaseModel):
 
 
     def train_one_step(self,data,process=True,return_all=False):
-        
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-        
         #all 
         loss_question_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])#question level loss
         loss_concept_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])#kc level loss
         #next
         loss_question_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
         loss_concept_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
-        
         loss_question_concept = -1
-
 
         
         all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
@@ -173,18 +170,13 @@ class xDKTV1(QueBaseModel):
         loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
         loss_raw_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
         
-        loss_raw_kt2 = 0
-        loss_cm = 0
         if self.model.output_mode=="an_irt":
             loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
             l2 = self.model.other_config.get("l2",1e-5)
             w_norm = (self.model.irt_w ** 2.).sum() * l2
-            
             loss_c_all_lambda = self.model.other_config.get('loss_c_all_lambda',0)
             loss_q_all_lambda = self.model.other_config.get('loss_q_all_lambda',0)
-
             loss = loss_kt + w_norm + loss_q_all_lambda * loss_question_all + loss_c_all_lambda* loss_concept_all
-
             print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},w_norm={w_norm:.3f},self.model.irt_w is {self.model.irt_w}")
         else:
             loss_next_lambda = self.model.other_config.get("loss_next_lambda",0.5)
@@ -192,7 +184,7 @@ class xDKTV1(QueBaseModel):
             loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
             loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
             loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-            print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_same={loss_same:.3f},loss_raw_kt={loss_raw_kt:.3f},loss_raw_kt2={loss_raw_kt2:.3f},loss_cm={loss_cm:.3f}")
+            print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_same={loss_same:.3f},loss_raw_kt={loss_raw_kt:.3f}")
         return outputs['y'],loss#y_question没用
 
 
@@ -285,8 +277,7 @@ class xDKTV1(QueBaseModel):
             outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
         else:
             outputs = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
-                
-        # print(y_question.shape,y_concept.shape)
+
         if return_raw:#return raw probability, for future reward
             return outputs,data_new
       
@@ -296,7 +287,6 @@ class xDKTV1(QueBaseModel):
         outputs['y_qc_all'] = y_qc_all
         y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
         outputs['y_qc_next'] = y_qc_next
-
         
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x):
