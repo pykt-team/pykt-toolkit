@@ -21,7 +21,7 @@ from .iekt import IEKT
 from .cdkt import CDKT
 from .cakt2 import CAKT
 from .cdkvmn import CDKVMN
-from .bakt import BAKT
+from .bakt2 import BAKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 

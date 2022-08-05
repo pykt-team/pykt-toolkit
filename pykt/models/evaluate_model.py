@@ -81,6 +81,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = y[:,1:]
             elif model_name in ["bakt"]:
                 y = model(dcur)
+                y = y[:,1:]
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -363,6 +364,10 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
             elif model_name in ["bakt"]:
                 y, h = model(dcurori, qtest=True, train=False)
+                y = y[:,1:]
+                # start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
+                # print(start_hemb.shape, h.shape)
+                # h = torch.cat((start_hemb, h), dim=1) # add the first hidden emb
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
