@@ -364,8 +364,8 @@ class DKTQue(QueBaseModel):
                 l2 = self.model.other_config.get("l2",1e-5)
                 w_norm = (self.model.irt_w ** 2.).sum() * l2
                
-                loss_c_all_lambda = self.model.other_config['loss_c_all_lambda']
-                loss_q_all_lambda = self.model.other_config['loss_q_all_lambda']
+                loss_c_all_lambda = self.model.other_config.get('loss_c_all_lambda',0)
+                loss_q_all_lambda = self.model.other_config.get('loss_q_all_lambda',0)
 
                 loss = loss_kt + w_norm + loss_q_all_lambda * loss_question_all + loss_c_all_lambda* loss_concept_all
 
