@@ -267,7 +267,7 @@ class BAKT(nn.Module):
         if emb_type in ["qid", "qidaktrasch"]:
             q, k, v = final_q_embed_data[:,1:,:], final_q_embed_data[:,0:-1,:], final_qa_embed_data[:,0:-1,:]
             for i in range(self.n_blocks):
-                q = self.model[i](q, k, v)#### saint中也是作为q使用的!
+                q = self.model[i](q, k, v)
 
             concat_q = torch.cat([q, final_q_embed_data[:,1:,:]], dim=-1)
             output = self.out(concat_q).squeeze(-1)
@@ -327,11 +327,7 @@ class Blocks(Module):
         q, k, v = q.permute(1, 0, 2), k.permute(1, 0, 2), v.permute(1, 0, 2)
         # attn -> drop -> skip -> norm 
         # transformer: attn -> drop -> skip -> norm transformer default
-        # padv = torch.zeros(v.shape[0], 1, v.shape[2])
-        # v = torch.cat([padv, v[:,0:-1,:]], dim=1)
-        # print(f"before q: {q.shape}, k: {k.shape}, v: {v.shape}")
         causal_mask = ut_mask(seq_len = k.shape[0])
-        # print(f"after q: {q.shape}, k: {k.shape}, v: {v.shape}")
         attn_emb, _ = self.attn(q, k, v, attn_mask=causal_mask)
 
         attn_emb = self.attn_dropout(attn_emb)

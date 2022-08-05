@@ -1,0 +1,32 @@
+program: ./wandb_bakt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["bakt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["bakt_tiaocan"]
+    d_model:
+        values: [256, 512]
+    d_ff:
+        values: [256, 512]
+    final_fc_dim:
+        values: [256, 512]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    learning_rate:
+        values: [5e-6, 1e-5, 1e-4]
+    num_attn_heads:
+        values: [4, 8]
+    n_blocks:
+        values: [1, 2, 3, 4, 5, 6, 7, 8]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

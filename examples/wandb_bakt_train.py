@@ -63,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--dropout", type=float, default=0.1)
 
+    parser.add_argument("--final_fc_dim", type=int, default=256)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--nheads", type=int, default=4)
     parser.add_argument("--loss1", type=float, default=0.5)
