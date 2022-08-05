@@ -184,7 +184,7 @@ def model_forward(model, data, epoch):
         preloss.append(reg_loss)
     elif model_name in ["bakt"]:
         y, y2, y3 = model(dcur, train=True)
-        ys = [y[:,1:], y2, y3]
+        ys = [y, y2, y3]
     elif model_name in ["cdkvmn"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]

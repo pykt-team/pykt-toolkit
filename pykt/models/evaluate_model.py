@@ -81,7 +81,6 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = y[:,1:]
             elif model_name in ["bakt"]:
                 y = model(dcur)
-                y = y[:,1:]
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -144,7 +143,7 @@ def early_fusion(curhs, model, model_name):
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
-    elif model_name in ["bakt", "akt", "cakt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+    elif model_name in ["akt", "cakt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
@@ -364,7 +363,6 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
             elif model_name in ["bakt"]:
                 y, h = model(dcurori, qtest=True, train=False)
-                y = y[:,1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]

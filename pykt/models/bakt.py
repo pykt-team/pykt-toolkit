@@ -301,8 +301,8 @@ class BAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        padr = torch.zeros(preds.shape[0], 1).to(device)
-        preds = torch.cat([padr, preds], dim=1)
+        # padr = torch.zeros(preds.shape[0], 1).to(device)
+        # preds = torch.cat([padr, preds], dim=1)
         if train:
             return preds, y2, y3
         else:
