@@ -84,7 +84,7 @@ class xDKTV1Net(nn.Module):
         self.out_question_next = MLP(self.mlp_layer_num,self.hidden_size*3,1,dropout)
         self.out_question_all = MLP(self.mlp_layer_num,self.hidden_size,num_q,dropout)
 
-        self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*2,num_c,dropout)
+        self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)
         self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
 
         if self.output_mode in ["an_irt"]:#only for an_irt
@@ -122,7 +122,7 @@ class xDKTV1Net(nn.Module):
         emb_ca_current = emb_ca[:,:-1,:]
         emb_c_shift = emb_c[:,1:,:]
         concept_h = self.dropout_layer(self.concept_lstm_layer(emb_ca_current)[0])
-        concept_outputs = get_outputs(self,emb_c_shift,concept_h,data,add_name="",model_type="concept")
+        concept_outputs = get_outputs(self,emb_qc_shift,concept_h,data,add_name="",model_type="concept")
         outputs['y_concept_all'] = concept_outputs['y_concept_all']
         outputs['y_concept_next'] = concept_outputs['y_concept_next']
         
@@ -167,24 +167,21 @@ class xDKTV1(QueBaseModel):
         all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
         loss_all = self.get_merge_loss(loss_question_all,loss_concept_all,loss_question_concept,all_loss_mode)   
         loss_next = self.get_merge_loss(loss_question_next,loss_concept_next,loss_question_concept,next_loss_mode)
-        loss_same = F.mse_loss(outputs['y_qc_all'],outputs['y_concept_next'])
+    
         loss_raw_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
         
         if self.model.output_mode=="an_irt":
-            loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss
-            l2 = self.model.other_config.get("l2",1e-5)
-            w_norm = (self.model.irt_w ** 2.).sum() * l2
+            loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])#question level loss       
             loss_c_all_lambda = self.model.other_config.get('loss_c_all_lambda',0)
             loss_q_all_lambda = self.model.other_config.get('loss_q_all_lambda',0)
-            loss = loss_kt + w_norm + loss_q_all_lambda * loss_question_all + loss_c_all_lambda* loss_concept_all
-            print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},w_norm={w_norm:.3f},self.model.irt_w is {self.model.irt_w}")
+            loss = loss_kt  + loss_q_all_lambda * loss_question_all + loss_c_all_lambda* loss_concept_all
+            print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},self.model.irt_w is {self.model.irt_w}")
         else:
             loss_next_lambda = self.model.other_config.get("loss_next_lambda",0.5)
             loss_all_lambda = self.model.other_config.get("loss_all_lambda",0.5)
-            loss_same_lambda = self.model.other_config.get("loss_same_lambda",0)
-            loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda + loss_same*loss_same_lambda
-            loss = loss/(loss_next_lambda+loss_all_lambda+loss_same_lambda)
-            print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_same={loss_same:.3f},loss_raw_kt={loss_raw_kt:.3f}")
+            loss = loss_all*loss_all_lambda+loss_next*loss_next_lambda 
+            loss = loss/(loss_next_lambda+loss_all_lambda) + loss_raw_kt
+            print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_raw_kt={loss_raw_kt:.3f}")
         return outputs['y'],loss#y_question没用
 
 
@@ -214,20 +211,13 @@ class xDKTV1(QueBaseModel):
 
         results = y_pred_dict
         for key in results:
-            # print(f"y type is {key}")
             results[key] = np.concatenate(results[key], axis=0)
-            # print(f"{key} shape is {results[key].shape}")
-        # print(f"results is {results}")
-                
         ts = np.concatenate(y_trues, axis=0)
         results['ts'] = ts
         # print(f"ts shape is {ts.shape}")
-
-
         return results
 
     def evaluate(self,dataset,batch_size,acc_threshold=0.5):
-        # ps,ts,y_qc_true_hot, y_qc_pred_hot = self.predict(dataset,batch_size=batch_size)
         results = self.predict(dataset,batch_size=batch_size)
         eval_result = {}
         ts = results["ts"]
@@ -246,22 +236,9 @@ class xDKTV1(QueBaseModel):
                     eval_result["auc"] = kt_auc
                     eval_result["acc"] = kt_acc
         
-        if "cc" in self.model.loss_mode:
-            kc_em_acc = metrics.accuracy_score(results['kc_ts'], results['kc_ps'])
-        else:
-            kc_em_acc = 0
-        eval_result["kc_em_acc"] = kc_em_acc
         self.eval_result = eval_result
         return eval_result
         
-    def get_qc_predict_result(self,y_question_concepts,data_new):
-        #知识点分类当作多分类
-        concept_target = data_new['cshft'][:,:,0].flatten(0,1)
-        y_question_concepts = y_question_concepts.flatten(0,1)
-        qc_target = concept_target[concept_target!=-1]
-        y_qc_predict = y_question_concepts[concept_target!=-1,:]
-        return qc_target,y_qc_predict
-
     def get_merge_y(self,y_question,y_concept,predict_mode):
         if predict_mode=="c":
             y = y_concept
@@ -273,15 +250,7 @@ class xDKTV1(QueBaseModel):
 
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
-        if self.model.emb_type in ["iekt"]:
-            outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-        else:
-            outputs = self.model(data_new['q'].long(),data_new['c'],data_new['r'].long(),data=data_new)
-
-        if return_raw:#return raw probability, for future reward
-            return outputs,data_new
-      
-        
+        outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
         all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
         y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
         outputs['y_qc_all'] = y_qc_all
@@ -290,14 +259,13 @@ class xDKTV1(QueBaseModel):
         
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x):
-                # return x
                 return torch.log(x/(1-x+1e-7)+1e-7)
-            y = self.model.irt_w[0]*sigmoid_inverse(outputs['y_question_all']) + self.model.irt_w[1]*sigmoid_inverse(outputs['y_concept_all']) - self.model.irt_w[2]*sigmoid_inverse(outputs['y_question_next'])
-            # print(f"y is {y}")
+            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) - sigmoid_inverse(outputs['y_question_next'])
             y = torch.sigmoid(y)
         else:
             output_next_lambda = self.model.other_config.get("output_next_lambda",0.5)
             output_all_lambda = self.model.other_config.get("output_all_lambda",0.5)
+            # y = (outputs['y_question_all'] + outputs['y_concept_all'] + outputs['y_question_next'] + outputs['y_concept_next'])/4
             y = (y_qc_all*output_all_lambda+y_qc_next*output_next_lambda)/(output_all_lambda+output_next_lambda)
         outputs['y'] = y
 
