@@ -59,7 +59,7 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "cakt", "cdkvmn", "bakt", "catkt", "csakt"]:
+    if model_name in ["cdkt", "cfdkt", "cakt", "cdkvmn", "bakt", "catkt", "csakt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -115,7 +115,7 @@ def model_forward(model, data, epoch):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget"]:
+    if model_name in ["dkt_forget", "cfdkt"]:
         dcur, dgaps = data
     else:
         dcur = data
@@ -142,6 +142,10 @@ def model_forward(model, data, epoch):
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
+    elif model_name in ["cfdkt"]:
+        y, y2, y3 = model(dcur, dgaps, train=True)
+        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        ys = [y, y2, y3]
     elif model_name in ["cakt"]:
         y, reg_loss, y2, y3 = model(dcur, train=True)#(cc.long(), cr.long(), cq.long(), train=True)
         ys = [y[:,1:], y2, y3]

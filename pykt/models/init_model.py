@@ -24,6 +24,7 @@ from .cdkvmn import CDKVMN
 from .bakt3 import BAKT
 from .catkt import CATKT
 from .csakt import CSAKT
+from .cfdkt import CFDKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -37,6 +38,8 @@ def init_model(model_name, model_config, data_config, emb_type):
     print(f"in init_model, model_name: {model_name}")
     if model_name == "cdkt":
         model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "cfdkt":
+        model = CFDKT(data_config["num_q"], data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "cakt":
         model = CAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "cdkvmn":

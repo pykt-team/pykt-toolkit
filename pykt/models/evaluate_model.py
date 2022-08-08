@@ -52,7 +52,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            if model_name in ["dkt_forget"]:
+            if model_name in ["dkt_forget", "cfdkt"]:
                 dcur, dgaps = data
             else:
                 dcur = data
@@ -73,6 +73,9 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(dcur)
                 if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
                     y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["cfdkt"]:
+                y = model(dcur, dgaps)
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cakt"]:
                 y, reg_loss = model(dcur)
                 y = y[:,1:]
@@ -341,7 +344,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         y_trues, y_scores = [], []
         lenc = 0
         for data in test_loader:
-            if model_name in ["dkt_forget"]:
+            if model_name in ["dkt_forget", "cfdkt"]:
                 dcurori, dgaps, dqtest = data
             else:
                 dcurori, dqtest = data
@@ -367,6 +370,9 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name in ["cakt"]:
                 y, reg_loss, h = model(dcurori, qtest=True, train=False)
                 y = y[:,1:]
+            elif model_name in ["cfdkt"]:
+                y = model(dcurori, dgaps)
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["bakt"]:
                 y, h = model(dcurori, qtest=True, train=False)
                 y = y[:,1:]

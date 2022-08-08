@@ -84,7 +84,7 @@ class DktForgetDataset(Dataset):
         dcur = dict()
         mseqs = self.dori["masks"][index]
         for key in self.dori:
-            if key in ["masks", "smasks"]:
+            if key in ["masks", "smasks", "fsms"]:
                 continue
             if len(self.dori[key]) == 0:
                 dcur[key] = self.dori[key]
@@ -95,6 +95,9 @@ class DktForgetDataset(Dataset):
             shft_seqs = self.dori[key][index][1:] * mseqs
             dcur[key] = seqs
             dcur["shft_"+key] = shft_seqs
+
+        dcur["fsms"] = self.dori["fsms"][index]
+        
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
         dcurgaps = dict()
@@ -111,6 +114,42 @@ class DktForgetDataset(Dataset):
             for key in self.dqtest:
                 dqtest[key] = self.dqtest[key][index]
             return dcur, dcurgaps, dqtest
+
+    def __generate_correct_ratio__(self, cs, rs):
+        # 计算截止当前该学生的全局做题准确率
+        historyratios = []
+        right, total = 0, 0
+        for i in range(0, len(cs)):
+            if rs[i] == 1:
+                right += 1
+            total += 1
+            historyratios.append(right / total)
+        # 计算该学生每个知识点的全局准确率
+        totalratios = []
+        dr, dall = dict(), dict()
+        for i in range(0, len(cs)):
+            c = cs[i]
+            dr.setdefault(c, 0)
+            if rs[i] == 1:
+                dr[c] += 1
+            dall.setdefault(c, 0)
+            dall[c] += 1
+        for i in range(0, len(cs)):
+            c = cs[i]
+            totalratios.append(dr[c] / dall[c])
+
+        futureratios, fsms = [], []
+        reallen = len(cs) - cs.count(-1)
+        for i in range(0, len(cs)):
+            if i / reallen < 0.2 or i / reallen > 0.8 or reallen < 100:
+                futureratios.append(0)
+                fsms.append(0)
+                continue
+            right = rs[i+1:].count(1)
+            total = len(rs[i+1:])
+            futureratios.append(right / total)
+            fsms.append(1)
+        return historyratios, totalratios, futureratios, fsms[1:]
 
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """
@@ -132,7 +171,9 @@ class DktForgetDataset(Dataset):
             - **max_pcount (int)**: max num of the past exercise counts
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [],
+                "historycorrs": [], "totalcorrs": [], "futurecorrs": [], "fsms": []
+        }
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         # repeated_gap, sequence_gap, past_counts = [], [], []
         dgaps = {"rgaps": [], "sgaps": [], "pcounts": []}
@@ -160,6 +201,16 @@ class DktForgetDataset(Dataset):
             if "usetimes" in row:
                 dori["utseqs"].append([int(_) for _ in row["usetimes"].split(",")])
 
+            curocs = [int(_) for _ in row["concepts"].split(",")]
+            curors = [int(_) for _ in row["responses"].split(",")]
+
+            # 计算全局历史做题准确率
+            historycorrs, totalcorrs, futurecorrs, fsms = self.__generate_correct_ratio__(curocs, curors)
+            dori["historycorrs"].append(historycorrs)
+            dori["totalcorrs"].append(totalcorrs)
+            dori["futurecorrs"].append(futurecorrs)
+            dori["fsms"].append(fsms)
+
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
 
@@ -177,7 +228,7 @@ class DktForgetDataset(Dataset):
                 dqtest["orirow"].append([int(_) for _ in row["orirow"].split(",")])
 
         for key in dori:
-            if key not in ["rseqs"]:#in ["smasks", "tseqs"]:
+            if key not in ["rseqs", "historycorrs", "totalcorrs", "totalcorrs"]:#in ["smasks", "tseqs"]:
                 dori[key] = LongTensor(dori[key])
             else:
                 dori[key] = FloatTensor(dori[key])
