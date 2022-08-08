@@ -160,7 +160,7 @@ class xDKTV2(QueBaseModel):
         loss_q_next_lambda = self.model.other_config.get('loss_q_next_lambda',0)
         
         if self.model.output_mode=="an_irt":
-            loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all
+            loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all+ loss_c_next_lambda* loss_c_next
         else:
             loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all + loss_c_next_lambda* loss_c_next + loss_q_next_lambda*loss_q_next
         print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},loss_q_all={loss_q_all:.3f},loss_c_all={loss_c_all:.3f},loss_q_next={loss_q_next:.3f},loss_c_next={loss_c_next:.3f}")
@@ -226,7 +226,7 @@ class xDKTV2(QueBaseModel):
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x,epsilon=1e-8):
                 return torch.log(x/(1-x+epsilon)+epsilon)
-            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) - sigmoid_inverse(outputs['y_concept_next'])
+            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) + sigmoid_inverse(outputs['y_concept_next'])
             y = torch.sigmoid(y)
         else:
             # output weight
