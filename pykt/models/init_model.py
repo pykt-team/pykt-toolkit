@@ -22,6 +22,8 @@ from .cdkt import CDKT
 from .cakt2 import CAKT
 from .cdkvmn import CDKVMN
 from .bakt3 import BAKT
+from .catkt import CATKT
+from .csakt import CSAKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -41,6 +43,10 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = CDKVMN(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt":
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "catkt":
+        model = CATKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], fix=True).to(device)
+    elif model_name == "csakt":
+        model = CSAKT(data_config["num_q"], data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":

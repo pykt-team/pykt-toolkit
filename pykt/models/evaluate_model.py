@@ -82,6 +82,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["bakt"]:
                 y = model(dcur)
                 y = y[:,1:]
+            elif model_name in ["catkt"]:
+                y, _ = model(dcur)
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["csakt"]:
+                y = model(dcur)
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -374,6 +379,11 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
                 y = y[:,1:]
+            elif model_name == "csakt":
+                y, h = model(dcurori, qtest=True)
+                start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
+                # print(start_hemb.shape, h.shape)
+                h = torch.cat((start_hemb, h), dim=1) # add the first hidden emb
             elif model_name == "sakt":
                 y, h = model(c.long(), r.long(), cshft.long(), True)
                 start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
@@ -397,6 +407,9 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["catkt"]:
+                y, _ = model(dcurori)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())

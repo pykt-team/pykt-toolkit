@@ -56,62 +56,27 @@ def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
 #         poly1 = poly1.sum()
 #     return poly1
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0):
+def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "cakt", "cdkvmn", "bakt"]:
+    if model_name in ["cdkt", "cakt", "cdkvmn", "bakt", "catkt", "csakt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
         loss1 = binary_cross_entropy(y.double(), t.double())
 
-        # 1.2
-        loss2 = 0
-        if model.emb_type.endswith("mergetwo"):
-            # if epoch <= 3:
-            loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
-            # elif epoch <= 6:
-            #     loss = model.l1*loss1+model.l2/2*ys[1]+model.l3/2*ys[2]
-            # else:
-            #     loss = loss1
-        elif model.emb_type.find("predhis") != -1:
-            loss = model.l1*loss1+model.l2*ys[1]
-        elif model.emb_type.find("predcurc") != -1:
+        if model.emb_type.find("predcurc") != -1:
             if model.emb_type.find("his") != -1:
                 loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
             else:
                 loss = model.l1*loss1+model.l2*ys[1]
-        # if model.emb_type.find("predcurc") != -1:
-        #     mask = sm == 1
-        #     loss2 = cross_entropy(ys[1][mask], ys[2][mask])
-        #     loss = model.l1*loss1+model.l2*loss2
-        elif model.emb_type.endswith("addcc"):
-            # print(f"loss1: {loss1}, loss2: {ys[1]}")
-            loss = model.l1*loss1+model.l2*0.05*ys[1]
-        elif model.emb_type.endswith("seq2seq") or model.emb_type.endswith("transpretrain"):
-            # print(f"loss1: {model.l1*loss1}, loss2: {model.l2*ys[1]}")
-            loss = model.l1*loss1+model.l2*ys[1]
-        elif model.emb_type.endswith("predfuture") or model.emb_type.endswith("three"):
-            # print(f"loss1: {model.l1*loss1}, loss2: {model.l2*ys[1]}")
-            loss = model.l1*loss1+model.l2*ys[1]
         else:
+            loss = loss1
+        if flag:
             loss = loss1
 
         if model_name == "cakt":
-            loss = loss + preloss[0]
-        
-        # # concept predict loss  ## 1.3
-        # loss2 = 0        
-        # # mask = sm == 1
-        # # # print(ys[1][mask][0:5])
-        # # # print(f"y: {y.shape}, ys[1][mask]: {ys[1][mask].shape}")
-        # # assert y.shape[0] == ys[1][mask].shape[0]
-        # # loss2 = polyloss(model, ys[1][mask], ys[2][mask])
-        # y2 = (ys[1] * one_hot(ys[2].long(), model.num_c)).sum(-1)
-        # y2 = torch.masked_select(y2, sm)
-        # t2 = torch.ones(y2.shape[0]).to(device)
-        # loss2 = binary_cross_entropy(y2.double(), t2.double())
-        # loss = 0.5*loss1 + 0.5*loss2   
+            loss = loss + preloss[0]  
     #elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
     elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
 
@@ -185,6 +150,23 @@ def model_forward(model, data, epoch):
     elif model_name in ["bakt"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["catkt"]: # predcurc
+        y, features, y2, y3 = model(dcur, train=True)
+        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        loss = cal_loss(model, [y, y2, y3], r, rshft, sm, epoch)
+        # at
+        # features_grad = grad(loss, features, retain_graph=True)
+        # p_adv = torch.FloatTensor(model.epsilon * _l2_normalize_adv(features_grad[0].data))
+        # p_adv = Variable(p_adv).to(device)
+        # pred_res, _, py2, py3 = model(dcur, p_adv, train=True)
+        # # second loss
+        # pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
+        # adv_loss = cal_loss(model, [pred_res, py2, py3], r, rshft, sm, epoch, flag=True)
+
+        # loss = loss + model.beta * adv_loss
+    elif model_name in ["csakt"]:
+        y, y2, y3 = model(dcur, train=True)
+        ys = [y, y2, y3]
     elif model_name in ["cdkvmn"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
@@ -247,7 +229,7 @@ def model_forward(model, data, epoch):
         ys.append(y[:, 1:])
     elif model_name == "iekt":
         y,loss = model.train_one_step(data)
-    if model_name not in ["atkt", "atktfix","iekt"]:
+    if model_name not in ["atkt", "atktfix","iekt", "catkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss, epoch)
     return loss
     

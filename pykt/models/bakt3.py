@@ -249,13 +249,8 @@ class BAKT(nn.Module):
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
 
-        batch_size = q_data.shape[0]
-        seqlen = q_data.shape[1]
         emb_type = self.emb_type
 
-        # Batch First
-        q_embed_data = self.q_embed(q_data)
-        pid_embed_data = None
         # Batch First
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
