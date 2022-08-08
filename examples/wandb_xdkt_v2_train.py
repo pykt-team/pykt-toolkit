@@ -23,14 +23,18 @@ if __name__ == "__main__":
     parser.add_argument("--emb_type", type=str, default="iekt")
     parser.add_argument("--dropout", type=float, default=0.4)
     parser.add_argument("--emb_size", type=int, default=300)
-    parser.add_argument("--loss_c_all_lambda", type=float, default=0)
+    parser.add_argument("--mlp_layer_num", type=int, default=1)
+
     parser.add_argument("--loss_q_all_lambda", type=float, default=0)
-    parser.add_argument("--loss_c_next_lambda", type=float, default=0)
+    parser.add_argument("--loss_c_all_lambda", type=float, default=0)
     parser.add_argument("--loss_q_next_lambda", type=float, default=0)
-    parser.add_argument("--output_c_all_lambda", type=float, default=1)
+    parser.add_argument("--loss_c_next_lambda", type=float, default=0)
+    
     parser.add_argument("--output_q_all_lambda", type=float, default=1)
+    parser.add_argument("--output_c_all_lambda", type=float, default=1)
+    parser.add_argument("--output_q_next_lambda", type=float, default=0)
     parser.add_argument("--output_c_next_lambda", type=float, default=1)
-    parser.add_argument("--output_q_next_lambda", type=float, default=1)
+    
     parser.add_argument("--output_mode", type=str, default="an")
     args = parser.parse_args()
 

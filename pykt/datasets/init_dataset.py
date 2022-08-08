@@ -8,7 +8,7 @@ from .dkt_forget_dataloader import DktForgetDataset
 from .lpkt_dataloader import LPKTDataset
 from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
-from pykt.models.config import que_type_models
+from pykt.config import que_type_models
 
 
 

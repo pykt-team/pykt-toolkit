@@ -7,7 +7,7 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-from .config import que_type_models
+from pykt.config import que_type_models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 

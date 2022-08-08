@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn.functional import one_hot
 from sklearn import metrics
-from .config import que_type_models
+from pykt.config import que_type_models
 import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"

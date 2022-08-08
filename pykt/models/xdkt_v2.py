@@ -85,6 +85,8 @@ class xDKTV2Net(nn.Module):
         self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)
         self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
 
+        self.que_disc = MLP(self.mlp_layer_num,self.hidden_size*2,1,dropout)
+
         
 
     def get_avg_fusion_concepts(self,y_concept,cshft):
@@ -222,17 +224,18 @@ class xDKTV2(QueBaseModel):
  
        
         if self.model.output_mode=="an_irt":
-            def sigmoid_inverse(x):
-                return torch.log(x/(1-x+1e-7)+1e-7)
-            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) - sigmoid_inverse(outputs['y_question_next'])
+            def sigmoid_inverse(x,epsilon=1e-8):
+                return torch.log(x/(1-x+epsilon)+epsilon)
+            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) - sigmoid_inverse(outputs['y_concept_next'])
             y = torch.sigmoid(y)
         else:
             # output weight
             output_c_all_lambda = self.model.other_config.get('output_c_all_lambda',1)
             output_c_next_lambda = self.model.other_config.get('output_c_next_lambda',1)
             output_q_all_lambda = self.model.other_config.get('output_q_all_lambda',1)
-            y = outputs['y_question_all'] * output_q_all_lambda + outputs['y_concept_all'] * output_c_all_lambda + outputs['y_concept_next'] * output_c_next_lambda
-            y = y/(output_q_all_lambda + output_c_all_lambda + output_c_next_lambda)
+            output_q_next_lambda = self.model.other_config.get('output_q_next_lambda',0)#not use this
+            y = outputs['y_question_all'] * output_q_all_lambda + outputs['y_concept_all'] * output_c_all_lambda + outputs['y_concept_next'] * output_c_next_lambda + outputs['y_question_next']*output_q_next_lambda
+            y = y/(output_q_all_lambda + output_c_all_lambda + output_c_next_lambda+output_q_next_lambda)
         outputs['y'] = y
 
 
