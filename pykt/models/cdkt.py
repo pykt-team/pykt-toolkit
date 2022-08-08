@@ -19,6 +19,7 @@ class CDKT(Module):
         super().__init__()
         self.model_name = "cdkt"
         print(f"qnum: {num_q}, cnum: {num_c}")
+        print(f"emb_type: {emb_type}")
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
@@ -32,7 +33,7 @@ class CDKT(Module):
         self.out_layer = Linear(self.hidden_size, self.num_c)
 
         if self.emb_type.endswith("pretrainddiff"): # use pretrained qemb and cemb from cc
-            dpath = "/data/liuqiongqiong/kt/kaiyuan/dev/algebra2005_1024_350"
+            dpath = "/data/liuqiongqiong/kt/kaiyuan/dev/1024pkl/"
             qavgkc = pd.read_pickle(os.path.join(dpath, "algebra2005_qavgcvec.pkl"))
             qvec = pd.read_pickle(os.path.join(dpath, "algebra2005_questionvec.pkl"))
             cvec = pd.read_pickle(os.path.join(dpath, "algebra2005_conceptvec.pkl"))
@@ -74,18 +75,21 @@ class CDKT(Module):
         if self.emb_type.endswith("predhis"):
             self.l1 = l1
             self.l2 = l2
-            self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            if self.emb_type.find("cemb") != -1:
+                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
+            if self.emb_type.find("qemb") != -1:
+                self.question_emb = Embedding(self.num_q, self.emb_size)
             if self.emb_type.find("predr") != -1:
                 self.response_emb = Embedding(2, self.emb_size)
                 self.rclasifier = Linear(self.hidden_size, 1)
                 # self.rloss = Bina
             # 加一个预测历史准确率的任务
-            if self.emb_type.find("his") != -1:
-                self.start = start
-                self.hisclasifier = nn.Sequential(
-                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size//2, 1))
-                self.hisloss = nn.MSELoss()
+            
+            self.start = start
+            self.hisclasifier = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size//2, 1))
+            self.hisloss = nn.MSELoss()
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = l1
@@ -108,27 +112,6 @@ class CDKT(Module):
             if self.emb_type.find("cemb") != -1:
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
-            if self.emb_type.find("attn") != -1:
-                # self.qlinear = Linear(self.hidden_size, self.hidden_size)
-                # self.klinear = Linear(self.hidden_size, self.hidden_size)
-                # self.vlinear = Linear(self.hidden_size, self.hidden_size)
-                self.dF, self.dfenzi, self.dfenmu = dict(), dict(), dict()
-                self.avgf = 0
-                if self.emb_type.find("mattn") != -1:
-                    self.mattn = MultiheadAttention(emb_size, num_attn_heads, dropout=dropout)
-                    self.mattn_dropout = Dropout(dropout)
-                    self.mattn_layer_norm = LayerNorm(emb_size)
-                if self.emb_type.find("areaattn") != -1:
-                    from .cdkt_utils import AreaAttention, MultiHeadAreaAttention 
-                    area_core = AreaAttention(self.hidden_size, 4, dropout)
-                    self.area_attn = MultiHeadAreaAttention(area_core, 1, self.hidden_size,
-                        self.hidden_size, self.hidden_size, self.hidden_size)
-
-            # concat response
-            if self.emb_type.find("catr") != -1:
-                self.lstm_layer = LSTM(self.emb_size*2, self.hidden_size, batch_first=True)
-            if self.emb_type.find("addr") != -1:
-                self.response_emb = Embedding(2, self.emb_size)
             if self.emb_type.find("predr") != -1:
                 self.response_emb = Embedding(2, self.emb_size)
                 self.rclasifier = Linear(self.hidden_size, 1)
@@ -141,8 +124,15 @@ class CDKT(Module):
                     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
                 self.hisloss = nn.MSELoss()
-            if self.emb_type.find("diff") != -1:
+            if self.emb_type.find("adddiff") != -1:
                 self.difficulty_layer = Embedding(11, self.emb_size)
+            if self.emb_type.find("preddiff") != -1:
+                self.diffclassifier = Linear(self.emb_size, 101)
+                # self.diffclasifier = nn.Sequential(
+                #     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                #     nn.Linear(self.hidden_size//2, 1))
+                # self.diffloss = nn.MSELoss()
+                # self.dconf = nn.Parameter(torch.randn(seq_len, 1).to(device), requires_grad=True)
             if self.emb_type.find("bkt") != -1:
                 self.bkt = nn.Parameter(torch.randn(self.num_c, 2).to(device), requires_grad=True)
             if self.emb_type.find("lr") != -1:
@@ -303,6 +293,114 @@ class CDKT(Module):
         S = self.area_attn(q, k, v, attn_mask=causal_mask)#.permute(1,0,2)
         return S
 
+    def predcurc(self, dcur, q, c, r, sm, xemb, train):
+        emb_type = self.emb_type
+        y2, y3 = 0, 0
+        catemb = xemb
+        if self.num_q > 0:
+            qemb = self.question_emb(q)
+            catemb = qemb + xemb
+            
+        if emb_type.find("cemb") != -1:
+            cemb = self.concept_emb(c)
+            catemb += cemb
+
+        if emb_type.find("adddiff") != -1:
+            curdiff = dcur["difficulty"]
+            diffemb = self.difficulty_layer(curdiff)
+            catemb += diffemb
+        # cemb = self.concept_emb(c)
+        # catemb = cemb
+        if emb_type.find("trans") != -1:
+            if emb_type.find("addpos") != -1: # 不加pos效果更好
+                posemb = self.position_emb(pos_encode(xemb.shape[1]))
+                catemb = catemb + posemb
+            mask = ut_mask(seq_len = catemb.shape[1])
+            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
+        else:
+            qh, _ = self.qlstm(catemb)
+        if train:
+            start = 0
+            cpreds = self.qclasifier(qh[:,start:,:])
+            flag = sm[:,start:]==1
+            y2 = self.closs(cpreds[flag], c[:,start:][flag])
+            # if emb_type.find("predr") != -1:
+            #     rpreds = torch.sigmoid(self.rclasifier(qh))
+            #     y2 = y2+self.closs(rpreds[flag], r[flag])
+            if emb_type.find("preddiff") != -1:
+                dtrues = torch.ceil(dcur["totalcorr"]*100).long() # 共101个级别
+                dpreds = self.diffclassifier(qh[:,start:,:])
+                y2 = y2 + self.closs(dpreds[flag], dtrues[flag])
+                # start = 0
+                # flag = sm[:,start:]==1
+                # dtrues = dcur["totalcorr"][:,start:]
+                # dpreds = torch.sigmoid(self.diffclasifier(qh)[:,start:,:]).squeeze(-1)
+                # y2 = y2 + self.diffloss(dpreds[flag], dtrues[flag])
+
+
+        # predict response
+        xemb = xemb + qh + cemb
+        if emb_type.find("qemb") != -1:
+            xemb = xemb+qemb
+        if emb_type.find("adddiff") != -1:
+            xemb = xemb + diffemb# + qemb
+        # 截止当前的学习能力
+        if emb_type.find("lr") != -1:
+            # print(torch.ceil(dcur["historycorrs"]*5).long())
+            # assert False
+            levelemb = self.level(torch.ceil(dcur["historycorrs"]*50).long()) # 共101个级别
+            conf = torch.sigmoid(self.confidence[xemb.shape[0]]).unsqueeze(-1).expand_as(levelemb)
+            # conf = torch.sigmoid(self.confidence[xemb.shape[0]]).expand_as(levelemb)
+            levelemb = conf * levelemb
+            pad = torch.zeros(xemb.shape[0], 50, xemb.shape[2]).to(device)
+            # levelemb[:,self.start:,:] = pad
+            xemb = xemb + torch.cat([pad, levelemb[:,50:,:]], dim=1)
+            
+            # xemb = xemb + levelemb
+            # assert False
+
+        h, _ = self.lstm_layer(xemb)
+
+        # predict history correctness rates
+        if emb_type.find("his") != -1:
+            start = self.start
+            rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
+            rsm = sm[:,start:]
+            rflag = rsm==1
+            rtrues = dcur["historycorrs"][:,start:]
+            y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
+
+        # if emb_type.find("preddiff") != -1:
+        #     start = 0
+        #     flag = sm[:,start:]==1
+        #     dtrues = dcur["totalcorr"][:,start:]
+        #     dpreds = torch.sigmoid(self.diffclasifier(h)[:,start:,:]).squeeze(-1)
+        #     y3 = y3 + self.diffloss(dpreds[flag], dtrues[flag])
+        if emb_type.find("predr") != -1:
+            rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
+            flag = sm==1
+            y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
+            # assert False
+        # predict response
+        h = self.dropout_layer(h)
+        y = self.out_layer(h)
+        # add 
+        if emb_type.find("bkt") != -1:
+            cshft = dcur["shft_cseqs"].long()
+            ypreds = (y * one_hot(cshft.long(), self.num_c)).sum(-1)
+            slipshft, guessshft = dcur["shft_slipping"], dcur["shft_guess"]
+            ypreds = torch.sigmoid(ypreds)
+            # y = ypreds*(1-slipshft) + (1-ypreds)*guessshft)
+            # print(f"self.bkt[cshft][0]: {self.bkt[cshft].shape}, {self.bkt[cshft][:,:,0].shape}")
+            # TODO 根据上一次当前知识点的response来将01或者11融入模型
+            y = ypreds*(1-slipshft*torch.sigmoid(self.bkt[cshft][:,:,0])) + \
+                    (1-ypreds)*guessshft*torch.sigmoid(self.bkt[cshft][:,:,0]) # 0.8238
+            # y = torch.sigmoid(ypreds*(1-slipshft)*self.bkt[cshft][:,:,0] + (1-ypreds)*guessshft*self.bkt[cshft][:,:,1]) # 0.8218
+            # TODO 1-first/全局准确率 当作难度 bkt后再irt？
+        else:
+            y = torch.sigmoid(y)
+        return y, y2, y3
+
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -429,11 +527,15 @@ class CDKT(Module):
                 y = torch.sigmoid(self.out_layer(h))
         elif emb_type.endswith("predhis"): # only predict history correct ratios
             # predict response
-            cemb = self.concept_emb(c)
-            xemb = xemb + cemb
+            if self.emb_type.find("cemb") != -1:
+                cemb = self.concept_emb(c)
+                xemb = xemb + cemb
+            if emb_type.find("qemb") != -1:
+                qemb = self.question_emb(q)
+                xemb = xemb+qemb
             h, _ = self.lstm_layer(xemb)
             # predict history correctness rates
-            if emb_type.find("his") != -1:
+            if train:
                 start = self.start
                 rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
                 rsm = sm[:,start:]
@@ -442,10 +544,10 @@ class CDKT(Module):
                 # rtrues = dcur["totalcorrs"][:,start:]
                 # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
                 y2 = self.hisloss(rpreds[rflag], rtrues[rflag])
-            if emb_type.find("predr") != -1:
-                rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
-                flag = sm==1
-                y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
+            # if emb_type.find("predr") != -1:
+            #     rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
+            #     flag = sm==1
+            #     y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
                 # assert False
 
             h = self.dropout_layer(h)
@@ -453,137 +555,7 @@ class CDKT(Module):
             y = self.out_layer(h)
             y = torch.sigmoid(y)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
-            # predict concept
-            # pad = torch.zeros(xemb.shape[0], 1, xemb.shape[2]).to(device)
-            # chistory = torch.cat((pad, xemb[:,0:-1,:]), dim=1)
-            chistory = xemb
-            if self.num_q > 0:
-                qemb = self.question_emb(q)
-                catemb = qemb + chistory
-            else:
-                catemb = chistory
-            if emb_type.find("cemb") != -1:
-                cemb = self.concept_emb(c)
-                catemb += cemb
-
-            if emb_type.find("diff") != -1:
-                curdiff = dcur["difficulty"]
-                diffemb = self.difficulty_layer(curdiff)
-                catemb += diffemb
-            # cemb = self.concept_emb(c)
-            # catemb = cemb
-            if emb_type.find("caddr") != -1:
-                remb = self.response_emb(r)
-                catemb += remb
-            if emb_type.find("trans") != -1:
-                if emb_type.find("addpos") != -1: # 不加pos效果更好
-                    posemb = self.position_emb(pos_encode(xemb.shape[1]))
-                    catemb = catemb + posemb
-                mask = ut_mask(seq_len = catemb.shape[1])
-                qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-            else:
-                qh, _ = self.qlstm(catemb)
-            if train:
-                start = 0
-                cpreds = self.qclasifier(qh[:,start:,:])
-                flag = sm[:,start:]==1
-                y2 = self.closs(cpreds[flag], c[:,start:][flag])
-                # if emb_type.find("predr") != -1:
-                #     rpreds = torch.sigmoid(self.rclasifier(qh))
-                #     y2 = y2+self.closs(rpreds[flag], r[flag])
-
-            # predict response
-            xemb = xemb + qh + cemb
-            if emb_type.find("qemb") != -1:
-                xemb = xemb+qemb
-            if emb_type.find("diff") != -1:
-                xemb = xemb + diffemb# + qemb
-            if emb_type.find("catr") != -1:
-                remb = r.float().unsqueeze(2).expand(xemb.shape[0], xemb.shape[1], xemb.shape[2])
-                xemb = torch.cat([xemb, remb], dim=-1)
-                # remb = torch.tensor([0]).unsqueeze(1).expand_as(xemb).to(device)
-                # kc_response = torch.cat((xemb,remb), 2)
-                # response_kc = torch.cat((remb,xemb), 2)
-                # r = r.unsqueeze(2).expand_as(kc_response)
-                # xemb = torch.where(r == 1, kc_response, response_kc)
-            if emb_type.find("addr") != -1:
-                remb = self.response_emb(r)
-                xemb = xemb + remb
-            # 截止当前的学习能力
-            if emb_type.find("lr") != -1:
-                # print(torch.ceil(dcur["historycorrs"]*5).long())
-                # assert False
-                levelemb = self.level(torch.ceil(dcur["historycorrs"]*50).long()) # 共101个级别
-                conf = torch.sigmoid(self.confidence[xemb.shape[0]]).unsqueeze(-1).expand_as(levelemb)
-                # conf = torch.sigmoid(self.confidence[xemb.shape[0]]).expand_as(levelemb)
-                levelemb = conf * levelemb
-                pad = torch.zeros(xemb.shape[0], 50, xemb.shape[2]).to(device)
-                # levelemb[:,self.start:,:] = pad
-                xemb = xemb + torch.cat([pad, levelemb[:,50:,:]], dim=1)
-                
-                # xemb = xemb + levelemb
-                # assert False
-
-            h, _ = self.lstm_layer(xemb)
-
-            if emb_type.find("hattn") != -1:
-                h = self.generate_forget(c, r) * h
-            elif emb_type.find("mattn") != -1:
-                h = self.multi_head_attn(h, h, h)
-            elif emb_type.find("areaattn") != -1:
-                h = self.area_attn_fuc(h, h, h)
-            elif emb_type.find("attn") != -1:
-                h = self.attn(h, c, r)# + h
-
-            # predict history correctness rates
-            if emb_type.find("his") != -1:
-                start = self.start
-                rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
-                rsm = sm[:,start:]
-                rflag = rsm==1
-                rtrues = dcur["historycorrs"][:,start:]
-                # rtrues = dcur["totalcorrs"][:,start:]
-                # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
-                y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
-            if emb_type.find("predr") != -1:
-                rpreds = torch.sigmoid(self.rclasifier(h).squeeze(-1))
-                flag = sm==1
-                y2 = y2+binary_cross_entropy(rpreds[flag].double(), r[flag].double())
-                # assert False
-            # predict response
-            if emb_type.find("alphas") != -1:
-                alphas = dcur["alphas"].unsqueeze(-1).expand_as(h)
-                h = alphas * h
-
-            h = self.dropout_layer(h)
-            # y = torch.sigmoid(self.out_layer(h))
-            y = self.out_layer(h)
-            # add IRT
-            
-            if emb_type.find("bkt") != -1:
-                cshft = dcur["shft_cseqs"].long()
-                ypreds = (y * one_hot(cshft.long(), self.num_c)).sum(-1)
-                slipshft, guessshft = dcur["shft_slipping"], dcur["shft_guess"]
-                # print(f"ypreds: {ypreds.shape}, slipshft: {slipshft.shape}, guessshft: {guessshft.shape}")
-                # print(f"slipping: {slipshft}")
-                # print(f"guess: {guessshft}")
-                ypreds = torch.sigmoid(ypreds)
-                # y = ypreds*(1-slipshft) + (1-ypreds)*guessshft)
-                # print(f"self.bkt[cshft][0]: {self.bkt[cshft].shape}, {self.bkt[cshft][:,:,0].shape}")
-                # TODO 根据上一次当前知识点的response来将01或者11融入模型
-                y = ypreds*(1-slipshft*torch.sigmoid(self.bkt[cshft][:,:,0])) + \
-                        (1-ypreds)*guessshft*torch.sigmoid(self.bkt[cshft][:,:,0]) # 0.8238
-                # y = torch.sigmoid(ypreds*(1-slipshft)*self.bkt[cshft][:,:,0] + (1-ypreds)*guessshft*self.bkt[cshft][:,:,1]) # 0.8218
-                # print(f"ypreds: {ypreds}")
-                # print(f"yfinal: {y}")
-                # print(f"ytrues: {dcur['shft_rseqs']}")
-                # assert False
-                # y = torch.sigmoid()
-                # TODO 1-first/全局准确率 当作难度 bkt后再irt？
-            else:
-                y = torch.sigmoid(y)
-                
-            
+            y, y2, y3 = self.predcurc(dcur, q, c, r, sm, xemb, train)
         elif emb_type.endswith("mergetwo"):
             if self.num_q > 0:
                 repqemb = self.question_emb(q)

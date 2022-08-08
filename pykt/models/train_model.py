@@ -70,6 +70,8 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
                 loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
             else:
                 loss = model.l1*loss1+model.l2*ys[1]
+        elif model.emb_type.find("predhis") != -1:
+            loss = model.l1*loss1+model.l2*ys[1]
         else:
             loss = loss1
         if flag:
