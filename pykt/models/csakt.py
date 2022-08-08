@@ -105,8 +105,11 @@ class CSAKT(Module):
             else:
                 qemb = self.question_emb(q)
                 cemb = self.exercise_emb(c)
-                # y2, xemb = self.predcurc(qemb, cemb, xemb, dcur, train)
-                y2, _ = self.predcurc(qemb, cemb, xemb, dcur, train)
+                
+                if emb_type.find("notadd") != -1:
+                    y2, _ = self.predcurc(qemb, cemb, xemb, dcur, train)
+                else:
+                    y2, xemb = self.predcurc(qemb, cemb, xemb, dcur, train)
             
             # predict response
             for i in range(self.num_en):
