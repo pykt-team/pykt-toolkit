@@ -18,6 +18,7 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
+from .xdkt_v2 import xDKTV2
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -78,6 +79,10 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+    elif model_name == "xdkt_v2":
+        model = xDKTV2(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+
     else:
         print("The wrong model name was used...")
         return None

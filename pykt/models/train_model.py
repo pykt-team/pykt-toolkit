@@ -7,8 +7,10 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-
+from .config import que_type_models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
@@ -124,9 +126,10 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name == "iekt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
-    if model_name not in ["atkt", "atktfix","iekt"]:
+    
+    if model_name not in ["atkt", "atktfix"]+que_type_models:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
@@ -140,7 +143,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name=='iekt':
+            if model.model_name in que_type_models:
                 model.model.train()
             else:
                 model.train()
@@ -156,6 +159,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.model_name=='lpkt':
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
+        
         auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
