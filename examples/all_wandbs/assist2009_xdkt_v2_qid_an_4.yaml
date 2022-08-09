@@ -22,7 +22,7 @@ parameters:
     seed:
         values: [42, 224, 3407]
     fold:
-        values: [0,1,2,3,4]
+        values: ['4']
     mlp_layer_num:
         values: [1,2]
     loss_c_all_lambda:
