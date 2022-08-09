@@ -153,11 +153,15 @@ class xDKTV2(QueBaseModel):
         # over all
         loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
 
+        def get_loss_lambda(x):
+            return self.model.other_config.get(f'loss_{x}',0)*self.model.other_config.get(f'output_{x}',0)
+            
         # loss weight
-        loss_c_all_lambda = self.model.other_config.get('loss_c_all_lambda',0)
-        loss_c_next_lambda = self.model.other_config.get('loss_c_next_lambda',0)
-        loss_q_all_lambda = self.model.other_config.get('loss_q_all_lambda',0)
-        loss_q_next_lambda = self.model.other_config.get('loss_q_next_lambda',0)
+        loss_c_all_lambda = get_loss_lambda("c_all_lambda")
+        loss_c_next_lambda = get_loss_lambda("c_next_lambda")
+        loss_q_all_lambda = get_loss_lambda("q_all_lambda")
+        loss_q_next_lambda = get_loss_lambda("q_next_lambda")
+
         
         if self.model.output_mode=="an_irt":
             loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all+ loss_c_next_lambda* loss_c_next
@@ -221,23 +225,21 @@ class xDKTV2(QueBaseModel):
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
         outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
- 
+        output_c_all_lambda = self.model.other_config.get('output_c_all_lambda',1)
+        output_c_next_lambda = self.model.other_config.get('output_c_next_lambda',1)
+        output_q_all_lambda = self.model.other_config.get('output_q_all_lambda',1)
+        output_q_next_lambda = self.model.other_config.get('output_q_next_lambda',0)#not use this
        
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x,epsilon=1e-8):
                 return torch.log(x/(1-x+epsilon)+epsilon)
-            y = sigmoid_inverse(outputs['y_question_all']) + sigmoid_inverse(outputs['y_concept_all']) + sigmoid_inverse(outputs['y_concept_next'])
+            y = sigmoid_inverse(outputs['y_question_all'])*output_q_all_lambda + sigmoid_inverse(outputs['y_concept_all'])*output_c_all_lambda + sigmoid_inverse(outputs['y_concept_next'])*output_c_next_lambda
             y = torch.sigmoid(y)
         else:
             # output weight
-            output_c_all_lambda = self.model.other_config.get('output_c_all_lambda',1)
-            output_c_next_lambda = self.model.other_config.get('output_c_next_lambda',1)
-            output_q_all_lambda = self.model.other_config.get('output_q_all_lambda',1)
-            output_q_next_lambda = self.model.other_config.get('output_q_next_lambda',0)#not use this
-            y = outputs['y_question_all'] * output_q_all_lambda + outputs['y_concept_all'] * output_c_all_lambda + outputs['y_concept_next'] * output_c_next_lambda + outputs['y_question_next']*output_q_next_lambda
-            y = y/(output_q_all_lambda + output_c_all_lambda + output_c_next_lambda+output_q_next_lambda)
+            y = outputs['y_question_all'] * output_q_all_lambda + outputs['y_concept_all'] * output_c_all_lambda + outputs['y_concept_next'] * output_c_next_lambda
+            y = y/(output_q_all_lambda + output_c_all_lambda + output_c_next_lambda)
         outputs['y'] = y
-
 
         if return_details:
             return outputs,data_new
