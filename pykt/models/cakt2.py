@@ -70,6 +70,18 @@ class CAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
+        if self.emb_type.endswith("predhis"): #
+            self.l1 = loss1
+            self.l2 = loss2
+            self.emb_size, self.hidden_size = d_model, d_model
+            if self.emb_type.find("qemb") != -1:
+                self.question_emb = Embedding(self.n_pid, self.emb_size) # 1.2
+            # 加一个预测历史准确率的任务
+            self.start = start
+            self.hisclasifier = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size//2, 1))
+            self.hisloss = nn.MSELoss()
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = loss1
@@ -183,6 +195,9 @@ class CAKT(nn.Module):
             flag = sm[:,start:]==1
             y2 = self.closs(cpreds[flag], c[:,start:][flag])
 
+        # xemb = xemb+qh
+        # if self.separate_qa:
+        #     xemb = xemb+cemb
         cemb = cemb + qh
         xemb = xemb+qh
         if self.emb_type.find("qemb") != -1:
@@ -280,6 +295,22 @@ class CAKT(nn.Module):
         y2, y3 = 0, 0
         if emb_type == "qid":
             d_output = self.model(q_embed_data, qa_embed_data)
+
+            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+            output = self.out(concat_q).squeeze(-1)
+            m = nn.Sigmoid()
+            preds = m(output)
+        elif emb_type.endswith("predhis"):
+            # predict response
+            # xemb = qa_embed_data
+            if emb_type.find("qemb") != -1:
+                qemb = self.question_emb(pid_data)
+                qa_embed_data = qa_embed_data+qemb
+                q_embed_data = q_embed_data+qemb
+            d_output = self.model(q_embed_data, qa_embed_data)
+            # predict history correctness rates
+            if train:
+                y2 = self.predhis(d_output, dcur)
 
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
             output = self.out(concat_q).squeeze(-1)
