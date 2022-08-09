@@ -1,0 +1,37 @@
+name: assist2012_xdkt_v2_qid_an_irt_3
+program: wandb_xdkt_v2_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: testauc
+parameters:
+    model_name:
+        values: ["xdkt_v2"]
+    dataset_name:
+        values: ["assist2012"]
+    emb_type:
+        values: ["iekt"]
+    save_dir:
+        values: ["dkt_tiaocan_assist2012"]
+    emb_size:
+        values: [50, 100, 200, 300]
+    learning_rate:
+        values: [1e-2, 1e-3, 1e-4]
+    dropout:
+        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+    seed:
+        values: [42, 224, 3407]
+    fold:
+        values: ['3']
+    mlp_layer_num:
+        values: [1,2]
+    loss_c_all_lambda:
+        values: [0,0.5,1,1.5,2]
+    loss_q_all_lambda:
+        values: [0,0.5,1,1.5,2]
+    loss_c_next_lambda:
+        values: [0,0.5,1,1.5,2]
+    output_mode:
+        values: ['an_irt']
+    batch_size:
+        values: [64]
