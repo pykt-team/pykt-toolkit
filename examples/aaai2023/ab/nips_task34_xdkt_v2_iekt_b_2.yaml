@@ -1,5 +1,5 @@
 name: nips_task34_xdkt_v2_iekt_b_2
-program: wandb_xdkt_v2_train.py
+program: wandb_xdkt_v2_ab_train.py
 method: bayes
 metric:
     goal: maximize
@@ -31,7 +31,7 @@ parameters:
         values: [0,0.5,1,1.5,2]
     loss_c_next_lambda:
         values: [0,0.5,1,1.5,2]
-    output_mode:
-        values: ['OUTPUT_MODEL']
+    ab_mode:
+        values: ['b']
     batch_size:
         values: [128]

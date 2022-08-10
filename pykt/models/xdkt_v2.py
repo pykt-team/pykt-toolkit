@@ -63,7 +63,7 @@ class xDKTV2Net(nn.Module):
         self.mlp_layer_num = mlp_layer_num
         self.device = device
         self.other_config = other_config
-        self.output_mode = self.other_config['output_mode']
+        self.output_mode = self.other_config.get('output_mode','an')
 
 
         self.emb_type = emb_type
