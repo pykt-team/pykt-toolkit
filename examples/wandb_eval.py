@@ -24,11 +24,9 @@ def main(params):
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
         seq_len = config["train_config"]["seq_len"]
-        if model_name in ["saint", "sakt"]:
+        if model_name in ["saint", "sakt", "cdkt"]:
             model_config["seq_len"] = seq_len
         data_config = config["data_config"]
-
-
 
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")

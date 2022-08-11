@@ -680,9 +680,10 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         qout = None if cq.shape[0] == 0 else cq.long()[k]
         tout = None if ct.shape[0] == 0 else ct.long()[k]
         if model_name in ["cdkt"]: ## need change!
-            y = model(cin.long(), rin.long(), qin.long())
+            # create input
+            dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin}
+            y = model(dcurinfos)
             pred = y[0][-1][cout.item()]
-            # y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt", "dkt+"]:
             y = model(cin.long(), rin.long())
             # print(y)
@@ -950,7 +951,11 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         ccr = torch.cat((curr[:,0:1], currshft), dim=1)
         cct = torch.cat((curt[:,0:1], curtshft), dim=1)
         if model_name in ["cdkt"]:
-            y = model(curc.long(), curr.long(), curq.long())
+            # y = model(curc.long(), curr.long(), curq.long())
+            # y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            # create input
+            dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr}
+            y = model(dcurinfos)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["cdkt", "dkt", "dkt+"]:
             y = model(curc.long(), curr.long())

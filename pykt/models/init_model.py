@@ -112,6 +112,7 @@ def init_model(model_name, model_config, data_config, emb_type):
     return model
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
+    print(f"in load model! model name: {model_name}")
     model = init_model(model_name, model_config, data_config, emb_type)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
