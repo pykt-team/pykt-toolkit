@@ -5,6 +5,7 @@ import os
 from .dkt import DKT
 from .dkt_plus import DKTPlus
 from .dkvmn import DKVMN
+from .deep_irt import DeepIRT
 from .sakt import SAKT
 from .saint import SAINT
 from .kqn import KQN
@@ -28,6 +29,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTPlus(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkvmn":
         model = DKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "deep_irt":
+        model = DeepIRT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "sakt":
         model = SAKT(data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "saint":
