@@ -21,29 +21,28 @@ def main(params):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
                 for _type in [["qid"]]:
-                    for output_model in ["an","an_irt"]:
-                        for fold in folds.split(","):
-                            _type = [str(k) for k in _type]
-                            fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") +"_"+output_model+ "_" + str(fold) + ".yaml"
-                            ftarget = os.path.join(all_dir, fname)
-                            fpath = m + ".yaml"
-                            fpath = os.path.join(src_dir, fpath)
-                            print(fpath, ftarget)
-                            with open(fpath, "r") as fin,\
-                                open(ftarget, "w") as fout:
-                                data = fin.read()
-            #                     data = data.replace("[\"dkt\"]", "[\"" + m + "\"]")
-                                data = data.replace("xes", dataset_name)
-                                data = data.replace("tiaocan", "tiaocan_"+dataset_name+save_dir_suffix)
-                                data = data.replace("[\"qid\"]", str(_type))
-                                data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
-                                data = data.replace('OUTPUT_MODEL', output_model)
-                                data = data.replace('BATCH_SIZE',str(params["batch_size"]))
-                                fout.write("name: " + fname.split(".")[0] + "\n")
-                                fout.write(data)
-                            
-                            if not generate_all:
-                                fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
+                    
+                    for fold in folds.split(","):
+                        _type = [str(k) for k in _type]
+                        fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
+                        ftarget = os.path.join(all_dir, fname)
+                        fpath = m + ".yaml"
+                        fpath = os.path.join(src_dir, fpath)
+                        print(fpath, ftarget)
+                        with open(fpath, "r") as fin,\
+                            open(ftarget, "w") as fout:
+                            data = fin.read()
+        #                     data = data.replace("[\"dkt\"]", "[\"" + m + "\"]")
+                            data = data.replace("xes", dataset_name)
+                            data = data.replace("tiaocan", "tiaocan_"+dataset_name+save_dir_suffix)
+                            data = data.replace("[\"qid\"]", str(_type))
+                            data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
+                            data = data.replace('BATCH_SIZE',str(params["batch_size"]))
+                            fout.write("name: " + fname.split(".")[0] + "\n")
+                            fout.write(data)
+                        
+                        if not generate_all:
+                            fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
         
         if generate_all:
             files = os.listdir(all_dir)
