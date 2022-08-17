@@ -67,6 +67,10 @@ The main branch is **not allowed** to push codes (the push will be failed). You 
 7. https://github.com/JSLBen/Knowledge-Query-Network-for-Knowledge-Tracing 
 8. https://github.com/xiaopengguo/ATKT 
 9. https://github.com/jhljx/GKT 
+10. https://github.com/THUwangcy/HawkesKT
+11. https://github.com/ApexEDM/iekt
+12. https://github.com/Badstu/CAKT_othermodels/blob/0c28d870c0d5cf52cc2da79225e372be47b5ea83/SKVMN/model.py
+13. https://github.com/bigdata-ustc/EduKTM
 
 ### Papers
 
@@ -80,6 +84,10 @@ The main branch is **not allowed** to push codes (the push will be failed). You 
 8. SAKT: A self-attentive model for knowledge tracing 
 9. SAINT: Towards an appropriate query, key, and value computation for knowledge tracing 
 10. AKT: Context-aware attentive knowledge tracing 
+11. Temporal Cross-Effects in Knowledge Tracing
+12. IEKT: Tracing Knowledge State with Individual Cognition and Acquisition Estimation
+13. SKVMN: Knowledge Tracing with Sequential Key-Value Memory Networks
+14. LPKT: Learning Process-consistent Knowledge Tracing
 
 
 
