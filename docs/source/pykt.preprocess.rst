@@ -60,6 +60,14 @@ pykt.preprocess.data\_proprocess module
    :undoc-members:
    :show-inheritance:
 
+pykt.preprocess.ednet\_preprocess module
+----------------------------------------
+
+.. automodule:: pykt.preprocess.ednet_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.preprocess.junyi2015\_preprocess module
 --------------------------------------------
 
