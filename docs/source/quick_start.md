@@ -15,13 +15,13 @@ source activate pykt
 pip install -U pykt-toolkit
 ```
 
-## Training Your First Model
+## Train Your First Model
 
 ### Download a Dataset
 
 You can find the download link for a dataset from the paper that presented it.
 
-![DownData](../pics/downdata.png)
+![](../pics/downdata.png)
 
 Download the dataset to the `pykt-toolkit-main/data` folder.
 
@@ -107,7 +107,7 @@ CUDA_VISIBLE_DEVICES=0 WANDB_API_KEY=xxx nohup wandb agent swwwish/pykt_wandb/qn
 (qn91y02m is the agent name generated after the first command line is executed)
 ```
 
-![predict](../pics/predict.png)
+![](../pics/predict.png)
 
 
 In this stage, only 5 sweeps will be run, and no parameter tuning will be involved. After the end, export the results externally or call the wandb API for statistical results, and calculate the mean and standard deviation of each indicator in the five sweeps. The final comprehensive result is: ***mean ± standard deviation***
@@ -119,7 +119,7 @@ Weights & Biases (Wandb) is the machine learning platform for developers to buil
 
 Visit the [Wandb](https://wandb.ai/) webpage, register an account and get the API key. Remember your user id and API key.
 
-![DownData](../pics/api_key.png)
+![](../pics/api_key.png)
 
 Then you can configure your own `uid` and `api_key` in `configs/wandb.json`
 
@@ -194,10 +194,10 @@ For preprocessing standards, you can refer to the section "preprocess a dataset"
 
 Then add the data path in `data_preprocess.py`.
 
-![datapath](../pics/data_path.jpg)
+![](../pics/data_path.jpg)
 
 Moreover, import the preprocess file in `preprocess/data_proprocess.py`.
 
-![importread](../pics/import_read.jpg)
+![](../pics/import_read.jpg)
 
 <!-- ## Add Your Models(todo) -->
