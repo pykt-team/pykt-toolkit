@@ -37,23 +37,28 @@ def main(params):
     with open("../configs/data_config.json") as fin:
         curconfig = copy.deepcopy(json.load(fin))
         data_config = curconfig[dataset_name]
+        data_config["dataset_name"] = dataset_name
         if model_name in ["dkt_forget", "cfdkt"]:
             data_config["num_rgap"] = config["data_config"]["num_rgap"]
             data_config["num_sgap"] = config["data_config"]["num_sgap"]
             data_config["num_pcount"] = config["data_config"]["num_pcount"]
 
-    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
-
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")
     print(f"data_config: {data_config}")
 
+    if params["save"] == "True":
+        model_name = model_name+"_save"
+        data_config["emb_save"] = "./embs"
     model = load_model(model_name, model_config, data_config, emb_type, save_dir)
+    if params["save"] == "True":
+        return
 
+    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
     save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
     testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
     print(f"testauc: {testauc}, testacc: {testacc}")
-
+    assert False
 
     window_testauc, window_testacc = -1, -1
     '''
@@ -105,6 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--bz", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="saved_model")
+    parser.add_argument("--save", type=str, default="False")
     parser.add_argument("--fusion_type", type=str, default="late_fusion")
     parser.add_argument("--use_wandb", type=int, default=1)
 

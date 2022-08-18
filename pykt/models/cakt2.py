@@ -79,7 +79,7 @@ class CAKT(nn.Module):
             # 加一个预测历史准确率的任务
             self.start = start
             self.hisclasifier = nn.Sequential(
-                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
                 nn.Linear(self.hidden_size//2, 1))
             self.hisloss = nn.MSELoss()
 
@@ -102,7 +102,9 @@ class CAKT(nn.Module):
             elif self.emb_type.find("lstm") != -1:    
                 self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
             # self.qdrop = Dropout(dropout)
-            self.qclasifier = Linear(self.hidden_size, self.num_c)
+            self.qclasifier = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size//2, self.num_c))
             if self.emb_type.find("cemb") != -1:
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
             self.closs = CrossEntropyLoss()
@@ -110,7 +112,7 @@ class CAKT(nn.Module):
             if self.emb_type.find("his") != -1:
                 self.start = start
                 self.hisclasifier = nn.Sequential(
-                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
                 self.hisloss = nn.MSELoss()
 

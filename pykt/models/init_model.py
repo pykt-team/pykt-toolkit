@@ -29,10 +29,18 @@ from .cfdkt import CFDKT
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 import pandas as pd
-def save_qcemb(model):
+def save_qcemb(model, emb_save, ckpt_path):
+    fs = []
+    for k in ckpt_path.split("/"):
+        if k.strip() != "":
+            fs.append(k)
+    fname = "_".join(fs)
     for n, p in model.question_emb.named_parameters():
-        pd.to_pickle(p, "algebra2005_qemb_from_transdkt.pkl")
-    pd.to_pickle(model.concept_emb, "algebra2005_cemb_from_transdkt.pkl")
+        pd.to_pickle(p, os.path.join(emb_save, fname+"qemb_from_cdkt.pkl"))
+    for n, p in model.concept_emb.named_parameters():
+        pd.to_pickle(p, os.path.join(emb_save, fname+"cemb_from_cdkt.pkl"))
+    for n, p in model.interaction_emb.named_parameters():
+        pd.to_pickle(p, os.path.join(emb_save, fname+"xemb_from_cdkt.pkl"))
 
 def init_model(model_name, model_config, data_config, emb_type):
     print(f"in init_model, model_name: {model_name}")
@@ -112,10 +120,14 @@ def init_model(model_name, model_config, data_config, emb_type):
     return model
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
-    print(f"in load model! model name: {model_name}")
+    infs = model_name.split("_")
+    save = False
+    if len(infs) == 2:
+        model_name, save = infs[0], True
+    print(f"in load model! model name: {model_name}, save: {save}")
     model = init_model(model_name, model_config, data_config, emb_type)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
-    if model_name == "cdkt" and emb_type.endswith("pretrain"):
-        save_qcemb(model)
+    if model_name == "cdkt" and save:
+        save_qcemb(model, data_config["emb_save"], ckpt_path)
     return model

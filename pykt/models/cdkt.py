@@ -22,7 +22,9 @@ class CDKT(Module):
 
         self.lstm_layer = LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = Dropout(dropout)
-        self.out_layer = Linear(self.hidden_size, self.num_c)
+        self.out_layer = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
+                Linear(self.hidden_size//2, self.num_c))
 
         if self.emb_type.endswith("predhis"):
             self.l1 = l1
@@ -35,7 +37,7 @@ class CDKT(Module):
             # 加一个预测历史准确率的任务
             self.start = start
             self.hisclasifier = nn.Sequential(
-                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
                 nn.Linear(self.hidden_size//2, 1))
             self.hisloss = nn.MSELoss()
 
@@ -53,8 +55,9 @@ class CDKT(Module):
                 self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
             else:    
                 self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
-            self.qdrop = Dropout(dropout)
-            self.qclasifier = Linear(self.hidden_size, self.num_c)
+            self.qclasifier = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
+                Linear(self.hidden_size//2, self.num_c))
             if self.emb_type.find("cemb") != -1:
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
@@ -63,21 +66,26 @@ class CDKT(Module):
             if self.emb_type.find("his") != -1:
                 self.start = start
                 self.hisclasifier = nn.Sequential(
-                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
+                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
                 self.hisloss = nn.MSELoss()
 
     def predcurc(self, dcur, q, c, r, xemb, train):
         emb_type = self.emb_type
         y2, y3 = 0, 0
-        catemb = xemb
-        if self.num_q > 0:
+        if emb_type.find("delxemb") != -1:
             qemb = self.question_emb(q)
-            catemb = qemb + xemb
-            
-        if emb_type.find("cemb") != -1:
             cemb = self.concept_emb(c)
-            catemb += cemb
+            catemb = qemb + cemb
+        else:
+            catemb = xemb
+            if self.num_q > 0:
+                qemb = self.question_emb(q)
+                catemb = qemb + xemb
+                
+            if emb_type.find("cemb") != -1:
+                cemb = self.concept_emb(c)
+                catemb += cemb
 
         # cemb = self.concept_emb(c)
         # catemb = cemb
@@ -100,20 +108,21 @@ class CDKT(Module):
         h, _ = self.lstm_layer(xemb)
 
         # predict history correctness rates
+        rpreds = None
         if train and emb_type.find("his") != -1:
             sm = dcur["smasks"].long()
             start = self.start
-            rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
+            rpreds = torch.sigmoid(self.hisclasifier(h)).squeeze(-1)
             rsm = sm[:,start:]
             rflag = rsm==1
             rtrues = dcur["historycorrs"][:,start:]
-            y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
+            y3 = self.hisloss(rpreds[:,start:][rflag], rtrues[rflag])
 
         # predict response
         h = self.dropout_layer(h)
         y = self.out_layer(h)
         y = torch.sigmoid(y)
-        return y, y2, y3
+        return y, y2, y3#, rpreds, qh
 
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
@@ -125,7 +134,7 @@ class CDKT(Module):
         if emb_type.startswith("qid"):
             x = c + self.num_c * r
             xemb = self.interaction_emb(x)
-            
+        rpreds, qh = None, None
         if emb_type == "qid":
             h, _ = self.lstm_layer(xemb)
             h = self.dropout_layer(h)
@@ -158,5 +167,5 @@ class CDKT(Module):
         if train:
             return y, y2, y3
         else:
-            return y
+            return y#, rpreds, qh
   

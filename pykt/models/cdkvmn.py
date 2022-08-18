@@ -121,7 +121,7 @@ class CDKVMN(Module):
         c = torch.cat([c[:,0:1], cshft], dim=-1)
 
         catemb = cemb
-        if self.emb_type.find("qemb") != -1 and self.num_q > 0:
+        if self.num_q > 0:
             catemb += qemb
 
         if self.emb_type.find("trans") != -1:
@@ -135,8 +135,9 @@ class CDKVMN(Module):
             flag = sm[:,start:]==1
             y2 = self.closs(cpreds[flag], c[:,start:][flag])
 
+        xemb = xemb + qh# + cemb
         cemb = cemb + qh
-        xemb = xemb + qh
+        
         if self.emb_type.find("qemb") != -1 and self.num_q > 0:
             cemb = cemb+qemb
             xemb = xemb+qemb

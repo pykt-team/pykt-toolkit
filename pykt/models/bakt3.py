@@ -92,6 +92,7 @@ class BAKT(nn.Module):
             if self.emb_type.find("his") != -1:
                 self.start = start
                 self.hisclasifier = nn.Sequential(
+                    # nn.Linear(self.hidden_size*2, self.hidden_size), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
                 self.hisloss = nn.MSELoss()
@@ -306,6 +307,8 @@ class BAKT(nn.Module):
                 y3 = self.predhis(d_output, dcur)
 
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+            # if emb_type.find("his") != -1:
+            #     y3 = self.predhis(concat_q, dcur)
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)

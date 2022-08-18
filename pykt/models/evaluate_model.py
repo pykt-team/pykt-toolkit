@@ -8,6 +8,7 @@ import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
+# def save_cur_predict_result(dres, q, r, d, t, thr, phr, que, qh, m, sm, p):
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     # dres, q, r, qshft, rshft, m, sm, y
     results = []
@@ -36,11 +37,66 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         except Exception as e:
             # print(e)
             auc = -1
+        # cthr = torch.masked_select(thr[i], sm[i]).detach().cpu().tolist()
+        # cphr = torch.masked_select(phr[i], sm[i]).detach().cpu().tolist()
+        # flag = sm[i]==1
+        # sque = que[i][flag].detach().cpu().tolist()
+        # sqh = qh[i][flag].detach().cpu().tolist()
+
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
-        dres[len(dres)] = [qs, rs, ds, ts, ps, prelabels, auc, acc]
-        results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
+        dres[len(dres)] = [qs, rs, ds, ts, ps, prelabels, auc, acc]#, cthr, cphr, sque, sqh]
+        results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))#, cthr, cphr, sque, sqh]))
     return "\n".join(results)
+
+def evaluate_subtasks(model, test_loader, model_name):
+    with torch.no_grad():
+        ctrues, cscores = [], []
+        rtrues, rscores = [], []
+        for data in test_loader:
+            dcur = data
+            c, cshft = dcur["cseqs"], dcur["shft_cseqs"]
+            m, sm = dcur["masks"], dcur["smasks"]
+            model.eval()
+
+            if model_name in ["cdkt"]:
+                cpreds, rpreds = model(dcur, subtasks=True)
+                # print(cpreds)
+                # assert False
+                cpreds = torch.argmax(cpreds, dim=-1)
+                # cpreds = (cpreds * one_hot(cshft.long(), model.num_c)).sum(-1)
+            
+            # predcurc task
+            curcpred = torch.masked_select(cpreds, sm).detach().cpu()
+            curctrue = torch.masked_select(c, sm).detach().cpu()
+            ctrues.append(curctrue.numpy())
+            cscores.append(curcpred.numpy())
+
+            # predhis task
+            start = model.start
+            rsm = sm[:,start:]
+            rflag = rsm==1
+            currtrue = dcur["historycorrs"][:,start:][rflag]
+            currpred = rpreds[rflag]
+            # print(f"currtrue: {currtrue.shape}, currpred: {currpred.shape}")
+            # assert False
+            rtrues.append(currtrue.detach().cpu().numpy())
+            rscores.append(currpred.detach().cpu().numpy())
+        # predcurs task
+        ts = np.concatenate(ctrues, axis=0)
+        ps = np.concatenate(cscores, axis=0)
+        # TODO!
+        print(f"ts: {ts.shape}, ps: {ps.shape}")
+        # print(f"ps: {ps}, ts: {ts}")
+        # assert False
+        acc = metrics.accuracy_score(ts, ps)
+        # predhis task
+        
+        rts = np.concatenate(rtrues, axis=0)
+        rps = np.concatenate(rscores, axis=0)
+        print(f"rts: {rts.shape}, rps: {rps.shape}")
+        mse = metrics.mean_squared_error(rts, rps)
+    return acc, mse
 
 def evaluate(model, test_loader, model_name, save_path=""):
     if save_path != "":
@@ -71,8 +127,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
                 y = model(dcur)
-                if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
-                    y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cfdkt"]:
                 y = model(dcur, dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -612,7 +667,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                     # if use_pred:
                     # curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(curdforget, dforget, is_repeat, qidx, uid, idx, curqin, curcin, currin, model_name, model, t, cq, cc, cr, end, fout, atkt_pad)
                     curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
-                    
+                    dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
                     late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)    
                     # print("\t".join([str(idx), str(uid), str(k), str(qidx), str(late_mean), str(late_vote), str(late_all)]))    
                     fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")      
@@ -957,7 +1012,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr}
             y = model(dcurinfos)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
-        elif model_name in ["cdkt", "dkt", "dkt+"]:
+        elif model_name in ["dkt", "dkt+"]:
             y = model(curc.long(), curr.long())
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:

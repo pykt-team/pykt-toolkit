@@ -34,3 +34,5 @@ examples/nohup.out
 start_sweep_*.sh
 wandb/*
 *tiaocan*
+*bak*
+*.py.*
