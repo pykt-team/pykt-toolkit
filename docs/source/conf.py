@@ -16,7 +16,7 @@ copyright = '2022, pykt-team'
 author = 'pykt-team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.32'
+release = '0.0.37'
 
 # -- General configuration ---------------------------------------------------
 
