@@ -11,11 +11,11 @@ More details about the academic information can be read in our paper at https://
    :maxdepth: 2
    :caption: Home
    
-   Installation <installation>
-   Official Website <https://pykt-team.github.io/>
    Quick Start <quick_start>
    Quick Start (cn) <quick_start_cn>
    Models <models>
+   Datasets <datasets>
+   Contribute <contribute>
 
 .. toctree::
    :maxdepth: 1
