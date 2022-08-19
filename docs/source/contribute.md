@@ -157,4 +157,20 @@ Example:
 ```
 
 
-<!-- ## Add Your Models(todo) -->
+## Add Your Models
+
+### create a new model file
+Our models are all in "pykt/models" directory, when you add a new model, please create a new file named "model_name.py" in "pykt/models". 
+You can write your model file using "pykt/models/dkt.py" as a reference.
+
+### init your model
+You need add your model in "pykt/models/init_model.py" to init it by change "init_model" function.
+
+### add to the training process
+
+1.You should change the "model_forward" and "cal_loss" functions in "pykt/models/train_model.py" to add your model to the training process, you can refer to other models.
+
+2.Run "wandb_train.py" to train the new model
+
+### add to the evaluation  process
+You can change the "evaluate_model.py" file, change "evaluate" function to get the repeated knowledge concepts evaluation,  change "evaluate_question" function to get the question evalua,tion results, change "predict_each_group" and "predict_each_group" to get the multi-step prediction results of accumulative and non-accumulative predictions.
