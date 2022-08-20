@@ -128,8 +128,8 @@ NA
    因此, 可生成如下子序列：
 
    示例
-   <div align="center">
-   <img src="_static/image.png" width="300px" />
+   ![CCPM](../pics/seq_image.png)
+
 
    图1：基于题目预测的Fusion方式
    </div> 
