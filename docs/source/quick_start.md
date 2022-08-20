@@ -1,4 +1,4 @@
-# Welcome to PyKT
+# Welcome to pyKT
 
 ## Installation
 You can specify to install it through `pip`.

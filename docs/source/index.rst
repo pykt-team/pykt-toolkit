@@ -1,8 +1,8 @@
-Welcome to PyKT's documentation!
+Welcome to pyKT's documentation!
 ========================================
-PyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on multi popular datasets across different domains, 5 detailed prediction scenarios, frequently compared DLKT approaches for transparent and extensive experiments. 
+pyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on multi popular datasets across different domains, 5 detailed prediction scenarios, frequently compared DLKT approaches for transparent and extensive experiments. 
 
-Let's `Get Started! <./quick_start.html>`
+Let's `Get Started! <./quick_start.html>`_
 
 More details about the academic information can be read in our paper at https://arxiv.org/abs/2206.11460?context=cs.CY .
 

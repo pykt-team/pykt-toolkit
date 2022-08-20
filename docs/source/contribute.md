@@ -1,9 +1,9 @@
-# How to contribute to Pykt?
+# How to contribute to pyKT?
 Everyone is welcome to contribute, and we value everybody's contribution.
 
 
 ## You can contribute in so many ways!
-There are some ways you can contribute to PyKT:
+There are some ways you can contribute to pyKT:
 1. Find bugs and create an issue.
 2. Add new datasets.
 3. Implementing new models.
