@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from torch.nn.functional import one_hot
 from sklearn import metrics
+from pykt.config import que_type_models
 from ..datasets.lpkt_utils import generate_time2idx
-
 import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -61,7 +61,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name=='iekt':
+            if model.model_name in que_type_models:
                 model.model.eval()
             else:
                 model.eval()
@@ -76,7 +76,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-            elif model_name in ["dkvmn", "skvmn"]:
+            elif model_name in ["dkvmn","deep_irt", "skvmn","deep_irt"]:
                 y = model(cc.long(), cr.long())
                 y = y[:,1:]
             elif model_name in ["kqn", "sakt"]:
@@ -85,8 +85,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:                                
-                y, reg_loss = model(cc.long(), cr.long(), cq.long())
-                y = y[:,1:]
+                [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
+                y_next = pred_next[:,1:]
+                y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y_next+y_all)/2
+                
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -102,7 +105,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-            elif model_name == "iekt":
+            elif model_name in que_type_models:
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
@@ -128,7 +131,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
     return auc, acc
 
 def early_fusion(curhs, model, model_name):
-    if model_name in ["dkvmn", "skvmn"]:
+    if model_name in ["dkvmn","deep_irt", "skvmn"]:
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
@@ -179,7 +182,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -224,7 +227,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     if cq.shape[1] == 0:
         cq = cc
 
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     
     alldfs, drest = [], dict() # not predict infos!
     # print(f"real bz in group fusion: {rs.shape[0]}")
@@ -317,7 +320,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # dkvmn / akt / saint: give cur -> predict cur
     # sakt: give past+cur -> predict cur
     # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -353,7 +356,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             dcur = dict()
-            if model_name in ["dkvmn", "skvmn"]:
+            if model_name in ["dkvmn","deep_irt", "skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
@@ -729,7 +732,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
                 pred = y[0][oricinlen-1][cout.item()]
             else:
                 pred = y[0][-1][cout.item()]
-        elif model_name in ["dkvmn", "skvmn"]:
+        elif model_name in ["dkvmn","deep_irt", "skvmn"]:
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[true.item()]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
             # print(f"cin: {cin.shape}, curc: {curc.shape}")
@@ -964,6 +967,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         if finalqs.shape[0] > 0:
             curq = finalqs[bidx: bidx+bz]
             curqshft = finalqshfts[bidx: bidx+bz]
+        curt, curtshft = torch.tensor([[]]), torch.tensor([[]])
         if finalts.shape[0] > 0:
             curt = finalts[bidx: bidx+bz]
             curtshft = finaltshfts[bidx: bidx+bz]
@@ -986,7 +990,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         elif model_name in ["dkt_forget"]:
             y = model(curc.long(), curr.long(), curd, curdshft)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
-        elif model_name in ["dkvmn", "skvmn"]:
+        elif model_name in ["dkvmn","deep_irt", "skvmn"]:
             y = model(ccc.long(), ccr.long())
             y = y[:,1:]
         elif model_name in ["kqn", "sakt"]:

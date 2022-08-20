@@ -7,13 +7,15 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-
+from pykt.config import que_type_models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    if model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -79,7 +81,7 @@ def model_forward(model, data):
         y = model(c.long(), r.long(), dgaps)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y)
-    elif model_name in ["dkvmn", "skvmn"]:
+    elif model_name in ["dkvmn","deep_irt", "skvmn"]:
         y = model(cc.long(), cr.long())
         ys.append(y[:,1:])
     elif model_name in ["kqn", "sakt"]:
@@ -90,7 +92,11 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
-        ys.append(y[:,1:])
+        [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
+        y_next = pred_next[:,1:]
+        y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
+        y = (y_next+y_all)/2
+        ys.append(y)
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
@@ -119,9 +125,10 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name == "iekt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
-    if model_name not in ["atkt", "atktfix","iekt"]:
+    
+    if model_name not in ["atkt", "atktfix"]+que_type_models:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
@@ -135,7 +142,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name=='iekt':
+            if model.model_name in que_type_models:
                 model.model.train()
             else:
                 model.train()
@@ -151,6 +158,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.model_name=='lpkt':
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
+        
         auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
