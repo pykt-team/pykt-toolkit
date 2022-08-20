@@ -1,5 +1,5 @@
 ## Installation
-Use the following command to install pyKT:
+Since pyKT is a python-based library, you can specify to install it with the following command:
 
 Create conda environment.
 

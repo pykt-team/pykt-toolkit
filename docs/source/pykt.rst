@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   pykt.config
    pykt.datasets
    pykt.models
    pykt.preprocess
