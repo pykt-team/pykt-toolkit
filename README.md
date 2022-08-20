@@ -1,14 +1,14 @@
-# PyKT
+# pyKT
 
 [![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
 [![GitHub Issues](https://img.shields.io/github/issues/pykt-team/pykt-toolkit.svg)](https://github.com/pykt-team/pykt-toolkit/issues)
 [![Documentation](https://img.shields.io/website/http/pykt-team.github.io/index.html?down_color=red&down_message=offline&up_message=online)](https://pykt.org/)
 
-PyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on 7 popular datasets across different domains, 5 detailed prediction scenarios, 10 frequently compared DLKT approaches for transparent and extensive experiments.
+pyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on 7 popular datasets across different domains, 5 detailed prediction scenarios, 10 frequently compared DLKT approaches for transparent and extensive experiments.
 
 
 ## Installation
-Use the following command to install PyKT:
+Use the following command to install pyKT:
 
 Create conda envirment.
 
@@ -60,7 +60,7 @@ pip install -U pykt-toolkit -i  https://pypi.python.org/simple
 
 ## Citation
 
-We now have a [paper](https://arxiv.org/abs/2206.11460?context=cs.CY) you can cite for the our PyKT library:
+We now have a [paper](https://arxiv.org/abs/2206.11460?context=cs.CY) you can cite for the our pyKT library:
 
 ```bibtex
 @article{liu2022pykt,
