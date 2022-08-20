@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from torch.nn.functional import one_hot
 from sklearn import metrics
+from pykt.config import que_type_models
 from ..datasets.lpkt_utils import generate_time2idx
-
 import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -61,7 +61,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name=='iekt':
+            if model.model_name in que_type_models:
                 model.model.eval()
             else:
                 model.eval()
@@ -85,8 +85,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:                                
-                y, reg_loss = model(cc.long(), cr.long(), cq.long())
-                y = y[:,1:]
+                [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
+                y_next = pred_next[:,1:]
+                y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y_next+y_all)/2
+                
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -102,7 +105,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-            elif model_name == "iekt":
+            elif model_name in que_type_models:
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
