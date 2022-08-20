@@ -12,6 +12,7 @@ def get_runs_result(runs,drop_duplicate=False):
         result.update(model_config)
         result['Name'] = run.name
         result['path_id'] = run.path[-1]
+        result['state'] = run.state
         result_list.append(result)
     runs_df = pd.DataFrame(result_list)
     if drop_duplicate:
@@ -140,7 +141,7 @@ class WandbUtils:
         return len(sweep.runs)
 
 
-    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="testauc",metric_type="max",min_run_num=300,patience=100):
+    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="testauc",metric_type="max",min_run_num=300,patience=100,force_check_df=False):
         """Check sweep early stop
 
         Args:
@@ -150,6 +151,7 @@ class WandbUtils:
             metric_type (str, optional): the type of metric max or min. Defaults to max.
             min_run_num (int, optional): the min run num to check. Defaults to 300.
             patience (int, optional): the patience to stop. Defaults to 100.
+            force_check_df: always check df, defalut is false.
 
         Returns:
             dict: {"state":state,'df':df,"num_run":num_run}, state is 'RUNNING', 'CANCELED' or 'FINISHED',df is the df of the sweep, num_run is the num of sweep run, -1 mean the sweep is finished to save time we will not check it again.
@@ -159,7 +161,7 @@ class WandbUtils:
         sweep_status = self.get_sweep_status(sweep_id,input_type="sweep_id")
         df = None
         report = {"stop_cmd":""}
-        if sweep_status in ['CANCELED','FINISHED']:
+        if sweep_status in ['CANCELED','FINISHED'] and not force_check_df:
             report['state'] = True
             report['num_run'] = -1
         else:
@@ -169,12 +171,13 @@ class WandbUtils:
                 report['state'] = False
             else:
                 df = self.get_df(sweep_id,input_type="sweep_id")#get sweep result
+                df = df[df['state']=='finished']#only count finished runs
                 report['df'] = df
                 best_value = df[metric].max() if metric_type == "max" else df[metric].min()#get best value
                 first_best_index = df[df[metric]==best_value]['run_index'].min()
                 not_improve_num = len(df[df['run_index'] >= first_best_index])
-                if not_improve_num > patience:#如果连续patience没有提高，则停止
-                    stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --stop"
+                if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
+                    stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
                     report['state'] = True
                     report['stop_cmd'] = stop_cmd
@@ -184,7 +187,7 @@ class WandbUtils:
         print("-"*60+'\n')
         return report
         
-    def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100,force_check_df=False):
         """Check sweeps by pattern
         
         Args:
@@ -193,6 +196,7 @@ class WandbUtils:
             metric_type (str, optional): the type of metric max or min. Defaults to max.
             min_run_num (int, optional): the min run num to check. Defaults to 300.
             patience (int, optional): the patience to stop. Defaults to 100.
+            force_check_df: always check df, defalut is false.
             
         Returns:
             list: the list of dict, each dict is {"id":id,"state":state,'df':df,"num_run":num_run}, state is 'RUNNING', 'CANCELED' or 'FINISHED',df is the df of the sweep, num_run is the num of sweep run, -1 mean the sweep is finished to save time we will not check it again.
@@ -201,7 +205,7 @@ class WandbUtils:
         for sweep_name in self.sweep_dict:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
+                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
                 check_result['sweep_name'] = sweep_name
                 check_result_list.append(check_result)
         return check_result_list

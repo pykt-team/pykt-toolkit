@@ -11,7 +11,7 @@ end = int(sys.argv[4])
 dataset_name = sys.argv[5]
 model_name = sys.argv[6]
 nums = sys.argv[7].split(",")
-print(len(sys.argv))
+# print(f"{dataset_name}_{model_name}")
 if len(sys.argv) == 8:
     project_name = "kt_toolkits"
 else:
@@ -36,13 +36,14 @@ with open(logf, "r") as fin:
         else:
             print("error!")
         fname = fname.split(".")[0]
-        print(f"fname is {fname}")
+        # print(f"fname is {fname}")
         if not fname.startswith(dataset_name) or fname.find("_" + model_name + "_") == -1:
             i += 4
             continue
-        print(f"dataset_name: {dataset_name}, model_name: {model_name}, fname: {fname}")
+        # print(f"dataset_name: {dataset_name}, model_name: {model_name}, fname: {fname}")
         if idx >= start and idx < end:
             cmd = "CUDA_VISIBLE_DEVICES=" + str(nums[num]) +" " + cmdpre + sweepid + " &"
+            print(cmd)
             outf.write(cmd + "\n")
             num += 1
         idx += 1

@@ -48,6 +48,10 @@ def main(params):
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
+        if 'batch_size' in params:
+            train_config["batch_size"] = params['batch_size']
+        if 'num_epochs' in params:
+            train_config["num_epochs"] = params['num_epochs']
         # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
     batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
 
@@ -63,7 +67,8 @@ def main(params):
     debug_print(text="init_dataset",fuc_name="main")
     train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
-    params_str = "_".join([str(_) for _ in params.values()])
+    params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
+
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid

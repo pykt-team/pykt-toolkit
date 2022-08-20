@@ -9,11 +9,15 @@ from torch.utils.data import TensorDataset
 from sklearn import metrics
 
 emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
-emb_type_map = {"iekt-qid":"qc_merge",
+emb_type_map = {"akt-iekt":"qc_merge",
+                "iekt-qid":"qc_merge",
                 "iekt-qc_merge":"qc_merge",
                 "iekt_ce-qid":"qc_merge",
-                "dkt_que-qid":"qaid_qc"
+                "dkt_que-qid":"qaid_qc",
+                "dkt_que-qcaid":"qcaid",
+                "dkt_que-qcaid_h":"qcaid_h",
                 }
+  
 
 class QueEmb(nn.Module):
     def __init__(self,num_q,num_c,emb_size,model_name,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
@@ -36,7 +40,7 @@ class QueEmb(nn.Module):
         self.emb_size = emb_size
         #get emb type
         tmp_emb_type = f"{model_name}-{emb_type}"
-        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}_",""))
+        emb_type = emb_type_map.get(tmp_emb_type,tmp_emb_type.replace(f"{model_name}-",""))
         print(f"emb_type is {emb_type}")
 
         self.emb_type = emb_type
@@ -45,18 +49,35 @@ class QueEmb(nn.Module):
 
         if emb_type in ["qc_merge","qaid_qc"]:
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
-        if emb_type  in ["qc_merge","qaid_qc"]:
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
         if emb_type =="qaid_c":
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+        
+        if emb_type in ["qcaid","qcaid_h"]:
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c*2, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.que_inter_emb = nn.Embedding(self.num_q * 2, self.emb_size)
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+
 
         if emb_type.startswith("qaid"):
             self.interaction_emb = nn.Embedding(self.num_q * 2, self.emb_size)
 
         if emb_type.startswith("qid"):
-            self.q_emb = nn.Embedding(self.num_q, self.emb_size)
+            self.que_emb = nn.Embedding(self.num_q, self.emb_size)
+
+        if emb_type == "qcid":#question_emb concat avg(concepts emb)
+            self.que_emb = nn.Embedding(self.num_q, self.emb_size)
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+
+
+        if emb_type == "iekt":
+            self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
+            # self.que_emb.weight.requires_grad = False
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
         
         self.output_emb_dim = emb_size
 
@@ -66,6 +87,7 @@ class QueEmb(nn.Module):
             [torch.zeros(1, self.emb_size).to(self.device), 
             self.concept_emb], dim=0)
         # shift c
+
         related_concepts = (c+1).long()
         #[batch_size, seq_len, emb_dim]
         concept_emb_sum = concept_emb_cat[related_concepts, :].sum(
@@ -91,7 +113,7 @@ class QueEmb(nn.Module):
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
             # print("qid")
         elif emb_type == "qid":
-            xemb = self.q_emb(q)#[batch,max_len-1,emb_size]
+            xemb = self.que_emb(q)#[batch,max_len-1,emb_size]
         elif emb_type == "qaid+qc_merge":
             x = q + self.num_q * r
             xemb = self.interaction_emb(x)#[batch,max_len-1,emb_size]
@@ -103,10 +125,37 @@ class QueEmb(nn.Module):
             xemb = que_c_emb
         elif emb_type =="qaid_qc":
             x = q + self.num_q * r
-            xemb = self.interaction_emb(x)
-            concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
-            xemb = torch.cat([xemb,concept_avg],dim=-1)
+            emb_q = self.interaction_emb(x)
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            xemb = torch.cat([emb_q,emb_c],dim=-1)
             xemb = self.que_c_linear(xemb)
+        elif emb_type in ["qcaid","qcaid_h"]:
+            x_q = q + self.num_q * r
+            gate = torch.where(c==-1,0,1)
+            x_c = c + self.num_c * r.unsqueeze(-1).repeat(1,1,4)*gate
+            emb_q = self.que_inter_emb(x_q)
+            emb_c = self.get_avg_skill_emb(x_c)
+            xemb = torch.cat([emb_q,emb_c],dim=-1)
+            xemb = self.que_c_linear(xemb)
+            return xemb,emb_q,emb_c
+        elif emb_type in ["qcid","qaid_h"]:
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
+            que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+            xemb = self.que_c_linear(xemb)
+            return xemb,emb_q,emb_c
+        elif emb_type == "iekt":
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
+            emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+            xemb = self.que_c_linear(emb_qc)
+            # print(f"emb_qc shape is {emb_qc.shape}")
+            # print(f"r shape is {r.shape}")
+            # print(f"(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2) shape is {(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2).shape}")
+            emb_qca = torch.cat([emb_qc.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
+                                emb_qc.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
+            return xemb,emb_qca,emb_qc,emb_q,emb_c
+
         return xemb
 
 from pykt.utils import set_seed
@@ -230,8 +279,9 @@ class QueBaseModel(nn.Module):
                 loss_mean.append(loss.detach().cpu().numpy())
                
             loss_mean = np.mean(loss_mean)
-            auc, acc = self.evaluate(valid_dataset,batch_size=valid_batch_size)
-
+            eval_result = self.evaluate(valid_dataset,batch_size=valid_batch_size)
+            auc, acc = eval_result['auc'],eval_result['acc']
+            print(f"eval_result is {eval_result}")
             if auc > max_auc:
                 if save_model:
                     self._save_model()
@@ -243,7 +293,7 @@ class QueBaseModel(nn.Module):
                 validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_dataset, emb_type)
                 testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
                 max_auc = round(max_auc, 4)
-            print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
+            print(f"Epoch: {i},validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, train loss: {loss_mean:.4f}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
             print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
             if i - best_epoch >= patient:
@@ -256,9 +306,9 @@ class QueBaseModel(nn.Module):
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= acc_threshold else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
-        # eval_result = {"auc":auc,"acc":acc}
-        # return eval_result
-        return auc,acc
+        eval_result = {"auc":auc,"acc":acc}
+        return eval_result
+        # return auc,acc
 
     def _parser_row(self,row,data_config,ob_portions=0.5):
         max_concepts = data_config["max_concepts"]
