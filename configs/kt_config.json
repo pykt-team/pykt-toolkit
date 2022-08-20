@@ -23,6 +23,12 @@
         "size_m": 50,
         "dropout": 0.2
     },
+    "deep_irt": {
+        "learning_rate": 1e-3,
+        "dim_s": 200,
+        "size_m": 50,
+        "dropout": 0.2
+    },
     "sakt": {
         "learning_rate": 1e-3,
         "emb_size": 256,

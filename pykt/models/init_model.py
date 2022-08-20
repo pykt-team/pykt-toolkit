@@ -5,6 +5,7 @@ import os
 from .dkt import DKT
 from .dkt_plus import DKTPlus
 from .dkvmn import DKVMN
+from .deep_irt import DeepIRT
 from .sakt import SAKT
 from .saint import SAINT
 from .kqn import KQN
@@ -18,6 +19,7 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
+from .qdkt import QDKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -28,6 +30,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTPlus(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkvmn":
         model = DKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "deep_irt":
+        model = DeepIRT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "sakt":
         model = SAKT(data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "saint":
@@ -78,6 +82,9 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+    elif model_name == "qdkt":
+        model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
     else:
         print("The wrong model name was used...")
         return None
