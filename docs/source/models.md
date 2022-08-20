@@ -112,3 +112,16 @@ This model unifies the strengths of recurrent modeling capacity and memory capac
 ![](../pics/skvmn.png)
 
 [Abdelrahman, Ghodai, and Qing Wang. "Knowledge tracing with sequential key-value memory networks." Proceedings of the 42nd International ACM SIGIR Conference on Research and Development in Information Retrieval. 2019.](https://arxiv.org/pdf/1910.13197.pdf)
+
+## qDKT(base)
+qDKT(base) is a model same as DKT, but use the question ID as the input.
+
+[Sonkar, Shashank, et al. "qdkt: Question-centric deep knowledge tracing." arXiv preprint arXiv:2005.12442 (2020).](https://arxiv.org/pdf/2005.12442.pdf)
+
+## Deep-IRT
+
+Deep-IRT is a synthesis of the item response theory (IRT) model and a knowledge tracing model that is based on the deep neural network architecture called dynamic key-value memory network (DKVMN) to make deep learning based knowledge tracing explainable.
+
+![](../pics/deep_irt.png)
+
+[Yeung, Chun-Kit. "Deep-IRT: Make deep learning based knowledge tracing explainable using item response theory." arXiv preprint arXiv:1904.11738 (2019).](https://arxiv.org/pdf/1904.11738.pdf)

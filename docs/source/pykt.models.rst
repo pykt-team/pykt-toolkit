@@ -28,6 +28,14 @@ pykt.models.atkt module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.deep\_irt module
+----------------------------
+
+.. automodule:: pykt.models.deep_irt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.dkt module
 ----------------------
 
@@ -40,14 +48,6 @@ pykt.models.dkt\_forget module
 ------------------------------
 
 .. automodule:: pykt.models.dkt_forget
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pykt.models.dkt\_iekt module
-----------------------------
-
-.. automodule:: pykt.models.dkt_iekt
    :members:
    :undoc-members:
    :show-inheritance:
@@ -148,6 +148,14 @@ pykt.models.kqn module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.loss module
+-----------------------
+
+.. automodule:: pykt.models.loss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.lpkt module
 -----------------------
 
@@ -160,6 +168,14 @@ pykt.models.lpkt\_utils module
 ------------------------------
 
 .. automodule:: pykt.models.lpkt_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.qdkt module
+-----------------------
+
+.. automodule:: pykt.models.qdkt
    :members:
    :undoc-members:
    :show-inheritance:
