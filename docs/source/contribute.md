@@ -1,70 +1,67 @@
 # How to contribute to pyKT?
-Everyone is welcome to contribute, and we value everybody's contribution.
+pyKT is still under the development. More KT models and datasets are going to be added and we always welcome contributions to help make pyKT better. 
 
 
-## You can contribute in so many ways!
-There are some ways you can contribute to pyKT:
-1. Find bugs and create an issue.
+## Guidance
+<!-- There are some ways you can contribute to pyKT: -->
+Thank you for your interest in contributing to pyKT! You can make the following contributions to pyKT:
+1. Bug-fix for an outstanding issue.
 2. Add new datasets.
-3. Implementing new models.
+3. New model implementations.
 
 ## Install for Development
-1、Clone pykt repositoriy
+1、For this repository to and switch to dev branch (Notice: Do not work on the main branch).
 
 ```shell
 git clone https://github.com/pykt-team/pykt-toolkit
-```
-
-2、Change to dev branch 
-
-```shell
 cd pykt-toolkit
 git checkout dev
 ```
 
-**Do not** work on the main branch.
-
-3、Editable install
+2、Editable Installation
 
 You can use the following command to install the pykt library. 
 
 ```shell
 pip install -e .
 ```
-In this mode, every modification in `pykt` directory will take effect immediately. You do not need to reinstall the package again. 
+In this way, every change made to the `pykt` directory will be effective immediately. The package does not require another installation again.
 
-4、Push to remote(dev)
+3、Push to remote(dev)
 
-After development models or fix bugs, you can push your codes to dev branch. 
+After implementing the new models or fix bugs, you can push your codes to dev branch.
 
 
-The main branch is **not allowed** to push codes (the push will be failed). You can use a Pull Request to merge your code from **dev** branch to the main branch. We will reject the Pull Request from another branch to main branch, you can merge to dev branch first.
+The main branch is **not be allowed** to push codes (the push submission will be failed). You can submit a Pull Request to merge your code from **dev** branch to the main branch. We will refuse the Pull Request from other branchs to the main branch except for dev branch.
 
 
 
 ## Add Your Datasets
 
-In this section, we will use the `ASSISTments2015` dataset to show the add dataset procedure. Here we use `assist2015` as the dataset name, you can change `assist2015` to your dataset name.
+In this section, we will use the `ASSISTments2015` dataset as an example to show the adding dataset procedure. Here we simplize the  `ASSISTments2015` into `assist2015` as the dataset name, you can replace `assist2015` in your own dataset.
 
-### Add Data Files
-1、Add a new dataset folder in the `data` directory with the name of the dataset. 
+### Create Data Files
+1、Please create a new dataset folder in the `data` directory with dataset name. 
 
-2、Then, you can store the raw files in this directory. Here is the `assist2015` file structure:
+```shell
+mkdir -p ./data/assist2015
+```
+
+2、You should add the raw files of the new dataset into the named directory, like the file structure of `assist2015`:
 
 ```shell
 $tree data/assist2015/
 ├── 2015_100_skill_builders_main_problems.csv
 ```
 
-3、Then add the data path to `dname2paths` of `examples/data_preprocess.py`.
+3、You need to provide the data path of new dataset to `dname2paths` of `examples/data_preprocess.py`.
 
 ![](../pics/dataset-add_data_path.jpg)
 
-### Write Python Script
+### Data Preprocess File
 
-1、Create the processing script `assist2015_preprocess.py` in `pykt/preprocess` directory. Before write the preprocess python scipt you are suggestd to  read the [Data Preprocess Standards](#Data Preprocess Standards), which contains some guidlines to process dataset. Here is the scipt for `assist2015` we show the main steps, full codes can see in `pykt/preprocess/algebra2005_preprocess.py`.
+1、Create the processing file `assist2015_preprocess.py` under the `pykt/preprocess` directory. The data preprocessing are suggestd to follow the [Data Preprocess Guidelines](#Data Preprocess Guidelines). The main codes of the data preprocessing of `assist2015` are as follows:
 
-<!-- 
 ```python
 import pandas as pd
 from pykt.utils import write_txt, change2timestamp, replace_text
@@ -103,46 +100,47 @@ def read_data_from_csv(read_file, write_file):
             [[u, str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_use_time])
 
     write_txt(write_file, data)
-``` -->
+```
+The entire codes can be seen in `pykt/preprocess/algebra2005_preprocess.py`.
 
-2、Import the preprocess file in `pykt/preprocess/data_proprocess.py`.
+2、Import the preprocess file to `pykt/preprocess/data_proprocess.py`.
 
 
 ![](../pics/dataset-import.jpg)
 
 
 
-### Data Preprocess Standards
+### Data Preprocess Guidelines
 #### Field Extraction
 
-For any data set, we mainly extract 6 fields: user ID, question ID (name), skill ID (name), answering status, answer submission time, and answering time (if the field does not exist in the dataset, it is represented by NA) .
+For each datset, we mainly extract 6 fields for model training: user ID, question ID (name), skill ID (name), answering results, answer submission time, and answering duration(if the field does not exist in the dataset, it is represented by "NA").
 
 #### Data Filtering
 
-For each answer record, if any of the five fields of user ID, question ID (name), skill ID (name), answer status, and answer submission time are empty, the answer record will be deleted.
+The interaction with lacks one of the five fields in user ID, question ID (name), skill ID (name), answering results, answer submission time will be filtered out.
 
-#### Data Sorting
+#### Data Ordering
 
-Each student's answer sequence is sorted according to the answer order of the students. If different answer records of the same student appear in the same order, the original order is maintained, that is, the order of the answer records in the original data set is kept consistent.
+A student's interaction sequence is order according to the answer submission time. The order will be kept consistent with the original relative position for different interactions with the same submission time.
 
-#### Character Process
+#### Character Processing
 
 - **Field concatenation:** Use `----` as the connecting symbol. For example, Algebra2005 needs to concatenate `Problem Name` and `Step Name` as the final problem name.
 - **Character replacement:** If there is an underline `_` in the question and skill of original data, replace it with `####`. If there is a comma `,` in the question and skill of original data, replace it with `@@@@`.
 - **Multi-skill separator:** If there are multiple skills in a question, we separate the skills with an underline `_`.
-- **Time format:** The answer submission time is a millisecond (ms) timestamp, and the answer time is in milliseconds (ms).
+- **Time format:** The answer submission time is a millisecond (ms) timestamp, and the answering duration is in milliseconds (ms).
 
-#### Output data format
+#### Output Data Format
 
-After completing the above data preprocessing, each dataset will generate a data.txt file in the folder named after it (data directory). Each student sequence contains 6 rows of data as follows:
+After completing the above data preprocessing, you will get a data.txt file under the dataset namely folder(data directory). Each student sequence contains 6 rows informations as follows:
 
 ```
 User ID, sequence length
 Question ID (name)
 skill ID (name)
-Answer status
+Answer result
 Answer submission time
-time to answer
+Answering duration
 ```
 
 Example:
@@ -157,20 +155,20 @@ Example:
 ```
 
 
-## Add Your Models
 
-### create a new model file
-Our models are all in "pykt/models" directory, when you add a new model, please create a new file named "model_name.py" in "pykt/models". 
+## Add Your Models
+### Create a New Model File
+Our models are all in `pykt/models` directory. When you add a new model, please create a file named `{model_name}.py` in `pykt/models`. 
 You can write your model file using "pykt/models/dkt.py" as a reference.
 
-### init your model
-You need add your model in "pykt/models/init_model.py" to init it by change "init_model" function.
+### Init Your Model
+You need to add your model in `pykt/models/init_model.py` to init it by changing the `init_model` function.
 
-### add to the training process
+### Add to the Training Process
 
-1.You should change the "model_forward" and "cal_loss" functions in "pykt/models/train_model.py" to add your model to the training process, you can refer to other models.
+1. You should change the `model_forward` and `cal_loss` function in `pykt/models/train_model.py` to add your model to the training process, you can refer to other models.
 
-2.Run "wandb_train.py" to train the new model
+2. Run `wandb_train.py` to train the new model
 
-### add to the evaluation  process
-You can change the "evaluate_model.py" file, change "evaluate" function to get the repeated knowledge concepts evaluation,  change "evaluate_question" function to get the question evalua,tion results, change "predict_each_group" and "predict_each_group" to get the multi-step prediction results of accumulative and non-accumulative predictions.
+### Add to the Evaluation Process
+You can change the `evaluate_model.py` file, change the `evaluate` function to get the repeated knowledge concepts evaluation,  change the `evaluate_question` function to get the question evaluation results, change `predict_each_group` and `predict_each_group` to get the multi-step prediction results of accumulative and non-accumulative predictions.
