@@ -1,44 +1,44 @@
 # How to contribute to pyKT?
-pyKT is still under the development. More KT models and datasets are going to be added and we always welcome contributions to help make pyKT better. 
+pyKT is still under development. More KT models and datasets will be added, and we always welcome contributions to make pyKT better. 
 
 
 ## Guidance
-<!-- There are some ways you can contribute to pyKT: -->
+
 Thank you for your interest in contributing to pyKT! You can make the following contributions to pyKT:
 1. Bug-fix for an outstanding issue.
 2. Add new datasets.
 3. New model implementations.
 
-## Install for Development
-1、For this repository to and switch to dev branch (Notice: Do not work on the main branch).
+### Install for Development
+
+1、Fork the [pyKT](https://github.com/pykt-team/pykt-toolkit) by clicking the "Fork" button.
+
+2、Clone the repository you cloned, and switch to the dev branch (Notice: Do not work on the main branch).
 
 ```shell
-git clone https://github.com/pykt-team/pykt-toolkit
+git clone https://github.com/{your github name}/pykt-toolkit
 cd pykt-toolkit
 git checkout dev
 ```
 
-2、Editable Installation
+3、Editable Installation
 
-You can use the following command to install the pykt library. 
+You can use the following command to install the pyKT library. 
 
 ```shell
 pip install -e .
 ```
+
 In this way, every change made to the `pykt` directory will be effective immediately. The package does not require another installation again.
 
-3、Push to remote(dev)
+### Push Your Codes to pyKT (Pull Requests)
+After implementing the new models or fixing bugs, you can push your codes to the dev branch in your repository. Then, you can use the merge request feature to merge your codes to pyKT's **main** branch.
 
-After implementing the new models or fix bugs, you can push your codes to dev branch.
-
-
-The main branch is **not be allowed** to push codes (the push submission will be failed). You can submit a Pull Request to merge your code from **dev** branch to the main branch. We will refuse the Pull Request from other branchs to the main branch except for dev branch.
-
-
+The main branch is **not be allowed** to push codes (the push submission will be failed). And we will refuse the Pull Request from other branches to the main branch except for dev branch.
 
 ## Add Your Datasets
 
-In this section, we will use the `ASSISTments2015` dataset as an example to show the adding dataset procedure. Here we simplize the  `ASSISTments2015` into `assist2015` as the dataset name, you can replace `assist2015` in your own dataset.
+In this section, we will use the `ASSISTments2015` dataset as an example to show the adding dataset procedure. Here we simplify the  `ASSISTments2015` into `assist2015` as the dataset name, you can replace `assist2015` in your own dataset.
 
 ### Create Data Files
 1、Please create a new dataset folder in the `data` directory with dataset name. 
@@ -60,7 +60,7 @@ $tree data/assist2015/
 
 ### Data Preprocess File
 
-1、Create the processing file `assist2015_preprocess.py` under the `pykt/preprocess` directory. The data preprocessing are suggestd to follow the [Data Preprocess Guidelines](#Data Preprocess Guidelines). The main codes of the data preprocessing of `assist2015` are as follows:
+1、Create the processing file `assist2015_preprocess.py` under the `pykt/preprocess` directory. The data preprocessing are suggested to follow the [Data Preprocess Guidelines](#Data Preprocess Guidelines). The main codes of the data preprocessing of `assist2015` are as follows:
 
 ```python
 import pandas as pd
