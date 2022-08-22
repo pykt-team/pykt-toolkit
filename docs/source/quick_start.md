@@ -163,4 +163,4 @@ CUDA_VISIBLE_DEVICES=0 WANDB_API_KEY=xxx nohup wandb agent swwwish/pykt_wandb/qn
 
 There are only 5 sweeps to be run without any parameter tuning in this stage, with each sweep corresponding to the evaluation of each fold of the training data. Finally, you can export the evaluation results externally or call the wandb API for statistical 5- folds results, and calculate the mean and standard deviation of each metric, i.e., ***mean ± standard deviation***
 
-If you want to add new models or datasets into PyKT, you can follow [Contribute](contribute.md).
+If you want to add new models or datasets into pyKT, you can follow [Contribute](contribute.md).
