@@ -1,4 +1,19 @@
 # Datasets
+We mainly select the following datasets in the PyKT at presents:
+
+|     Dataset     | question ID | skill ID | answering results | answering duration | answer submission time |
+|:---------------:|:--------:|:-------:|:--------:|:--------:|:---------:|
+| Statics2011     |     &#10004;    |         |     &#10004;    |          |     &#10004;     |
+| ASSISTments2009 |     &#10004;    |    &#10004;    |     &#10004;    |          |           |
+| ASSISTments2012 |     &#10004;    |    &#10004;    |     &#10004;    |     &#10004;    |     &#10004;     |
+| ASSISTments2015 |          |    &#10004;    |     &#10004;    |          |           |
+| ASSISTments2017 |     &#10004;    |    &#10004;    |     &#10004;    |     &#10004;    |     &#10004;     |
+| Algebra2005     |     &#10004;    |    &#10004;    |     &#10004;    |          |     &#10004;     |
+| Bridge2006      |     &#10004;    |    &#10004;    |     &#10004;    |          |     &#10004;     |
+| Ednet           |     &#10004;    |    &#10004;    |     &#10004;    |     &#10004;    |     &#10004;     |
+| NIPS34          |     &#10004;    |    &#10004;    |     &#10004;    |          |     &#10004;     |
+| POJ             |     &#10004;    |         |     &#10004;    |          |     &#10004;     |
+
 ## Statics2011
 This dataset is collected from an engineering statics course taught at the Carnegie Mellon University during Fall 2011. In this dataset, a unique question is constructed by concatenating the problem name and step name and the dataset has 194,947 interactions, 333 students, 1,224 questions.
 

@@ -1,14 +1,33 @@
 # Models
+Since the deep learning based KT models can be categorized into deep sequential models, memory augmented models, adversarial based models, graph based models and attention based models in our work, we mantle the KT models in these four categories in PyKT.
+
+|   Models   |    Category    |
+|:----------:|:--------------:|
+| AKT        |    Attention   |
+| ATKT       |   Adversarial  |
+| DKT-Forget |    Sequential  |
+| DKT        |    Sequential  |
+| DKT+       |    Sequential  |
+| DKVMN      |     Memory     |
+| GKT        |      Graph     |
+| HawkesKT   | Neural Network |
+| IEKT       |    Sequential  |
+| KQN        |    Sequential  |
+| LPKT       |    Sequential  |
+| SAINT      |    Attention   |
+| SAKT       |    Attention   |
+| SKVMN      |     Memory     |
 
 ##  AKT
-Attentive Knowledge Tracing (AKT) is a model which couples flexible attention-based neural network models with a series of novel, interpretable model components inspired by cognitive and psychometric models.
+<!-- Attentive knowledge tracing (AKT) is a model which couples flexible attention-based neural network models with a series of novel, interpretable model components inspired by cognitive and psychometric models. -->
+Attentive knowledge tracing (AKT) introduce a rasch model to regularize the KC and question embeddings to discriminate the questions on the same KC, and modeling the exercise representations and the students' historical interactdion embeddings via three self-attention based modules.
 
 ![](../pics/akt.png)
 
 [Ghosh, Aritra, Neil Heffernan, and Andrew S. Lan. "Context-aware attentive knowledge tracing." Proceedings of the 26th ACM SIGKDD international conference on knowledge discovery & data mining. 2020.](https://dl.acm.org/doi/pdf/10.1145/3394486.3403282)
 
 ##  ATKT
-Adversarial training (AT) based KT method (ATKT) to enhance KT model's generalization and thus push the limit of KT. To better implement AT, ATKT proposes an efficient attentive-LSTM model as KT backbone.
+Adversarial training (AT) based KT method (ATKT) is an attention based LSTM model which apply the adversarial perturbations into the original student interaction sequence to reduce the the risk of DLKT overfitting and limited generalization problem.
 
 ![](../pics/atkt.png)
 
@@ -16,8 +35,9 @@ Adversarial training (AT) based KT method (ATKT) to enhance KT model's generaliz
 [Guo, Xiaopeng, et al. "Enhancing Knowledge Tracing via Adversarial Training." Proceedings of the 29th ACM International Conference on Multimedia. 2021.](https://arxiv.org/pdf/2108.04430)
 
 
+
 ##  DKT-Forget
- DKT-Forget extends the deep knowledge tracing model to consider forgetting by incorporating multiple types of information related to forgetting.
+ DKT-Forget explores the deep knowledge tracing model by considering the forgetting behavior via incorporate multiple forgetting information.
 
 ![](../pics/dkt_forget.png)
 
@@ -26,14 +46,14 @@ Adversarial training (AT) based KT method (ATKT) to enhance KT model's generaliz
 
 
 ##  DKT
-Deep Knowledge Tracing (DKT) is the first model uses Recurrent Neural Networks (RNNs) to solve Knowledge Tracing.
+DKT is the first model that uses Recurrent Neural Networks (RNNs) to solve Knowledge Tracing.
 
 ![](../pics/dkt.png)
 
 [Piech, Chris, et al. "Deep knowledge tracing." Advances in neural information processing systems 28 (2015).](https://proceedings.neurips.cc/paper/2015/file/bac9162b47c56fc8a4d2a519803d51b3-Paper.pdf)
 
 ##  DKT+
-DKT+ introduces regularization terms that correspond to reconstruction and waviness to the loss function of the original DKT model to enhance the consistency in prediction.
+DKT+ introduces regularization terms that correspond to reconstruction and waviness to the loss function of the original DKT model to enhance the consistency in KT prediction.
 
 <!-- ![DKT+](../pics/dkt+.png) -->
 
@@ -41,7 +61,7 @@ DKT+ introduces regularization terms that correspond to reconstruction and wavin
 [Yeung, Chun-Kit, and Dit-Yan Yeung. "Addressing two problems in deep knowledge tracing via prediction-consistent regularization." Proceedings of the Fifth Annual ACM Conference on Learning at Scale. 2018.](https://arxiv.org/pdf/1806.02180)
 
 ##  DKVMN 
-Dynamic key-value memory networks (DKVMN) has one static matrix called "key" which stores the knowledge concepts, and the other dynamic matrix called value, which stores and updates the mastery levels of corresponding concepts.
+Dynamic key-value memory networks (DKVMN) exploit the relationships between latent KCs which are stored in a static memory matrix *key* and predict the knowledge mastery level of a student directly based on a dynamic memory matrix *value*.
 
 ![](../pics/dkvmn.png)
 
@@ -49,8 +69,9 @@ Dynamic key-value memory networks (DKVMN) has one static matrix called "key" whi
 [Zhang, Jiani, et al. "Dynamic key-value memory networks for knowledge tracing." Proceedings of the 26th international conference on World Wide Web. 2017.](https://arxiv.org/abs/1611.08108)
 
 
+
 ##  GKT
-Graph-based Knowledge Tracing (GKT) is a GNN-based method that casts the knowledge structure as a graph, enabling us to reformulate the Knowledge tracing task as a time-series node-level classification problem in the GNN.
+Graph-based Knowledge Tracing (GKT) is a GNN-based knowledge tracing method that use a graph to model the relations between knowledge concepts to reformulate the KT task as a time-series node-level classification problem.
 
 ![](../pics/gkt.png)
 
@@ -63,7 +84,6 @@ HawkesKT is the first to introduce Hawkes process to model temporal cross effect
 [Wang, Chenyang, et al. "Temporal cross-effects in knowledge tracing." Proceedings of the 14th ACM International Conference on Web Search and Data Mining. 2021.](http://www.thuir.cn/group/~mzhang/publications/WSDM2021-WangChenyang.pdf)
 
 ##  IEKT
-
 Individual Estimation Knowledge Tracing (IEKT) estimates the students' cognition of the question before response prediction and assesses their knowledge acquisition sensitivity on the questions before updating the knowledge state.
 
 ![](../pics/iekt.png)
@@ -72,7 +92,7 @@ Individual Estimation Knowledge Tracing (IEKT) estimates the students' cognition
 
 ##  KQN
 
-KQN uses neural networks to encode student learning activities into knowledge state and skill vectors, and models the interactions between the two types of vectors with the dot product. 
+KQN uses neural networks to encode student learning activities into knowledge state and skill vectors, and calculate the relations between the interactions via dot product. 
 
 ![](../pics/kqn.png)
 
@@ -89,7 +109,7 @@ Learning Processconsistent Knowledge Tracing(LPKT) monitors students' knowledge 
 
 ##  SAINT
 
-Separated Self-AttentIve Neural Knowledge Tracing(SAINT) has an encoder-decoder structure where the exercise and response embedding sequences separately enter, respectively, the encoder and the decoder. This is the first work to suggest an encoder-decoder model for Knowledge Tracing that applies deep self-attentive layers to exercises and responses separately.
+Separated Self-AttentIve Neural Knowledge Tracing(SAINT) is a typical Transformer based structure which embeds the exercises in encoder and predict the responses in decoder.
 
 ![](../pics/saint.png)
 
@@ -97,7 +117,7 @@ Separated Self-AttentIve Neural Knowledge Tracing(SAINT) has an encoder-decoder 
 
 ##  SAKT
 
-Self Attentive Knowledge Tracing (SAKT) model is proposed to solve the problem of sparse data processing. SAKT identifies the KCs from the student's past activities that are relevant to the given KC and predicts their mastery based on the relatively few KCs that it picked.
+Self Attentive Knowledge Tracing (SAKT) use self-attention network to capture the relevance between the KCs and the students' historical interactions.
 
 ![](../pics/sakt.png)
 
@@ -105,7 +125,7 @@ Self Attentive Knowledge Tracing (SAKT) model is proposed to solve the problem o
 
 ##  SKVMN
 
-This model unifies the strengths of recurrent modeling capacity and memory capacity of the existing deep learning KT models for modeling student learning.
+This model unifies the strengths of recurrent modeling capacity and the capability of memory networks to model the students' learning precocesses.
 
 ![](../pics/skvmn.png)
 
