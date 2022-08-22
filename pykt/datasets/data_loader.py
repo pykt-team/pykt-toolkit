@@ -187,9 +187,6 @@ class KTDataset(Dataset):
         print(f"numc: {numc}")
         df = pd.read_csv(sequence_path)#[0:1000]
         df = df[df["fold"].isin(folds)]
-        if len(folds) > 1 and not os.path.exists(os.path.join(self.dpath, self.fourf)):
-            self.dfour = self.__caldfour__(df["concepts"], df["responses"])
-            pd.to_pickle(self.dfour, self.fourf)
         interaction_num = 0
         # seq_qidxs, seq_rests = [], []
         dqtest = {"qidxs": [], "rests":[], "orirow":[]}
