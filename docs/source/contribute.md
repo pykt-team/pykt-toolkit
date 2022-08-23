@@ -153,6 +153,20 @@ Example:
 1647409594000, 1647409601000, 1647409666000, 1647409694000 
 123, 234, 456, 789 
 ```
+##### Testing Data Format
+A question may be related to multiple knowledge concepts (KCs). To make the evaluation of pyKT consistent with the real-world prediction scenarios, we train DLKT models on KCs but evaluate them on questions level. To this end, the testing data has different formats in different prediction scenarios. To better understand, we use the below example to introduce various testing data formats. There are three questions $\{q_1,q_2,q_3\}$, each questions are related to two KCs $\{\{k_1,k_3\},\{k_1,k_2\},\{k_3,k_4\}\}$.
+![](../pics/testing_seq.png)
+
+- **Repeat format:** Similar to training data and validation data, the original question-response sequences are expanded into KC level by repeating responses multiple times when a question has more than one KCs, one for each KC.
+
+  ![](../pics/repeat_format.png)
+- **Question level format:** To conduct evaluation on the question level, we split the question-response sequence into KC-response subsequence. For example, for the question $q_3$ which is corresponding to the $\{k3,k4\}$. A KC-response subsequence is consist of all the historical interactions and the related KC information as follows:
+  ![](../pics/question_format.png)
+
+- **Window format:** If a sequence has more than $M$ interactions, we set a sliding window to keep the sequence length is $M$. For instance, if $M=200$, the original sequence length is $201$, we select the interactions from $1$ to $201$ as final sequence:
+
+  
+  ![](../pics/window.png)
 
 
 
