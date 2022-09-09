@@ -42,27 +42,17 @@ def get_outputs(self,emb_qc_shift,h,data,add_name="",model_type='question'):
     if model_type == 'question':
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
         y_question_next = torch.sigmoid(self.out_question_next(h_next))
-        emb_question_all,out_question_all = self.out_question_all(h,return_raw_x=True)
-        y_question_all = torch.sigmoid(out_question_all)
+        y_question_all = torch.sigmoid(self.out_question_all(h))
         outputs["y_question_next"+add_name] = y_question_next.squeeze(-1)
         outputs["y_question_all"+add_name] = (y_question_all * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
-        outputs["emb_question_all"] = emb_question_all
-        
     else: 
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
-        # next
-        emb_concept_next,out_concept_next = self.out_concept_next(h_next,return_raw_x=True)
-        y_concept_next = torch.sigmoid(out_concept_next)
-
+        y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
         #all predict
-        emb_concept_all,out_concept_all = self.out_concept_all(h,return_raw_x=True)
-        y_concept_all = torch.sigmoid(out_concept_all)
-
-        # add results to outputs
+        y_concept_all = torch.sigmoid(self.out_concept_all(h))
         outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
         outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(y_concept_all,data['cshft'])
-        outputs["emb_concept_next"] = emb_concept_next
-        outputs["emb_concept_all"] = emb_concept_all
+
     return outputs
 
 class xDKTV3Net(nn.Module):
@@ -97,8 +87,8 @@ class xDKTV3Net(nn.Module):
 
         self.out_concept_next = MLP(self.mlp_layer_num,self.hidden_size*3,num_c,dropout)
         self.out_concept_all = MLP(self.mlp_layer_num,self.hidden_size,num_c,dropout)
-        self.out_merge_multi_h = MLP(self.mlp_layer_num*2,self.hidden_size*5,1,dropout)
-       
+        # self.out_merge_multi_h = MLP(self.mlp_layer_num*2,self.hidden_size*5,1,dropout)
+        self.que_disc = MLP(self.mlp_layer_num,self.hidden_size*2,1,dropout)
 
     def get_avg_fusion_concepts(self,y_concept,cshft):
         """获取知识点 fusion 的预测结果
@@ -131,15 +121,17 @@ class xDKTV3Net(nn.Module):
 
         concept_h = self.dropout_layer(self.concept_lstm_layer(emb_ca_current)[0])
         concept_outputs = get_outputs(self,emb_qc_shift,concept_h,data,add_name="",model_type="concept")
-        outputs.update(concept_outputs)
+        # outputs.update(concept_outputs)
+        outputs['y_concept_all'] = concept_outputs['y_concept_all']
+        outputs['y_concept_next'] = concept_outputs['y_concept_next']
 
         #merge all h
         
-        merge_h = torch.cat([outputs["emb_concept_all"],outputs["emb_question_all"],outputs["emb_concept_next"]],axis=-1)
+        # merge_h = torch.cat([outputs["emb_concept_all"],outputs["emb_question_all"],outputs["emb_concept_next"]],axis=-1)
         # merge_h = self.merge_concept_next(outputs["concept_h_next"]) + self.merge_concept_all()
         # print(merge_h.shape)
-        output_merge_h = torch.sigmoid(self.dropout_layer(self.out_merge_multi_h(merge_h)))
-        outputs['y_merge_h'] = output_merge_h.squeeze(-1)
+        # output_merge_h = torch.sigmoid(self.dropout_layer(self.out_merge_multi_h(merge_h)))
+        # outputs['y_merge_h'] = output_merge_h.squeeze(-1)
         return outputs
 
 class xDKTV3(QueBaseModel):
@@ -156,34 +148,42 @@ class xDKTV3(QueBaseModel):
         self.emb_type = self.model.emb_type
         self.loss_func = self._get_loss_func("binary_crossentropy")
         self.eval_result = {}
-        self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_merge_h"]
+        # self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_merge_h"]
+        # self.loss_lambda_name_list = [x.replace("output_","loss_") for x in self.output_lambda_name_list]
+        # self.output_name_list = ['y_concept_all','y_concept_next','y_question_all','y_question_next','y_merge_h']
+        self.output_lambda_name_list = ["output_q_all_lambda","output_c_all_lambda","output_c_next_lambda"]
         self.loss_lambda_name_list = [x.replace("output_","loss_") for x in self.output_lambda_name_list]
-        self.output_name_list = ['y_concept_all','y_concept_next','y_question_all','y_question_next','y_merge_h']
+        self.output_name_list = ['y_question_all','y_concept_all','y_concept_next']
     
 
 
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-        loss_lambda_list  = [self.model.other_config.get(x,0) for x in self.loss_lambda_name_list]
-        
+        # all 
+        loss_q_all = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])
+        loss_c_all = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])
+        # next
+        loss_q_next = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])#question level loss
+        loss_c_next = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])#kc level loss
         # over all
         loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
 
-        # def get_loss_lambda(x):
-            # return self.model.other_config.get(f'loss_{x}',0)#*self.model.other_config.get(f'output_{x}',0)
+        def get_loss_lambda(x):
+            return self.model.other_config.get(f'loss_{x}',0)*self.model.other_config.get(f'output_{x}',0)
             
-        total_loss = loss_kt
-        loss_print_str = f"loss_kt is {loss_kt:.3f}"
+        # loss weight
+        loss_c_all_lambda = get_loss_lambda("c_all_lambda")
+        loss_c_next_lambda = get_loss_lambda("c_next_lambda")
+        loss_q_all_lambda = get_loss_lambda("q_all_lambda")
+        loss_q_next_lambda = get_loss_lambda("q_next_lambda")
 
-        for loss_lambda,output_name in zip(loss_lambda_list,self.output_name_list):
-            loss_item = self.get_loss(outputs[output_name],data_new['rshft'],data_new['sm'])
-            total_loss += loss_item * loss_lambda
-
-            loss_print_str+=f",{output_name} loss is {loss_item:.3f}"
-        loss_print_str+=f",total_loss is {total_loss:.3f}"
-        print(loss_print_str)
         
-        return outputs['y'],total_loss#y_question没用
+        if self.model.output_mode=="an_irt":
+            loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all+ loss_c_next_lambda* loss_c_next
+        else:
+            loss = loss_kt  + loss_q_all_lambda * loss_q_all + loss_c_all_lambda * loss_c_all + loss_c_next_lambda* loss_c_next + loss_q_next_lambda*loss_q_next
+        print(f"loss={loss:.3f},loss_kt={loss_kt:.3f},loss_q_all={loss_q_all:.3f},loss_c_all={loss_c_all:.3f},loss_q_next={loss_q_next:.3f},loss_c_next={loss_c_next:.3f}")
+        return outputs['y'],loss#y_question没用
 
 
     def predict(self,dataset,batch_size,return_ts=False,process=True):
@@ -240,23 +240,20 @@ class xDKTV3(QueBaseModel):
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
         outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-        
-        output_lambda_list  = [self.model.other_config.get(x,0) for x in self.output_lambda_name_list]
-        
-
+        output_c_all_lambda = self.model.other_config.get('output_c_all_lambda',1)
+        output_c_next_lambda = self.model.other_config.get('output_c_next_lambda',1)
+        output_q_all_lambda = self.model.other_config.get('output_q_all_lambda',1)
+        output_q_next_lambda = self.model.other_config.get('output_q_next_lambda',0)#not use this
+       
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x,epsilon=1e-8):
                 return torch.log(x/(1-x+epsilon)+epsilon)
-            y = 0 
-            for output_lambda,output_name in zip(output_lambda_list,self.output_name_list):
-                y+=sigmoid_inverse(outputs[output_name])*output_lambda
+            y = sigmoid_inverse(outputs['y_question_all'])*output_q_all_lambda + sigmoid_inverse(outputs['y_concept_all'])*output_c_all_lambda + sigmoid_inverse(outputs['y_concept_next'])*output_c_next_lambda
             y = torch.sigmoid(y)
         else:
             # output weight
-            y = 0 
-            for output_lambda,output_name in zip(output_lambda_list,self.output_name_list):
-                y+=output_lambda*outputs[output_name]
-            y = y/sum(output_lambda_list)
+            y = outputs['y_question_all'] * output_q_all_lambda + outputs['y_concept_all'] * output_c_all_lambda + outputs['y_concept_next'] * output_c_next_lambda
+            y = y/(output_q_all_lambda + output_c_all_lambda + output_c_next_lambda)
         outputs['y'] = y
 
         if return_details:
