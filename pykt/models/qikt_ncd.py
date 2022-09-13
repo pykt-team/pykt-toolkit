@@ -165,16 +165,16 @@ class QIKTNCD(QueBaseModel):
         self.emb_type = self.model.emb_type
         self.loss_func = self._get_loss_func("binary_crossentropy")
         self.eval_result = {}
-        self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_ncd"]
+        self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_ncd_lambda"]
         self.loss_lambda_name_list = [x.replace("output_","loss_") for x in self.output_lambda_name_list]
         self.output_name_list = ['y_concept_all','y_concept_next','y_question_all','y_question_next','y_ncd']
-    
+        # print(f"other_config is {other_config}")
 
 
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss_lambda_list  = [self.model.other_config.get(x,0) for x in self.loss_lambda_name_list]
-        
+        # print(f"loss_lambda_list is {loss_lambda_list}")    
         # over all
         loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
 
@@ -253,7 +253,7 @@ class QIKTNCD(QueBaseModel):
         outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
         
         output_lambda_list  = [self.model.other_config.get(x,0) for x in self.output_lambda_name_list]
-        
+        # print(f"output_lambda_list is {output_lambda_list}")    
 
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x,epsilon=1e-8):

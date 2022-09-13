@@ -29,13 +29,13 @@ if __name__ == "__main__":
     parser.add_argument("--loss_q_all_lambda", type=float, default=0)#a
     parser.add_argument("--loss_c_all_lambda", type=float, default=0)#b
     parser.add_argument("--loss_c_next_lambda", type=float, default=0)#c
-    parser.add_argument("--loss_ncd", type=float, default=0)#ncd
+    parser.add_argument("--loss_ncd_lambda", type=float, default=0)#ncd
 
     #output mode
     parser.add_argument("--output_q_all_lambda", type=float, default=0)#a
     parser.add_argument("--output_c_all_lambda", type=float, default=0)#b
     parser.add_argument("--output_c_next_lambda", type=float, default=0)#c
-    parser.add_argument("--output_ncd", type=float, default=0)#ncd
+    parser.add_argument("--output_ncd_lambda", type=float, default=0)#ncd
     
     
     # use for ab study
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     if "c" in ab_mode:
         args.output_c_next_lambda = 1
     if 'ncd' in ab_mode:
-        args.output_ncd = 1
+        args.output_ncd_lambda = 1
     
     if "irt" in ab_mode:
         args.output_mode = "an_irt"
@@ -62,6 +62,7 @@ if __name__ == "__main__":
         args.output_mode = "an"
 
     params = vars(args)
+    print(f"params is {params}")
 
     # add some config to other_config
     remove_keys = ['ab_mode','output_mode'] + [x for x in params.keys() if "lambda" in x]
@@ -75,6 +76,5 @@ if __name__ == "__main__":
 
 
 '''
-python wandb_qikt_ncd_train.py --ab_mode a+b+c+ncd
-
+python -u wandb_qikt_ncd_train.py --ab_mode a+b+c+ncd --seed 3407 --loss_q_all_lambda 1 --loss_c_all_lambda 1 --loss_c_next_lambda 1 --loss_ncd_lambda 1
 '''
