@@ -21,7 +21,7 @@ def main(params):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
                 for _type in [["iekt"]]:
-                    for ab_mode in ['a+irt']:
+                    for ab_mode in ['a+b+c+ncd']:
                         for fold in folds.split(","):
                             _type = [str(k) for k in _type]
                             fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") +"_"+ab_mode+ "_" + str(fold) + ".yaml"

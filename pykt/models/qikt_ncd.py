@@ -165,7 +165,7 @@ class QIKTNCD(QueBaseModel):
         self.emb_type = self.model.emb_type
         self.loss_func = self._get_loss_func("binary_crossentropy")
         self.eval_result = {}
-        self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_y_ncd"]
+        self.output_lambda_name_list = ["output_c_all_lambda","output_c_next_lambda","output_q_all_lambda","output_q_next_lambda","output_ncd"]
         self.loss_lambda_name_list = [x.replace("output_","loss_") for x in self.output_lambda_name_list]
         self.output_name_list = ['y_concept_all','y_concept_next','y_question_all','y_question_next','y_ncd']
     
