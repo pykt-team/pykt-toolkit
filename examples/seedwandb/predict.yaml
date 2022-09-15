@@ -1,5 +1,6 @@
 program: wandb_predict.py
 method: grid
+name: assist2009_qikt_ncd
 metric:
     goal: maximize
     name: testauc
@@ -7,4 +8,8 @@ parameters:
     bz:
         values: [32]
     save_dir:
-        values: []
+        values: ['/root/autodl-nas/tabchen/other_kt_exps/best_model/assist2009/qikt_ncd/assist2009_0_0.001_42_128_200_1_1_dkt_tiaocan_assist2009_qikt_ncd_iekt_0.4_300_1_5f6a4b7c-6f16-4c0e-9261-94980c1adfae_0',
+ '/root/autodl-nas/tabchen/other_kt_exps/best_model/assist2009/qikt_ncd/assist2009_1_0.001_42_128_200_1_1_dkt_tiaocan_assist2009_qikt_ncd_iekt_0.4_300_1_ac008008-a140-46d2-9986-8ed671c00de3_1',
+ '/root/autodl-nas/tabchen/other_kt_exps/best_model/assist2009/qikt_ncd/assist2009_2_0.001_3407_128_200_1_1_dkt_tiaocan_assist2009_qikt_ncd_iekt_0.4_300_1_213ba93c-65b5-47ab-942c-39c6037c8c6e_2',
+ '/root/autodl-nas/tabchen/other_kt_exps/best_model/assist2009/qikt_ncd/assist2009_3_0.001_3407_128_200_1_1_dkt_tiaocan_assist2009_qikt_ncd_iekt_0.4_300_1_d1b2b797-8042-4742-8302-573ebf995109_3',
+ '/root/autodl-nas/tabchen/other_kt_exps/best_model/assist2009/qikt_ncd/assist2009_4_0.001_3407_128_200_1_1_dkt_tiaocan_assist2009_qikt_ncd_iekt_0.5_300_1_1d23fee9-76d6-4bfa-aac9-9785c6890584_4']
