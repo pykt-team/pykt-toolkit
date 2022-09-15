@@ -141,7 +141,7 @@ class WandbUtils:
         return len(sweep.runs)
 
 
-    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="testauc",metric_type="max",min_run_num=300,patience=100,force_check_df=False):
+    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="testauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
         """Check sweep early stop
 
         Args:
@@ -173,9 +173,12 @@ class WandbUtils:
                 df = self.get_df(sweep_id,input_type="sweep_id")#get sweep result
                 df = df[df['state']=='finished']#only count finished runs
                 report['df'] = df
-                best_value = df[metric].max() if metric_type == "max" else df[metric].min()#get best value
-                first_best_index = df[df[metric]==best_value]['run_index'].min()
+
+                df[f'{metric}_precsion3'] = df['metric'].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
+                best_value = df[f'{metric}_precsion3'].max() if metric_type == "max" else df[f'{metric}_precsion3'].min()#get best value
+                first_best_index = df[df[f'{metric}_precsion3']==best_value]['run_index'].min()
                 not_improve_num = len(df[df['run_index'] >= first_best_index])
+
                 if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
                     stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
