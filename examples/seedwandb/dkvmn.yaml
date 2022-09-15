@@ -2,7 +2,7 @@ program: wandb_dkvmn_train.py
 method: bayes
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["dkvmn"]
@@ -13,13 +13,13 @@ parameters:
     save_dir:
         values: ["dkvmn_tiaocan"]
     dim_s:
-        values: [50, 100, 200, 300]
+        values: [64,256]
     learning_rate:
-        values: [1e-2, 1e-3, 1e-4]
+        values: [1e-3, 1e-4, 1e-5]
     dropout:
-        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+        values: [0.05,0.1,0.3,0.5]
     size_m:
-        values: [10, 20, 50, 100]
+        values: [32,64]
     seed:
         values: [42, 224, 3407]
     fold:
