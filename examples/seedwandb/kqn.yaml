@@ -25,7 +25,7 @@ parameters:
     dropout:
         values: [0.05,0.1,0.3,0.5]
     seed:
-        values: [42, 224, 3407]
+        values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]
  

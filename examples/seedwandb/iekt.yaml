@@ -29,6 +29,6 @@ parameters:
     learning_rate:
         values: [1e-3, 1e-4, 1e-5]
     seed:
-        values: [42, 224, 3407]
+        values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]

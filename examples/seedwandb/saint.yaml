@@ -1,5 +1,5 @@
 program: wandb_saint_train.py
-method: bayes
+method: grid
 metric:
     goal: maximize
     name: validauc
@@ -23,6 +23,6 @@ parameters:
     n_blocks:
         values: [1, 2, 4]
     seed:
-        values: [42, 224, 3407]
+        values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]
