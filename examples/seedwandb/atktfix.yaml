@@ -2,7 +2,7 @@ program: wandb_atkt_train.py
 method: bayes
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["atktfix"]
@@ -13,21 +13,21 @@ parameters:
     save_dir:
         values: ["atktfix_tiaocan"]
     skill_dim:
-        values: [128, 256, 512]
+        values: [64,256]
     answer_dim:
-        values: [64, 96, 128]
+        values: [64,256]
     hidden_dim:
-        values: [40, 80, 160, 240]
+        values: [64,256]
     attention_dim:
-        values: [40, 80, 160, 240]
+        values: [64,256]
     epsilon:
         values: [1, 5, 10, 12, 15]
     beta:
         values: [0, 0.2, 0.5, 1, 2]
     dropout:
-        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+        values: [0.05,0.1,0.3,0.5]
     learning_rate:
-        values: [1e-2, 1e-3, 1e-4]
+        values: [1e-3, 1e-4, 1e-5]
     seed:
         values: [42, 224, 3407]
     fold:

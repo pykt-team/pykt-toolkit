@@ -2,7 +2,7 @@ program: wandb_hawkes_train.py
 method: bayes
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["hawkes"]
@@ -13,11 +13,13 @@ parameters:
     save_dir:
         values: ["hawkes_tiaocan"]
     emb_size:
-        values: [32, 64, 128]
+        values: [64,256]
     learning_rate:
-        values: [5e-3, 1e-3, 5e-4, 1e-4]
+        values: [1e-3, 1e-4, 1e-5]
     l2:
         values: [1e-3, 1e-4, 1e-5, 1e-6, 0]
+    time_log:
+        values: [2, 5, 10]
     seed:
         values: [42, 224, 3407]
     fold:

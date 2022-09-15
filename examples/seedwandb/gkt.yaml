@@ -2,7 +2,7 @@ program: wandb_gkt_train.py
 method: grid
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["gkt"]
