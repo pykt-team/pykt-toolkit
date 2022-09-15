@@ -1,5 +1,5 @@
 program: wandb_dkt_forget_train.py
-method: bayes
+method: grid
 metric:
     goal: maximize
     name: validauc
