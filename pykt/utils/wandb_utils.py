@@ -1,6 +1,8 @@
-import pandas as pd
+import os
 import wandb
+import pandas as pd
 from wandb.apis.public import gql
+
 
 def get_runs_result(runs):
     result_list = []
@@ -18,6 +20,7 @@ def get_runs_result(runs):
     runs_df['create_time'] = runs_df['_timestamp']
     model_config_keys = list(model_config.keys())
     return runs_df,model_config_keys
+
 
 class WandbUtils:
     """wandb utils
@@ -39,6 +42,7 @@ class WandbUtils:
         print(f"self.sweep_dict is {self.sweep_dict}")
         self.sweep_keys = list(self.sweep_dict.keys())
         self.sweep_keys.sort()
+    
 
     def get_sweep_dict(self):
         '''Get sweep dict'''
@@ -158,7 +162,7 @@ class WandbUtils:
             id (str): the sweep name or sweep id.
             input_type (str, optional): the type of id. Defaults to sweep_name.
             metric (str, optional): the metric to check. Defaults to validauc.
-            metric_type (str, optional): the type of metric max or min. Defaults to max.
+            metric_type (str, optional): the type of metric max or min. Defaults to max. metric_type=='min' todo
             min_run_num (int, optional): the min run num to check. Defaults to 200.
             patience (int, optional): the patience to stop. Defaults to 50.
             force_check_df: always check df, defalut is false.
@@ -180,26 +184,53 @@ class WandbUtils:
             if num_run<min_run_num:
                 report['state'] = False
             else:
+                #
                 df = self.get_df(sweep_id,input_type="sweep_id",only_finish=True)#get sweep result
                 report['df'] = df
-
                 df[f'{metric}_precsion3'] = df[metric].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
-                best_value = df[f'{metric}_precsion3'].max() if metric_type == "max" else df[f'{metric}_precsion3'].min()#get best value
-                first_best_index = df[df[f'{metric}_precsion3']==best_value]['run_index'].min()
-                not_improve_num = len(df[df['run_index'] >= first_best_index])
-                report['not_improve_num'] = not_improve_num
-                if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
+                #find stop point
+                finish = False
+                for i in range(min_run_num,len(df)):
+                    best_value = df[:i][f'{metric}_precsion3'].max()#get best value
+                    first_best_index = df[df[f'{metric}_precsion3']==best_value]['run_index'].min()
+                    not_improve_num = len(df[df['run_index'] >= first_best_index])
+                    if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
+                        finish = True 
+                        break
+                if finish:
+                    df = df[:i].copy()
+                    report['not_improve_num'] = not_improve_num
                     stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
                     report['state'] = True
                     report['stop_cmd'] = stop_cmd
+                    report['first_best_index'] = first_best_index
                 else:
                     report['state'] = False
         print(f"    details: {id} state is {report['state']},num of runs is {report['num_run']}")
         print("-"*60+'\n')
         return report
-        
-    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
+
+    def stop_sweep(self,cmd):
+        # os.system(cmd)
+        print(f"We will stop the sweep, by {cmd}")
+
+    
+    def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+        check_result_list = []
+        for sweep_name in sweep_key_list:
+            check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
+                    metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
+            check_result['sweep_name'] = sweep_name
+            check_result_list.append(check_result)
+
+        if stop:#stop sweep
+            for result in check_result_list:
+                if result['State'] and result['stop_cmd']!=0:
+                    self.stop_sweep(result['stop_cmd'])
+        return check_result_list
+
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
         """Check sweeps by pattern
         
         Args:
@@ -213,12 +244,33 @@ class WandbUtils:
         Returns:
             list: the list of dict, each dict is {"id":id,"state":state,'df':df,"num_run":num_run}, state is 'RUNNING', 'CANCELED' or 'FINISHED',df is the df of the sweep, num_run is the num of sweep run, -1 mean the sweep is finished to save time we will not check it again.
         """
-        check_result_list = []
-        
+        sweep_key_list = []
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
-                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-                check_result['sweep_name'] = sweep_name
-                check_result_list.append(check_result)
+                sweep_key_list.append(sweep_name)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        
         return check_result_list
+
+    def get_all_fold_name(self,model_name,dataset_name,emb_type="qid"):
+        sweep_key_list = [f"{dataset_name}_{model_name}_{emb_type}_{fold}" for fold in range(5)]
+        sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
+        return sweep_key_list
+
+    def check_sweep_by_model_dataset_name(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+        sweep_key_list = self.get_all_fold_name(model_name,dataset_name,emb_type)
+        if len(sweep_key_list)!=5:
+            print("Input error, please check")
+            return 
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        return check_result_list
+
+    def get_best_run(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50):
+        # sweep_key_list = self.get_all_fold_name(model_name,dataset_name,emb_type)
+        check_result_list = self.check_sweep_by_model_dataset_name(model_name,dataset_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+        row_list = []
+        for result in check_result_list:
+            df = result['df']
+            row_list.append(df.iloc[result['first_best_index']])
+        df = pd.DataFrame(row_list)
+        return df
