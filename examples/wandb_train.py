@@ -72,8 +72,8 @@ def main(params):
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
-        if not model_name in ['saint','saint++']:
-            params_str = params_str+f"_{ str(uuid.uuid4())}"
+        # if not model_name in ['saint','saint++']:
+        params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
         os.makedirs(ckpt_path)
