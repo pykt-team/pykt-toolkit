@@ -56,6 +56,8 @@ class KTDataset(Dataset):
                 self.dori, self.dqtest = pd.read_pickle(processed_data)
             else:
                 self.dori = pd.read_pickle(processed_data)
+                for key in self.dori:
+                    self.dori[key] = self.dori[key]#[:100]
         print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}")
 
     def __len__(self):

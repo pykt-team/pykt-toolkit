@@ -16,7 +16,7 @@ copyright = '2022, pykt-team'
 author = 'pykt-team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.32'
+release = '0.0.37'
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,7 +49,7 @@ html_static_path = ['_static']
 # theme
 extensions.append('sphinx_rtd_theme')
 html_theme = "sphinx_rtd_theme"
-html_logo = "https://pykt.org/assets/img/logo.png"
+html_logo = "https://pykt.org/assets/images/logo.png"
 html_theme_options = {
     'logo_only': True,
     'navigation_depth': 5,

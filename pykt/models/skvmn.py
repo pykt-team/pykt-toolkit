@@ -12,7 +12,7 @@ import datetime
 
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
-print(f"device:{device}")
+# print(f"device:{device}")
 
 class DKVMNHeadGroup(nn.Module):
     def forward(self, input_):
@@ -155,7 +155,7 @@ class DKVMN(nn.Module):
 
 
 class SKVMN(Module):
-    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=True):
+    def __init__(self, num_c, dim_s, size_m, dropout=0.2, emb_type="qid", emb_path="", use_onehot=False):
         super().__init__()
         self.model_name = "skvmn"
         self.num_c = num_c
@@ -163,11 +163,13 @@ class SKVMN(Module):
         self.size_m = size_m
         self.emb_type = emb_type
         self.use_onehot = use_onehot
+        print(f"self.use_onehot: {self.use_onehot}")
 
         if emb_type.startswith("qid"):
             self.k_emb_layer = Embedding(self.num_c, self.dim_s)
+            self.x_emb_layer = Embedding(2 * self.num_c + 1, self.dim_s)
             self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
-            self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
+            self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s)) 
 
         kaiming_normal_(self.Mk)
         kaiming_normal_(self.Mv0)
@@ -177,7 +179,10 @@ class SKVMN(Module):
            memory_value_state_dim=dim_s, init_memory_key=self.Mk)
                 
         # self.a_embed = nn.Linear(2 * self.dim_s, self.dim_s, bias=True)
-        self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
+        if self.use_onehot:
+            self.a_embed = nn.Linear(self.num_c + self.dim_s, self.dim_s, bias=True)
+        else:
+            self.a_embed = nn.Linear(self.dim_s * 2, self.dim_s, bias=True)
         self.v_emb_layer = Embedding(self.dim_s * 2, self.dim_s)
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
         self.hx = Parameter(torch.Tensor(1, self.dim_s))
@@ -187,7 +192,6 @@ class SKVMN(Module):
         self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
         self.lstm_cell = nn.LSTMCell(self.dim_s, self.dim_s)
-        # self.lstm_layer = LSTM(self.dim_s, self.dim_s, batch_first=True)
 
     def ut_mask(self, seq_len):
         return torch.triu(torch.ones(seq_len, seq_len), diagonal=0).to(dtype=torch.bool)
@@ -376,7 +380,7 @@ class SKVMN(Module):
             q_data = q.reshape(bs * self.seqlen, 1)
             r_onehot = torch.zeros(bs * self.seqlen, self.num_c).long().to(device)
             r_data = r.unsqueeze(2).expand(-1, -1, self.num_c).reshape(bs * self.seqlen, self.num_c)
-            r_onehot_content = r_onehot.scatter_(1, q_data, r_data).reshape(bs, self.seqlen, -1) 
+            r_onehot_content = r_onehot.scatter(1, q_data, r_data).reshape(bs, self.seqlen, -1) 
             # print(f"r_onehot_content_new: {r_onehot_content.shape}")
         # print(f"generate yt onehot end:{datetime.datetime.now()}")
 
@@ -412,7 +416,7 @@ class SKVMN(Module):
             # modify
             batch_predict_input = torch.cat([read_content, q], 1) ###q: 是r emb后的qemb
             f = torch.tanh(self.f_layer(batch_predict_input))
-            # print(f"f: {f}")
+            # print(f"f: {f.shape}")
             ft.append(f)
 
             # 写入value矩阵的输入为[yt, ft]，onehot向量和ft向量拼接
@@ -421,7 +425,9 @@ class SKVMN(Module):
             if self.use_onehot:
                 y = r_onehot_content[:,i,:]
             else:
-                y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
+                y = self.x_emb_layer(x[:,i])
+                # print(f"y: {y.shape}")
+                # y = r.permute(1,0)[i].unsqueeze(1).expand_as(f)
             # print(f"y: {y.shape}")
             # 写入value矩阵的输入为[ft, yt]，ft直接和题目对错（0或1）拼接
             # write_embed = torch.cat([f, slice_a[i].float()], 1)
@@ -434,7 +440,6 @@ class SKVMN(Module):
 
         # print(f"mem_key start:{datetime.datetime.now()}")
         w = torch.cat([correlation_weight_list[i].unsqueeze(1) for i in range(self.seqlen)], 1)
-        # print(f"mem_key end:{datetime.datetime.now()}")
         ft = torch.stack(ft, dim=0)
         # print(f"ft: {ft.shape}")
 
@@ -465,21 +470,21 @@ class SKVMN(Module):
                     cx = cx.clone()
                     cx[j,:] = cell_state[idx_values[0][2]][j]
                     idx_values = idx_values[1:]
-            # print(f"replace_per_hidden_end:{datetime.datetime.now()}")
             hx, cx = self.lstm_cell(ft[i], (hx, cx)) # input[i]是序列中的第i个ex
             hidden_state.append(hx) #记录中间层的h
             cell_state.append(cx) #记录中间层的c
-        # print(f"replace_all_hidden_end:{datetime.datetime.now()}")
         hidden_state = torch.stack(hidden_state, dim=0).permute(1,0,2)
-        # print(f"stack_hidden_state:{datetime.datetime.now()}")
         cell_state = torch.stack(cell_state, dim=0).permute(1,0,2)
-        # print(f"stack_cell_state:{datetime.datetime.now()}")
 
+        # # print(f"lstm_start:{datetime.datetime.now()}")
+        # hidden_state, _ = self.lstm_layer(ft)
+        # # print(f"lstm_end:{datetime.datetime.now()}")
         p = self.p_layer(self.dropout_layer(hidden_state))
-        # print(f"dropout:{datetime.datetime.now()}")
+        # # print(f"dropout:{datetime.datetime.now()}")
         p = torch.sigmoid(p)
-        # print(f"sigmoid:{datetime.datetime.now()}")
+        # # print(f"sigmoid:{datetime.datetime.now()}")
         p = p.squeeze(-1)
+        # # print(f"p:{datetime.datetime.now()}")
         return p
 
         #时间优化

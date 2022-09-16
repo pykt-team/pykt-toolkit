@@ -1,8 +1,10 @@
-program: ../wandb_predict.py
+program: wandb_predict.py
 method: grid
 metric:
     goal: maximize
     name: testauc
 parameters:
+    bz:
+        values: [32]
     save_dir:
         values: []

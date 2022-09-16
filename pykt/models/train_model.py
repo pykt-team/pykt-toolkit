@@ -10,7 +10,7 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
-
+from pykt.config import que_type_models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # def polyloss(logits, labels, epsilon=1.0):
@@ -81,7 +81,6 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
             loss = loss + preloss[0]  
     #elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
     elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
-
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -192,7 +191,7 @@ def model_forward(model, data, epoch):
         y = model(c.long(), r.long(), dgaps)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y)
-    elif model_name in ["dkvmn", "skvmn"]:
+    elif model_name in ["dkvmn","deep_irt", "skvmn"]:
         y = model(cc.long(), cr.long())
         ys.append(y[:,1:])
     elif model_name in ["kqn", "sakt"]:
@@ -203,7 +202,11 @@ def model_forward(model, data, epoch):
         ys.append(y[:, 1:])
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
-        ys.append(y[:,1:])
+        [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
+        y_next = pred_next[:,1:]
+        y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
+        y = (y_next+y_all)/2
+        ys.append(y)
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
@@ -223,7 +226,6 @@ def model_forward(model, data, epoch):
         ys.append(y)  
     # cal loss
     elif model_name == "lpkt":
-
         # y = model(cq.long(), cr.long(), cat, cit.long())
         y = model(cq.long(), cr.long(), cit.long())
         ys.append(y[:, 1:])  
@@ -233,7 +235,7 @@ def model_forward(model, data, epoch):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name == "iekt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
     if model_name not in ["atkt", "atktfix","iekt", "catkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss, epoch)
@@ -249,7 +251,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name=='iekt':
+            if model.model_name in que_type_models:
                 model.model.train()
             else:
                 model.train()
@@ -265,11 +267,12 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.model_name=='lpkt':
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
+        
         auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
-        if auc > max_auc:
+        if auc > max_auc-1e-3:
             if save_model:
                 torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+"_model.ckpt"))
             max_auc = auc
@@ -283,13 +286,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 if test_window_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
                     window_testauc, window_testacc = evaluate(model, test_window_loader, model.model_name, save_test_path)
-            # window_testauc, window_testacc = -1, -1
-            validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
-            # trainauc, trainacc = model.evaluate(train_loader, emb_type)
-            testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
-            max_auc = round(max_auc, 4)
-        print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
-        print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+            validauc, validacc = auc, acc
+        print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
+        print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
+
 
         if i - best_epoch >= 10:
             break

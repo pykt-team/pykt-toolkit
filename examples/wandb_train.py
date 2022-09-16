@@ -10,6 +10,7 @@ import copy
 from pykt.models import train_model,evaluate,init_model
 from pykt.utils import debug_print,set_seed
 from pykt.datasets import init_dataset4train
+import datetime
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -66,15 +67,21 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "sakt", "csakt", "saint","saint++", "akt", "cakt", "atkt", "lpkt"]:
+        if model_name in ["dkvmn", "deep_irt", "skvmn", "sakt", "csakt", "saint","saint++", "akt", "cakt", "atkt", "lpkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt"]:
+        if model_name in ["gkt", "lpkt"]:
             train_config["batch_size"] = 16 
+        # if model_name in ["skvmn"]:
+        #     train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
+        if 'batch_size' in params:
+            train_config["batch_size"] = params['batch_size']
+        if 'num_epochs' in params:
+            train_config["num_epochs"] = params['num_epochs']
         # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
     batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
 
@@ -90,12 +97,13 @@ def main(params):
     debug_print(text="init_dataset",fuc_name="main")
     train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
-    params_str = "_".join([str(_) for _ in params.values()])
+    params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
+
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
-        if not model_name in ['saint','saint++']:
-            params_str = params_str+f"_{ str(uuid.uuid4())}"
+        # if not model_name in ['saint','saint++']:
+        params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
         os.makedirs(ckpt_path)
@@ -166,6 +174,7 @@ def main(params):
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
     print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(testauc) + "\t" + str(testacc) + "\t" + str(window_testauc) + "\t" + str(window_testacc) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
     model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
+    print(f"end:{datetime.datetime.now()}")
     
     if params['use_wandb']==1:
         wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 

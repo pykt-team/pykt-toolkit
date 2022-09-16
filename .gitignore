@@ -1,7 +1,6 @@
 examples/__pycache__/
 examples/all_bestmodel/
 examples/all_start.sh
-examples/all_wandbs/
 examples/pkls/
 examples/pred_wandbs/
 examples/saved_model/
@@ -36,3 +35,9 @@ wandb/*
 *tiaocan*
 *bak*
 *.py.*
+examples/assist2009_dkt_que_mt_iekt
+examples/assist2009_*
+examples/aaai_dkt_improve_v1
+tabchen
+examples/aaai2023/
+examples/all_wandbs/
