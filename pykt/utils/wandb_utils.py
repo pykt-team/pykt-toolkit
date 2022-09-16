@@ -141,13 +141,13 @@ class WandbUtils:
         return len(sweep.runs)
 
 
-    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="testauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
+    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
         """Check sweep early stop
 
         Args:
             id (str): the sweep name or sweep id.
             input_type (str, optional): the type of id. Defaults to sweep_name.
-            metric (str, optional): the metric to check. Defaults to testauc.
+            metric (str, optional): the metric to check. Defaults to validauc.
             metric_type (str, optional): the type of metric max or min. Defaults to max.
             min_run_num (int, optional): the min run num to check. Defaults to 300.
             patience (int, optional): the patience to stop. Defaults to 100.
@@ -190,12 +190,12 @@ class WandbUtils:
         print("-"*60+'\n')
         return report
         
-    def check_sweep_by_pattern(self,sweep_pattern,metric="testauc",metric_type="max",min_run_num=300,patience=100,force_check_df=False):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=300,patience=100,force_check_df=False):
         """Check sweeps by pattern
         
         Args:
             sweep_pattern (str): check the sweeps which sweep names start with sweep_pattern
-            metric (str, optional): the metric to check. Defaults to testauc.
+            metric (str, optional): the metric to check. Defaults to validauc.
             metric_type (str, optional): the type of metric max or min. Defaults to max.
             min_run_num (int, optional): the min run num to check. Defaults to 300.
             patience (int, optional): the patience to stop. Defaults to 100.
