@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["kqn_tiaocan"]
+        values: ["models/kqn_tiaocan"]
     n_hidden:
         values: [64,256]
     n_rnn_hidden:

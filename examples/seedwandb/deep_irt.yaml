@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["deep_irt_tiaocan"]
+        values: ["models/deep_irt_tiaocan"]
     dim_s:
         values: [64, 256]
     learning_rate:
