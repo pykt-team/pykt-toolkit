@@ -131,12 +131,9 @@ def main(params):
         if test_window_loader != None:
             save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
             window_testauc, window_testacc = evaluate(best_model, test_window_loader, model_name)#, save_test_path)
-        # window_testauc, window_testacc = -1, -1
-        # trainauc, trainacc = self.evaluate(train_loader, emb_type)
-        testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
 
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
-    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(testauc) + "\t" + str(testacc) + "\t" + str(window_testauc) + "\t" + str(window_testacc) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
+    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(round(testauc, 4)) + "\t" + str(round(testacc, 4)) + "\t" + str(round(window_testauc, 4)) + "\t" + str(round(window_testacc, 4)) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
     model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
     print(f"end:{datetime.datetime.now()}")
     
