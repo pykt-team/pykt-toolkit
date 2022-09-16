@@ -6,6 +6,7 @@
         "input_type": [
             "concepts"
         ],
+        "max_concepts": 1,
         "min_seq_len": 3,
         "maxlen": 200,
         "emb_path": "",
@@ -30,6 +31,9 @@
             "questions",
             "concepts"
         ],
+        "max_concepts": 7,
+        "min_seq_len": 3,
+        "maxlen": 200,
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv",
         "train_valid_file": "train_valid_sequences.csv",
@@ -49,7 +53,7 @@
     "assist2009": {
         "dpath": "../data/assist2009",
         "num_q": 17737,
-        "num_c": 125,
+        "num_c": 123,
         "input_type": [
             "questions",
             "concepts"
@@ -156,7 +160,7 @@
         ],
         "max_concepts": 1,
         "min_seq_len": 3,
-        "maxlen": 50,
+        "maxlen": 200,
         "emb_path": "",
         "train_valid_original_file": "train_valid.csv",
         "train_valid_file": "train_valid_sequences.csv",
@@ -248,5 +252,56 @@
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "nips_task34": {
+        "dpath": "../data/nips_task34",
+        "num_q": 948,
+        "num_c": 57,
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
+        "max_concepts": 2,
+        "min_seq_len": 3,
+        "maxlen": 200,
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "poj": {
+        "dpath": "../data/poj",
+        "num_q": 0,
+        "num_c": 2748,
+        "input_type": [
+            "concepts"
+        ],
+        "max_concepts": 1,
+        "min_seq_len": 3,
+        "maxlen": 200,
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
     }
 }
