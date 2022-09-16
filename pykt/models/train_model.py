@@ -159,7 +159,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
-        if auc > max_auc-1e-3:
+        if auc > max_auc+1e-3:
             if save_model:
                 torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+"_model.ckpt"))
             max_auc = auc

@@ -282,7 +282,7 @@ class QueBaseModel(nn.Module):
             eval_result = self.evaluate(valid_dataset,batch_size=valid_batch_size)
             auc, acc = eval_result['auc'],eval_result['acc']
             print(f"eval_result is {eval_result}")
-            if auc > max_auc-0.001:
+            if auc > max_auc+1e-3:
                 if save_model:
                     self._save_model()
                 max_auc = auc
