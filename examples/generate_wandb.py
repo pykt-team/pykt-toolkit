@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--src_dir", type=str, default="../seedwandb/")
     parser.add_argument("--project_name", type=str, default="kt_toolkits")
     parser.add_argument("--dataset_names", type=str, default="assist2015")
-    parser.add_argument("--model_names", type=str, default="dkt")
+    parser.add_argument("--model_names", type=str, default="dkt,dkt+,dkt_forget,kqn,atktfix,dkvmn,sakt,saint,akt,gkt")
     parser.add_argument("--folds", type=str, default="0,1,2,3,4")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--save_dir_suffix", type=str, default="")
