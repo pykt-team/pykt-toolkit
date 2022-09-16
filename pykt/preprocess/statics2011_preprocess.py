@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import time
 from datetime import datetime
-from .utils import sta_infos, write_txt, replace_text
+from .utils import sta_infos, write_txt, format_list2str, replace_text
 
 def change2timestamp(t):
     datetime_obj = datetime.strptime(t, "%Y/%m/%d %H:%M")
@@ -12,7 +12,7 @@ def change2timestamp(t):
 KEYS = ["Anon Student Id", "KC"]
 def read_data_from_csv(read_file, write_file):
     stares = []
-    df = pd.read_csv(read_file, dtype=str)
+    df = pd.read_csv(read_file)
     df['Problem Name'] = df['Problem Name'].apply(replace_text)
     df['Step Name'] = df['Step Name'].apply(replace_text)   
     df["KC"] = df.apply(lambda x:"{}----{}".format(x["Problem Name"],x["Step Name"]),axis=1)
@@ -46,7 +46,7 @@ def read_data_from_csv(read_file, write_file):
         assert seq_len == len(seq_skills) == len(seq_ans) ==  len(seq_start_time) 
 
         user_inters.append(
-            [[u, str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_use_time])
+            [[u, str(seq_len)], seq_problems, seq_skills, format_list2str(seq_ans), seq_start_time, seq_use_time])
 
     write_txt(write_file, user_inters)
 

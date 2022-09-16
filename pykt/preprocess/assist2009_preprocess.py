@@ -1,14 +1,14 @@
 # _*_ coding:utf-8 _*_
 
 import pandas as pd
-from .utils import sta_infos, write_txt
+from .utils import sta_infos, write_txt, format_list2str
 
 KEYS = ["user_id", "skill_id", "problem_id"]
 
 def read_data_from_csv(read_file, write_file):
     stares = []
 
-    df = pd.read_csv(read_file, encoding = 'utf-8', dtype=str)
+    df = pd.read_csv(read_file, encoding = 'utf-8')
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -35,7 +35,7 @@ def read_data_from_csv(read_file, write_file):
         assert seq_len == len(seq_problems) == len(seq_skills) == len(seq_ans)
 
         user_inters.append(
-            [[str(user), str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_response_cost])
+            [[str(user), str(seq_len)], format_list2str(seq_problems), format_list2str(seq_skills), format_list2str(seq_ans), seq_start_time, seq_response_cost])
 
     write_txt(write_file, user_inters)
 

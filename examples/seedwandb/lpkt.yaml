@@ -21,9 +21,9 @@ parameters:
     gamma:
         values: [0, 0.01, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3]
     dropout:
-        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+        values: [0.05,0.1,0.3,0.5]
     learning_rate:
-        values: [0.03, 0.003, 0.0003]
+        values: [1e-3, 1e-4, 1e-5]
     seed:
         values: [42, 3407]
     fold:

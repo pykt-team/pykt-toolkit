@@ -2,14 +2,14 @@
 # coding=utf-8
 
 import pandas as pd
-from .utils import sta_infos, write_txt, change2timestamp, replace_text
+from .utils import sta_infos, write_txt, format_list2str, change2timestamp, replace_text
 
 KEYS = ["Anon Student Id", "KC(Default)", "Questions"]
 
 def read_data_from_csv(read_file, write_file):
     stares= []
 
-    df = pd.read_table(read_file, encoding = "utf-8", dtype=str, low_memory=False)
+    df = pd.read_table(read_file, encoding = "utf-8", low_memory=False)
     df["Problem Name"] = df["Problem Name"].apply(replace_text)
     df["Step Name"] = df["Step Name"].apply(replace_text)
     df["Questions"] = df.apply(lambda x:f"{x['Problem Name']}----{x['Step Name']}",axis=1)
@@ -45,7 +45,7 @@ def read_data_from_csv(read_file, write_file):
         assert seq_len == len(seq_problems) == len(seq_skills) == len(seq_ans) == len(seq_start_time)
         
         data.append(
-            [[u, str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_use_time])
+            [[u, str(seq_len)], seq_problems, seq_skills, format_list2str(seq_ans), seq_start_time, seq_use_time])
 
     write_txt(write_file, data)
 
