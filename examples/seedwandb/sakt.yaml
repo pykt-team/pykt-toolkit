@@ -1,5 +1,5 @@
 program:  wandb_sakt_train.py
-method: grid
+method: bayes
 metric:
     goal: maximize
     name: validauc
