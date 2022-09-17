@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from wandb.apis.public import gql
+import json
 
 
 def get_runs_result(runs):
@@ -38,7 +39,7 @@ class WandbUtils:
         
 
     def _init_wandb(self):
-        self.api = wandb.Api()
+        self.api = wandb.Api(timeout=180)
         self.project = self.api.project(name=self.project_name)
         self.sweep_dict = self.get_sweep_dict()
         print(f"self.sweep_dict is {self.sweep_dict}")
@@ -221,10 +222,13 @@ class WandbUtils:
     def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
         check_result_list = []
         for sweep_name in sweep_key_list:
-            check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                    metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-            check_result['sweep_name'] = sweep_name
-            check_result_list.append(check_result)
+            try:
+                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
+                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
+                check_result['sweep_name'] = sweep_name
+                check_result_list.append(check_result)
+            except:
+                pass
 
         if stop:#stop sweep
             for result in check_result_list:
