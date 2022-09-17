@@ -55,10 +55,10 @@ class WandbUtils:
                 sweep_dict[sweep.name] = []
             sweep_dict[sweep.name].append(sweep.id)
                
-        for name in sweep_dict:
+        for name in list(sweep_dict.keys()):
             if len(sweep_dict[name]) > 1:
-                del sweep_dict[name]
                 print(f"Error!! we can not process the same sweep name {name}, we will not return those sweeps:{sweep_dict[name]}")
+                del sweep_dict[name]
             else:
                 sweep_dict[name] = sweep_dict[name][0]
         return sweep_dict
