@@ -359,11 +359,14 @@ class WandbUtils:
             self.generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
 
     def extract_prediction_results(self, dataset_name, model_name, emb_type="qid", print_std=True):
-        # try:
-        #     all_res = self.get_df("pred_wandbs/{}_{}_{}_fold".format(dataset_name, model_name, emb_type),input_type="sweep_name")
-        # except:
-        #     all_res = self.get_df("pred_wandbs/{}_{}_fold".format(dataset_name, model_name),input_type="sweep_name")
-        all_res = self.get_df("pred_wandbs/{}_{}_{}".format(dataset_name, model_name, emb_type), input_type="sweep_name")
+#         try:
+#             all_res = self.get_df("pred_wandbs/{}_{}_{}_fold".format(dataset_name, model_name, emb_type),input_type="sweep_name")
+#         except:
+#             all_res = self.get_df("pred_wandbs/{}_{}_fold".format(dataset_name, model_name),input_type="sweep_name")
+        try:
+            all_res = self.get_df("pred_wandbs/{}_{}_{}".format(dataset_name, model_name, emb_type), input_type="sweep_name")
+        except:
+            all_res = self.get_df("pred_wandbs/{}_{}".format(dataset_name, model_name), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
