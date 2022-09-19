@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from wandb.apis.public import gql
+import json
 
 
 def get_runs_result(runs):
@@ -38,7 +39,7 @@ class WandbUtils:
         
 
     def _init_wandb(self):
-        self.api = wandb.Api()
+        self.api = wandb.Api(timeout=180)
         self.project = self.api.project(name=self.project_name)
         self.sweep_dict = self.get_sweep_dict()
         print(f"self.sweep_dict is {self.sweep_dict}")
@@ -54,10 +55,10 @@ class WandbUtils:
                 sweep_dict[sweep.name] = []
             sweep_dict[sweep.name].append(sweep.id)
                
-        for name in sweep_dict:
+        for name in list(sweep_dict.keys()):
             if len(sweep_dict[name]) > 1:
-                del sweep_dict[name]
                 print(f"Error!! we can not process the same sweep name {name}, we will not return those sweeps:{sweep_dict[name]}")
+                del sweep_dict[name]
             else:
                 sweep_dict[name] = sweep_dict[name][0]
         return sweep_dict
@@ -221,10 +222,13 @@ class WandbUtils:
     def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
         check_result_list = []
         for sweep_name in sweep_key_list:
-            check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                    metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-            check_result['sweep_name'] = sweep_name
-            check_result_list.append(check_result)
+            try:
+                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
+                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
+                check_result['sweep_name'] = sweep_name
+                check_result_list.append(check_result)
+            except:
+                pass
 
         if stop:#stop sweep
             for result in check_result_list:
@@ -272,13 +276,15 @@ class WandbUtils:
         check_result_list = self.check_sweep_by_model_dataset_name(model_name,dataset_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
         row_list = []
         for result in check_result_list:
+            print(f"result:{result.keys()}")
             df = result['df']
+#             row_list.append(df.iloc[1])
             row_list.append(df.iloc[result['first_best_index']])
         df = pd.DataFrame(row_list)
         return df
 
     #修改wandb配置文件
-    def generate_wandb(fpath, ftarget, model_path):
+    def generate_wandb(self, fpath, ftarget, model_path):
         with open(fpath,"r") as fin,\
             open(ftarget,"w") as fout:
             data = yaml.load(fin, Loader=yaml.FullLoader)
@@ -288,7 +294,7 @@ class WandbUtils:
             data['parameters']['save_dir']['values'] = model_path
             yaml.dump(data, fout)
 
-    def write_config(dataset_name, dconfig, CONFIG_FILE):
+    def write_config(self, dataset_name, dconfig, CONFIG_FILE):
         with open(CONFIG_FILE) as fin:
             data_config = json.load(fin)
             data_config[dataset_name] = dconfig
@@ -297,7 +303,7 @@ class WandbUtils:
             fout.write(data)
 
     # # 生成启动sweep的脚本
-    def generate_sweep(wandb_key, pred_dir, sweep_shell, ftarget, generate_all):
+    def generate_sweep(self, wandb_key, pred_dir, sweep_shell, ftarget, generate_all):
         # with open(wandb_path) as fin:
         #     wandb_config = json.load(fin)
         pre = "WANDB_API_KEY=" + wandb_key + " wandb sweep "
@@ -311,20 +317,28 @@ class WandbUtils:
             else:
                 fallsh.write(pre + ftarget + "\n")
 
-    def extract_best_models(dataset_name, model_name, df, start_pred=True, fpath="", CONFIG_FILE="", wandb_key="", pred_dir="", launch_file="", generate_all=False):
+    def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", fusion_pred=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
+        if not os.path.exists(pred_dir):
+            os.makedirs(pred_dir)
         model_path_fold_first = []
+        dconfig = dict()
         for i, row in df.iterrows():
             fold, model_path = row["fold"], row["model_save_path"]
-            model_path = model_path.rstrip("/qid_model.ckpt")
+            model_path = model_path.rstrip("qid_model.ckpt")
+            print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
             model_path_fold_first.append(model_path)
-        ftarget = os.path.join(pred_dir, "{}_{}_fold_first_predict.yaml".format(dataset_name, model_name))
-        if start_pred:
-            generate_wandb(fpath, ftarget, model_path_fold_first)
+        ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
+        if fusion_pred:
+            self.generate_wandb(fpath, ftarget, model_path_fold_first)
             dconfig["model_path_fold_first"] = model_path_fold_first
-            write_config(dataset_name, dconfig, CONFIG_FILE)
-            generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
+            self.write_config(dataset_name, dconfig, CONFIG_FILE)
+            self.generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
 
-    def extract_prediction_results(dataset_name, model_name, all_res, print_std=True):
+    def extract_prediction_results(self, dataset_name, model_name, emb_type="qid", print_std=True):
+        try:
+            all_res = self.get_df("pred_wandbs/{}_{}_{}_fold".format(dataset_name, model_name, emb_type),input_type="sweep_name")
+        except:
+            all_res = self.get_df("pred_wandbs/{}_{}_fold".format(dataset_name, model_name),input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
