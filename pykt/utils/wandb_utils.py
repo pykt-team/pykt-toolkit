@@ -328,9 +328,9 @@ class WandbUtils:
                 files = sorted(files)
                 for f in files:
                     fpath = os.path.join(pred_dir, f)
-                    fallsh.write(pre + fpath + "\n")
+                    fallsh.write(pre + fpath + " -p {}".format(self.project_name) + "\n")
             else:
-                fallsh.write(pre + ftarget + "\n")
+                fallsh.write(pre + ftarget + " -p {}".format(self.project_name) + "\n")
 
     def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", fusion_pred=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
         """extracting the best models which performance best performance on the validation data for testing 
