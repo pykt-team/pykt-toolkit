@@ -188,7 +188,7 @@ def cal_res(wandb_config, project, sweep_dict, curhost, dconfig, dataset_name, m
                 for model_path in best_model_fold_first:
                     model_path_fold_first.append(abs_dir + "/" + model_path)
                 dconfig[model_name]["model_path_fold_first"] = model_path_fold_first
-                ftarget = os.path.join(pred_dir, "{}_{}_fold_first_predict.yaml".format(dataset_name, model_name))
+                ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
                 generate_wandb(fpath, ftarget, model_path_fold_first)
                 write_config(dataset_name, dconfig)
                 # wandb_path = "./configs/wandb.json"
