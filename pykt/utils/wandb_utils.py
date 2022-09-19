@@ -267,27 +267,27 @@ class WandbUtils:
         
         return check_result_list
 
-    def get_all_fold_name(self,model_name,dataset_name,emb_type="qid"):
+    def get_all_fold_name(self,dataset_name,model_name,emb_type="qid"):
         sweep_key_list = [f"{dataset_name}_{model_name}_{emb_type}_{fold}" for fold in range(5)]
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list
 
-    def check_sweep_by_model_dataset_name(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
-        sweep_key_list = self.get_all_fold_name(model_name,dataset_name,emb_type)
+    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+        sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
         if len(sweep_key_list)!=5:
             print("Input error, please check")
             return 
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
         return check_result_list
 
-    def get_best_run(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
         if os.path.exists(best_path):
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            check_result_list = self.check_sweep_by_model_dataset_name(model_name,dataset_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
             row_list = []
             for result in check_result_list:
                 df = result['df']
