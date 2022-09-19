@@ -318,6 +318,15 @@ class WandbUtils:
                 fallsh.write(pre + ftarget + "\n")
 
     def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", fusion_pred=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
+        """extracting the best models which performance best performance on the validation data for testing 
+        
+        Args:
+            df: dataframe of best results in each fold
+            dataset_name: the metric to check. Defaults to validauc.
+            
+        Returns:
+            the best model path in each fold
+        """
         if not os.path.exists(pred_dir):
             os.makedirs(pred_dir)
         model_path_fold_first = []
