@@ -17,18 +17,6 @@ import argparse
 with open("../configs/wandb.json") as fin:
     wandb_config = json.load(fin)
 
-dip2name = {
-    "10.159.209.89": "hw",
-    "10.159.209.86": "hw1",
-    "10.159.209.85": "hw2",
-    "10.159.209.87": "hw3",
-    "10.159.209.88": "hw4",
-    "10.159.209.84": "hw5",
-    "10.171.19.147": "ali3",
-    "10.171.19.139": "ali2",
-    "10.171.19.146": "ali1"
-}
-
 uid = wandb_config["uid"]
 os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
 CONFIG_FILE = "../configs/best_model.json"
@@ -153,19 +141,12 @@ def merge_results(all_res, params_dir):
     
     return best_model
 
-def extract_hostname(dip2name):
-    myname = socket.getfqdn(socket.gethostname())
-    myaddr = socket.gethostbyname(myname)
-    curhost = dip2name[myaddr]
-    return curhost
-
-def cal_res(wandb_config, project, sweep_dict, curhost, dconfig, dataset_name, model_names, emb_types, update, extract_best_model="", abs_dir="", pred_dir="", launch_file="", generate_all=False, save_dir=""):
+def cal_res(wandb_config, project, sweep_dict, dconfig, dataset_name, model_names, emb_types, update, extract_best_model="", abs_dir="", pred_dir="", launch_file="", generate_all=False, save_dir=""):
     model_names = model_names.split(",")
     emb_types = emb_types.split(",")
     for model_name in model_names:
         for emb_type in emb_types:
             dconfig.setdefault(model_name, dict())
-            dconfig[model_name]["machine name"] = curhost
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             fname = os.path.join(save_dir, dataset_name + "_" + model_name+ "_" + emb_type + ".pkl")
@@ -239,8 +220,7 @@ def main(params):
     # print(f"sweep_dict: {sweep_dict}")
     print("="*20)
     dconfig = dict()
-    curhost = extract_hostname(dip2name)
-    cal_res(wandb_config, project_name, sweep_dict, curhost, dconfig, dataset_name, model_names, emb_types, update, extract_best_model, abs_dir, pred_dir, launch_file, generate_all, save_dir)
+    cal_res(wandb_config, project_name, sweep_dict, dconfig, dataset_name, model_names, emb_types, update, extract_best_model, abs_dir, pred_dir, launch_file, generate_all, save_dir)
 
 if __name__ == "__main__":
     api = wandb.Api()
