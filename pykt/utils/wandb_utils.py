@@ -42,6 +42,7 @@ class WandbUtils:
         self.api = wandb.Api(timeout=180)
         self.project = self.api.project(name=self.project_name)
         self.sweep_dict = self.get_sweep_dict()
+        self.invert_sweep_dict = dict(zip(list(self.sweep_dict.values()),list(self.sweep_dict.keys())))
         print(f"self.sweep_dict is {self.sweep_dict}")
         self.sweep_keys = list(self.sweep_dict.keys())
         self.sweep_keys.sort()
@@ -176,11 +177,18 @@ class WandbUtils:
         print(f"Start check {id}")
         sweep_id = self._get_sweep_id(id,input_type)
         sweep_status = self.get_sweep_status(sweep_id,input_type="sweep_id")
-        df = None
-        report = {"stop_cmd":""}
-        if sweep_status in ['CANCELED','FINISHED'] and not force_check_df:
+        
+        report = {"stop_cmd":"","id":sweep_id,"sweep_name":self.invert_sweep_dict[sweep_id]}
+        if force_check_df:
+            df = self.get_df(sweep_id,input_type="sweep_id",only_finish=True)#get sweep result
+            report['df'] = df
+
+        if sweep_status in ['CANCELED','FINISHED']:
             report['state'] = True
-            report['num_run'] = -1
+            if 'df' in report:
+                report['num_run'] = len(df)
+            else:
+                report['num_run'] = -1
         else:
             num_run = self.get_sweep_run_num(sweep_id,input_type="sweep_id")#get sweep run num
             report['num_run'] = num_run
@@ -188,8 +196,9 @@ class WandbUtils:
                 report['state'] = False
             else:
                 #
-                df = self.get_df(sweep_id,input_type="sweep_id",only_finish=True)#get sweep result
-                report['df'] = df
+                if 'df' not in report:
+                    df = self.get_df(sweep_id,input_type="sweep_id",only_finish=True)#get sweep result
+                    report['df'] = df
                 df[f'{metric}_precsion3'] = df[metric].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
                 #find stop point
                 finish = False
@@ -201,7 +210,7 @@ class WandbUtils:
                         finish = True 
                         break
                 if finish:
-                    df = df[:i].copy()
+                    df = df[:i].copy()#only keep before stop point
                     report['not_improve_num'] = not_improve_num
                     stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
@@ -271,14 +280,22 @@ class WandbUtils:
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
         return check_result_list
 
-    def get_best_run(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50):
-        # sweep_key_list = self.get_all_fold_name(model_name,dataset_name,emb_type)
-        check_result_list = self.check_sweep_by_model_dataset_name(model_name,dataset_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
-        row_list = []
-        for result in check_result_list:
-            df = result['df']
-            row_list.append(df.iloc[result['first_best_index']])
-        df = pd.DataFrame(row_list)
+    def get_best_run(self,model_name,dataset_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
+        os.makedirs(save_dir,exist_ok=True)        
+        best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
+        if os.path.exists(best_path):
+            df = pd.read_csv(best_path)
+            print(f"Load from {best_path}")
+        else:
+            check_result_list = self.check_sweep_by_model_dataset_name(model_name,dataset_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+            row_list = []
+            for result in check_result_list:
+                df = result['df']
+                df.to_csv(os.path.join(save_dir,result['sweep_name']+'.csv'),index=False)
+                df = df.sort_values(metric,ascending=False)
+                row_list.append(df.iloc[0])
+            df = pd.DataFrame(row_list)
+            df.to_csv(best_path,index=False)
         return df
 
     #修改wandb配置文件
