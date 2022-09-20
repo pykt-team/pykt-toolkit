@@ -21,7 +21,7 @@ class Dim(IntEnum):
 class BAKT(nn.Module):
     def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
-            kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         """
         Input:
@@ -60,9 +60,9 @@ class BAKT(nn.Module):
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, final_fc_dim // 2), nn.ReLU(
+            nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
             ), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim // 2, 1)
+            nn.Linear(final_fc_dim2, 1)
         )
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
