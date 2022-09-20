@@ -380,8 +380,7 @@ class WandbUtils:
         Returns:
             the average results of auc, acc in 5-folds and the corresponding standard deviation results
         """
-
-        all_res = self.get_df("{}_{}_{}".format(dataset_name, model_name, emb_type, 'prediction'), input_type="sweep_name")
+        all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
