@@ -299,12 +299,12 @@ class WandbUtils:
         return df
 
     #修改wandb配置文件
-    def generate_wandb(self, fpath, ftarget, model_path):
+    def generate_wandb(self, dataset_name, model_name, emb_type, fpath, ftarget, model_path):
         with open(fpath,"r") as fin,\
             open(ftarget,"w") as fout:
             data = yaml.load(fin, Loader=yaml.FullLoader)
             name = ftarget.split('_')
-            data['name'] = '_'.join(name[:4])
+            data['name'] = '_'.join([dataset_name, model_name, emb_type, 'prediction'])
             data['parameters']['save_dir']['values'] = model_path
             data['parameters']['save_dir']['values'] = model_path
             yaml.dump(data, fout)
@@ -332,15 +332,24 @@ class WandbUtils:
             else:
                 fallsh.write(pre + ftarget + " -p {}".format(self.project_name) + "\n")
 
-    def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", fusion_pred=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
+    def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", eval_test=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
         """extracting the best models which performance best performance on the validation data for testing 
         
         Args:
             df: dataframe of best results in each fold
-            dataset_name: the metric to check. Defaults to validauc.
+            dataset_name: dataset_name
+            model_name: model_name
+            emb_type: embedding_type, default:qid
+            eval_test: evaluating on testing set, default:True
+            fpath: the yaml template for prediction in wandb, default: "./seedwandb/predict.yaml"
+            config_file: the config template of generating prediction file, default: "../configs/best_model.json"
+            wandb_key: the key of wandb account
+            pred_wandbs: the directory of prediction yaml files, default: "pred_wandbs"
+            launch_file: the launch file of starting the wandb prediction, default: "start_predict.sh"
+            generate_all: starting all the files on the pred_wandbs directory or not, default:False
             
         Returns:
-            the best model path in each fold
+            the launch file (e.g., "start_predict.sh") for wandb prediction of the best models in each fold
         """
         if not os.path.exists(pred_dir):
             os.makedirs(pred_dir)
@@ -352,21 +361,27 @@ class WandbUtils:
             print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
             model_path_fold_first.append(model_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
-        if fusion_pred:
-            self.generate_wandb(fpath, ftarget, model_path_fold_first)
+        if eval_test:
+            self.generate_wandb(dataset_name, model_name, emb_type, fpath, ftarget, model_path_fold_first)
             dconfig["model_path_fold_first"] = model_path_fold_first
             self.write_config(dataset_name, dconfig, CONFIG_FILE)
             self.generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
 
     def extract_prediction_results(self, dataset_name, model_name, emb_type="qid", print_std=True):
-#         try:
-#             all_res = self.get_df("pred_wandbs/{}_{}_{}_fold".format(dataset_name, model_name, emb_type),input_type="sweep_name")
-#         except:
-#             all_res = self.get_df("pred_wandbs/{}_{}_fold".format(dataset_name, model_name),input_type="sweep_name")
-        try:
-            all_res = self.get_df("pred_wandbs/{}_{}_{}".format(dataset_name, model_name, emb_type), input_type="sweep_name")
-        except:
-            all_res = self.get_df("pred_wandbs/{}_{}".format(dataset_name, model_name), input_type="sweep_name")
+
+        """calculating the results on the testing data in the best model in validation set.
+        
+        Args:
+            dataset_name: dataset_name
+            model_name: model_name
+            emb_type: embedding_type, default:qid
+            print_std: print the standard deviation results or not, default:True
+
+        Returns:
+            the average results of auc, acc in 5-folds and the corresponding standard deviation results
+        """
+
+        all_res = self.get_df("{}_{}_{}".format(dataset_name, model_name, emb_type, 'prediction'), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
