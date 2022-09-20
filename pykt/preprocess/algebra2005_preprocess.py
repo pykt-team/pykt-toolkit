@@ -19,7 +19,6 @@ def read_data_from_csv(read_file, write_file):
 
     df["index"] = range(df.shape[0])
     df = df.dropna(subset=["Anon Student Id", "Questions", "KC(Default)", "First Transaction Time", "Correct First Attempt"])
-    #df = df[df["Correct First Attempt"].isin([str(0),str(1)])]
     df = df[df["Correct First Attempt"].isin([0,1])]
     df = df[["index", "Anon Student Id", "Questions", "KC(Default)", "First Transaction Time", "Correct First Attempt"]]
     df["KC(Default)"] = df["KC(Default)"].apply(replace_text)
