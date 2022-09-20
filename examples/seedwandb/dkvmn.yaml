@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["dkvmn_tiaocan"]
+        values: ["models/dkvmn_tiaocan"]
     dim_s:
         values: [64,256]
     learning_rate:

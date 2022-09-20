@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["dkt_plus_tiaocan"]
+        values: ["models/dkt_plus_tiaocan"]
     emb_size:
         values: [64,256]
     learning_rate:

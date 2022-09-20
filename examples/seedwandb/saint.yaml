@@ -1,5 +1,5 @@
 program: wandb_saint_train.py
-method: grid
+method: bayes
 metric:
     goal: maximize
     name: validauc
@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["saint_tiaocan"]
+        values: ["models/saint_tiaocan"]
     emb_size:
         values: [64,256]
     learning_rate:

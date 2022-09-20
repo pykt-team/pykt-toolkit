@@ -161,11 +161,8 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:                                
-                [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
-                y_next = pred_next[:,1:]
-                y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
-                y = (y_next+y_all)/2
-                
+                y, reg_loss = model(cc.long(), cr.long(), cq.long())
+                y = y[:,1:]
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)

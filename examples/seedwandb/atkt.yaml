@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["atkt_tiaocan"]
+        values: ["models/atkt_tiaocan"]
     skill_dim:
         values: [64, 256]
     answer_dim:

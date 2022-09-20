@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["akt_tiaocan"]
+        values: ["models/akt_tiaocan"]
     d_model:
         values: [64, 256]
     d_ff:

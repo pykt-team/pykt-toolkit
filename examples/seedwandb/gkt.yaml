@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["gkt_tiaocan"]
+        values: ["models/gkt_tiaocan"]
     hidden_dim:
         values: [16,32,64]
     dropout:
