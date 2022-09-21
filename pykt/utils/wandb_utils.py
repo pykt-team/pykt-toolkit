@@ -84,11 +84,13 @@ class WandbUtils:
         sweep_id = self._get_sweep_id(id,input_type)
         sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
         df,model_config_keys = get_runs_result(sweep.runs)
+        
         if drop_na:
             df = df.dropna()
             df['create_time'] = df['_timestamp'].apply(int)
         if only_finish:
             df = df[df['state'] == 'finished'].copy()
+
         if drop_duplicate:
             df.drop_duplicates(model_config_keys)
         df = df.sort_values("create_time")
@@ -96,7 +98,7 @@ class WandbUtils:
         df.index = range(len(df))
         return df
 
-    def get_multi_df(self,id_list=[],input_type="sweep_name"):
+    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True):
         """Get multi sweep result
 
         Args:
@@ -108,7 +110,7 @@ class WandbUtils:
         """
         df_list = []
         for id in id_list:
-            df = self.get_df(id,input_type=input_type)
+            df = self.get_df(id,input_type=input_type,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish)
             df[input_type] = id
             df_list.append(df)
         return df_list
@@ -280,10 +282,10 @@ class WandbUtils:
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
 
-    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
-        if os.path.exists(best_path):
+        if os.path.exists(best_path) and not force_reget:
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
@@ -297,6 +299,18 @@ class WandbUtils:
             df = pd.DataFrame(row_list)
             df.to_csv(best_path,index=False)
         return df
+
+    def get_model_run_time(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
+        """Get the average run second in one sweep
+        """
+        check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
+        df_merge = pd.concat([x['df'] for x in check_result_list])
+        run_time_list = df_merge['_runtime'].tolist()
+        avg_run_time = int(np.mean(run_time_list))
+        std_run_time = int(np.std(run_time_list))
+        return avg_run_time,std_run_time
+
+    
 
     #修改wandb配置文件
     def generate_wandb(self, dataset_name, model_name, emb_type, fpath, ftarget, model_path):
