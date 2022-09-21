@@ -42,7 +42,11 @@ class BAKT(nn.Module):
         self.emb_type = emb_type
         embed_l = d_model
         if self.n_pid > 0:
-            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
+            if emb_type.find("scalar") != -1:
+                # print(f"question_difficulty is scalar")
+                self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
+            else:
+                self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
         
@@ -50,7 +54,7 @@ class BAKT(nn.Module):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+                    self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l)
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
@@ -255,8 +259,7 @@ class BAKT(nn.Module):
         # Batch First
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
-
-        if self.n_pid > 0: # have problem id
+        if self.n_pid > 0 and emb_type.find("norasch") == -1: # have problem id
             if emb_type.find("aktrasch") == -1:
                 q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
                 pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
@@ -278,7 +281,7 @@ class BAKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch"]:
+        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
             d_output = self.model(q_embed_data, qa_embed_data)
 
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
