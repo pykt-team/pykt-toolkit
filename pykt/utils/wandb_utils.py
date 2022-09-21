@@ -228,7 +228,7 @@ class WandbUtils:
         print(f"We will stop the sweep, by {cmd}")
 
     
-    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=1):
+    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
         check_result_list = []
 
         def check_help(sweep_name, input_type='sweep_name',
@@ -245,7 +245,7 @@ class WandbUtils:
                     self.stop_sweep(result['stop_cmd'])
         return check_result_list
 
-    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         """Check sweeps by pattern
         
         Args:
@@ -263,7 +263,7 @@ class WandbUtils:
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 sweep_key_list.append(sweep_name)
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         
         return check_result_list
 
@@ -272,22 +272,22 @@ class WandbUtils:
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list
 
-    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
         if len(sweep_key_list)!=5:
             print("Input error, please check")
             return 
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
 
-    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
         if os.path.exists(best_path):
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
             row_list = []
             for result in check_result_list:
                 df = result['df']
