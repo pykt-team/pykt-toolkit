@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from wandb.apis.public import gql
 import json
-
+from multiprocessing.pool import ThreadPool # 线程池
 
 def get_runs_result(runs):
     result_list = []
@@ -228,20 +228,20 @@ class WandbUtils:
         print(f"We will stop the sweep, by {cmd}")
 
     
-    def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=1):
         check_result_list = []
-        for sweep_name in sweep_key_list:
-            try:
-                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-                check_result['sweep_name'] = sweep_name
-                check_result_list.append(check_result)
-            except:
-                pass
 
-        if stop:#stop sweep
+        def check_help(sweep_name, input_type='sweep_name',
+                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df):
+            check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
+                                                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            return check_result
+        p = ThreadPool(n_jobs)
+        check_result_list = p.map(check_help, sweep_key_list)
+        p.close()
+        if stop:  # stop sweep
             for result in check_result_list:
-                if result['State'] and result['stop_cmd']!=0:
+                if result['State'] and result['stop_cmd'] != 0:
                     self.stop_sweep(result['stop_cmd'])
         return check_result_list
 
