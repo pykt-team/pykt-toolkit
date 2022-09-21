@@ -5,6 +5,7 @@ import os
 from .dkt import DKT
 from .dkt_plus import DKTPlus
 from .dkvmn import DKVMN
+from .deep_irt import DeepIRT
 from .sakt import SAKT
 from .saint import SAINT
 from .kqn import KQN
@@ -21,7 +22,6 @@ from .iekt import IEKT
 from .xdkt_v2 import xDKTV2
 from .qikt_ncd import QIKTNCD
 from .qdkt import QDKT
-# from .xdkt_v2_ab import xDKTV2AB
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -32,6 +32,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTPlus(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkvmn":
         model = DKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "deep_irt":
+        model = DeepIRT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "sakt":
         model = SAKT(data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "saint":
@@ -81,9 +83,6 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = model.to(device)
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
-                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
-    elif model_name == "xdkt_v2":
-        model = xDKTV2(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],

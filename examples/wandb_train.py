@@ -10,6 +10,7 @@ import copy
 from pykt.models import train_model,evaluate,init_model
 from pykt.utils import debug_print,set_seed
 from pykt.datasets import init_dataset4train
+import datetime
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -38,10 +39,12 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "sakt", "saint","saint++", "akt", "atkt", "lpkt"]:
+        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt"]:
+        if model_name in ["gkt", "lpkt"]:
             train_config["batch_size"] = 16 
+        # if model_name in ["skvmn"]:
+        #     train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
@@ -69,8 +72,8 @@ def main(params):
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
-        if not model_name in ['saint','saint++']:
-            params_str = params_str+f"_{ str(uuid.uuid4())}"
+        # if not model_name in ['saint','saint++']:
+        params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
         os.makedirs(ckpt_path)
@@ -80,7 +83,7 @@ def main(params):
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    for remove_item in ['use_wandb','learning_rate','add_uuid']:
+    for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
     if model_name in ["saint","saint++", "sakt"]:
@@ -97,7 +100,7 @@ def main(params):
             else:
                 weight_p.append(p)
         optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
-        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=1e-5)
+        opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
     elif model_name == "iekt":
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
     else:
@@ -128,13 +131,11 @@ def main(params):
         if test_window_loader != None:
             save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
             window_testauc, window_testacc = evaluate(best_model, test_window_loader, model_name)#, save_test_path)
-        # window_testauc, window_testacc = -1, -1
-        # trainauc, trainacc = self.evaluate(train_loader, emb_type)
-        testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
 
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
-    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(testauc) + "\t" + str(testacc) + "\t" + str(window_testauc) + "\t" + str(window_testacc) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
+    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(round(testauc, 4)) + "\t" + str(round(testacc, 4)) + "\t" + str(round(window_testauc, 4)) + "\t" + str(round(window_testacc, 4)) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
     model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
+    print(f"end:{datetime.datetime.now()}")
     
     if params['use_wandb']==1:
         wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 

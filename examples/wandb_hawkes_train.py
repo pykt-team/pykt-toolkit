@@ -13,6 +13,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--emb_size", type=int, default=64)
     parser.add_argument("--time_log", type=int, default=5)
+    parser.add_argument("--l2", type=float, default=1e-5)
     parser.add_argument("--learning_rate", type=float, default=0.005)
 
     parser.add_argument("--use_wandb", type=int, default=1)

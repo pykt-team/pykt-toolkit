@@ -81,6 +81,7 @@ class LPKT(nn.Module):
         learning_pre = torch.zeros(batch_size, self.d_k).to(device)
 
         pred = torch.zeros(batch_size, seq_len).to(device)
+        hidden_state = torch.zeros(batch_size, seq_len, self.d_k).to(device)
 
         for t in range(0, seq_len - 1):
             e = e_data[:, t]
@@ -128,8 +129,10 @@ class LPKT(nn.Module):
 
             # Predicting Module
             h_tilde = self.q_matrix[e_data[:, t + 1]].view(batch_size, 1, -1).bmm(h).view(batch_size, self.d_k)
+            # print(f"h_tilde: {h_tilde.shape}")
             y = self.sig(self.linear_5(torch.cat((e_embed_data[:, t + 1], h_tilde), 1))).sum(1) / self.d_k
             pred[:, t + 1] = y
+            hidden_state[:, t+1, :] = h_tilde
 
             # prepare for next prediction
             learning_pre = learning
@@ -138,4 +141,4 @@ class LPKT(nn.Module):
         if not qtest:
             return pred
         else:
-            return pred, h_tilde 
+            return pred, hidden_state, e_data

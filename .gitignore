@@ -33,5 +33,11 @@ examples/nohup.out
 start_sweep_*.sh
 wandb/*
 *tiaocan*
+examples/assist2009_dkt_que_mt_iekt
 examples/assist2009_*
 examples/aaai_dkt_improve_v1
+tabchen
+examples/aaai2023/
+examples/all_wandbs/
+data_old
+examples/nips2022/

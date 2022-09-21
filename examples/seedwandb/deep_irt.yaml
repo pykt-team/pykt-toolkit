@@ -1,0 +1,26 @@
+program: wandb_deep_irt_train.py
+method: grid
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["deep_irt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/deep_irt_tiaocan"]
+    dim_s:
+        values: [64, 256]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    size_m:
+        values: [32,64]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

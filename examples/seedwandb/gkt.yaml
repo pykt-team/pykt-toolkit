@@ -2,7 +2,7 @@ program: wandb_gkt_train.py
 method: grid
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["gkt"]
@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["gkt_tiaocan"]
+        values: ["models/gkt_tiaocan"]
     hidden_dim:
         values: [16,32,64]
     dropout:
@@ -19,6 +19,6 @@ parameters:
     learning_rate:
         values: [1e-2, 1e-3]
     seed:
-        values: [42, 224, 3407]
+        values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]

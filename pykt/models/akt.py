@@ -28,7 +28,6 @@ class AKT(nn.Module):
         """
         self.model_name = "akt"
         self.n_question = n_question
-        self.num_c = n_question
         self.dropout = dropout
         self.kq_same = kq_same
         self.n_pid = n_pid
@@ -60,13 +59,6 @@ class AKT(nn.Module):
             nn.Linear(final_fc_dim, 256), nn.ReLU(
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
-        )
-        self.out_all = nn.Sequential(
-            nn.Linear(d_model,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(256, n_question)
         )
         self.reset()
 
@@ -116,12 +108,9 @@ class AKT(nn.Module):
         d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-        pred_next = nn.Sigmoid()(self.out(concat_q).squeeze(-1))
-        preds_all = nn.Sigmoid()(self.out_all(d_output).squeeze(-1))
-        preds = [pred_next,preds_all]
-        # preds = preds_all
-        # y = (y * F.one_hot(cshft.long(), self.num_c)).sum(-1)
-        
+        output = self.out(concat_q).squeeze(-1)
+        m = nn.Sigmoid()
+        preds = m(output)
         if not qtest:
             return preds, c_reg_loss
         else:

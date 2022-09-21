@@ -20,10 +20,26 @@ pykt.preprocess.assist2009\_preprocess module
    :undoc-members:
    :show-inheritance:
 
+pykt.preprocess.assist2012\_preprocess module
+---------------------------------------------
+
+.. automodule:: pykt.preprocess.assist2012_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.preprocess.assist2015\_preprocess module
 ---------------------------------------------
 
 .. automodule:: pykt.preprocess.assist2015_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.preprocess.assist2017\_preprocess module
+---------------------------------------------
+
+.. automodule:: pykt.preprocess.assist2017_preprocess
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,6 +60,22 @@ pykt.preprocess.data\_proprocess module
    :undoc-members:
    :show-inheritance:
 
+pykt.preprocess.ednet\_preprocess module
+----------------------------------------
+
+.. automodule:: pykt.preprocess.ednet_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.preprocess.junyi2015\_preprocess module
+--------------------------------------------
+
+.. automodule:: pykt.preprocess.junyi2015_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.preprocess.nips\_task34\_preprocess module
 -----------------------------------------------
 
@@ -60,10 +92,26 @@ pykt.preprocess.poj\_preprocess module
    :undoc-members:
    :show-inheritance:
 
+pykt.preprocess.slepemapy\_preprocess module
+--------------------------------------------
+
+.. automodule:: pykt.preprocess.slepemapy_preprocess
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.preprocess.split\_datasets module
 --------------------------------------
 
 .. automodule:: pykt.preprocess.split_datasets
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.preprocess.split\_datasets\_que module
+-------------------------------------------
+
+.. automodule:: pykt.preprocess.split_datasets_que
    :members:
    :undoc-members:
    :show-inheritance:

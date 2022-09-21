@@ -2,7 +2,7 @@ program:  wandb_sakt_train.py
 method: bayes
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["sakt"]
@@ -11,18 +11,18 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["sakt_tiaocan"]
+        values: ["models/sakt_tiaocan"]
     emb_size:
-        values: [50, 100, 150, 200, 300]
+        values: [64,256]
     learning_rate:
-        values: [1e-2, 1e-3, 1e-4]
+        values: [1e-3, 1e-4, 1e-5]
     num_attn_heads:
-        values: [5, 10]
+        values: [4,8]
     dropout:
-        values: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+        values: [0.05,0.1,0.3,0.5]
     num_en:
-        values: [1, 2, 3, 4]
+        values: [1, 2, 4]
     seed:
-        values: [42, 224, 3407]
+        values: [42,3407]
     fold:
         values: [0, 1, 2, 3, 4]

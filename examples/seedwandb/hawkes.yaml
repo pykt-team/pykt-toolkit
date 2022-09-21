@@ -1,0 +1,26 @@
+program: wandb_hawkes_train.py
+method: grid
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["hawkes"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/hawkes_tiaocan"]
+    emb_size:
+        values: [64,256]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    l2:
+        values: [1e-3, 1e-4, 1e-5, 1e-6, 0]
+    time_log:
+        values: [2, 5, 10]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

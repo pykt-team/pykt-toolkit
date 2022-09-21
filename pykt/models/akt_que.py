@@ -7,35 +7,13 @@ import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
 from .que_base_model import QueBaseModel,QueEmb
-from sklearn import metrics
-from torch.utils.data import DataLoader
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Dim(IntEnum):
     batch = 0
     seq = 1
     feature = 2
-
-class MLP(nn.Module):
-    '''
-    classifier decoder implemented with mlp
-    '''
-    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
-        super().__init__()
-
-        self.lins = nn.ModuleList([
-            nn.Linear(hidden_dim, hidden_dim)
-            for _ in range(n_layer)
-        ])
-        self.dropout = nn.Dropout(p = dpo)
-        self.out = nn.Linear(hidden_dim, output_dim)
-        self.act = torch.nn.Sigmoid()
-
-    def forward(self, x):
-        for lin in self.lins:
-            x = F.relu(lin(x))
-        return self.out(self.dropout(x))
-
 
 class AKTQueNet(nn.Module):
     def __init__(self, num_q, num_c, emb_size, n_blocks, dropout, d_ff=256, 
@@ -49,7 +27,7 @@ class AKTQueNet(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "akt_que"
+        self.model_name = "akt"
         self.num_c = num_c
         self.dropout = dropout
         self.kq_same = kq_same
@@ -57,7 +35,7 @@ class AKTQueNet(nn.Module):
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
-        self.emb_type,self.loss_mode,self.predict_mode,self.output_mode = emb_type.split("|-|")
+        self.emb_type = emb_type
         # embed_l = d_model
         if self.num_q > 0:
             self.difficult_param = nn.Embedding(self.num_q+1, 1) # 题目难度
@@ -69,49 +47,19 @@ class AKTQueNet(nn.Module):
         else: # false default
             self.qa_embed = nn.Embedding(2, emb_size)
 
-        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=self.emb_type,device=device,
-                             emb_path=emb_path,pretrain_dim=pretrain_dim,model_name=self.model_name)
+        self.que_emb = QueEmb(num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,device=device,
+                             emb_path=emb_path,pretrain_dim=pretrain_dim)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(num_q=num_q, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=emb_size, d_feature=emb_size / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
-        
-        # self.out_que_next = MLP(n_layer=1,hidden_dim=2*emb_size,output_dim=1,dpo=dropout)
-        # self.out_concept_next = MLP(n_layer=1,hidden_dim=2*emb_size,output_dim=self.num_c,dpo=dropout)
 
-        # self.out_que_all = MLP(n_layer=1,hidden_dim=emb_size,output_dim=self.num_q,dpo=dropout)
-        # self.out_concept_all = MLP(n_layer=1,hidden_dim=emb_size,output_dim=self.num_c,dpo=dropout)
-
-        self.out_que_next = nn.Sequential(
+        self.out = nn.Sequential(
             nn.Linear(emb_size + emb_size,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 256), nn.ReLU(
             ), nn.Dropout(self.dropout),
             nn.Linear(256, 1)
         )
-        self.out_concept_next = nn.Sequential(
-            nn.Linear(emb_size + emb_size,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(256, self.num_c)
-        )
-
-        self.out_que_all = nn.Sequential(
-            nn.Linear(emb_size,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(256, self.num_q)
-        )
-
-        self.out_concept_all = nn.Sequential(
-            nn.Linear(emb_size,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, 256), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(256, self.num_c)
-        )
-
         self.reset()
 
     def reset(self):
@@ -120,11 +68,7 @@ class AKTQueNet(nn.Module):
                 torch.nn.init.constant_(p, 0.)
 
     def base_emb(self, q, c, r):
-        if self.emb_type=="iekt":
-            xemb,emb_qca,emb_qc,emb_q,emb_c = self.que_emb(q, c, r)
-            q_embed_data = xemb
-        else:
-            q_embed_data = self.que_emb(q,c,r)  # BS, seqlen,  d_model# c_ct
+        q_embed_data = self.que_emb(q,c,r)  # BS, seqlen,  d_model# c_ct
         if self.separate_qa:
             qa_data = q + self.num_q * r
             qa_embed_data = self.qa_embed(qa_data)
@@ -133,18 +77,8 @@ class AKTQueNet(nn.Module):
             qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def get_avg_fusion_concepts(self,y_concept,cshft):
-        """获取知识点 fusion 的预测结果
-        """
-        concept_mask = torch.where(cshft.long()==-1,False,True)
-        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.num_c)
-        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,4,1)*concept_index).sum(-1)
-        concept_sum = concept_sum*concept_mask#remove mask
-        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
-        return y_concept
-
     # def forward(self, q_data, target, pid_data=None, qtest=False):
-    def forward(self, q, c, r,data=None):
+    def forward(self, q, c, r):
         # Batch First
         q_embed_data, qa_embed_data = self.base_emb(q,c,r)
 
@@ -162,151 +96,49 @@ class AKTQueNet(nn.Module):
             else:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
-            reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
+            c_reg_loss = (pid_embed_data ** 2.).sum() * self.l2 # rasch部分loss
         else:
-            reg_loss = 0.
+            c_reg_loss = 0.
 
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        h = self.model(q_embed_data, qa_embed_data)
-        h_q = torch.cat([h, q_embed_data], dim=-1)
+        d_output = self.model(q_embed_data, qa_embed_data)
 
-        y_question_next = torch.sigmoid(self.out_que_next(h_q).squeeze(-1))[:,1:]
-        y_concept_next = torch.sigmoid(self.out_concept_next(h_q).squeeze(-1))[:,1:]
-        y_question_all = torch.sigmoid(self.out_que_all(h))[:,1:]
-        y_concept_all = torch.sigmoid(self.out_concept_all(h))[:,1:]
-
-        outputs = {"y_question_next":y_question_next,"y_concept_next":y_concept_next,"reg_loss":reg_loss,"y_question_all":y_question_all,"y_concept_all":y_concept_all}
-
-        # all to next question
-        outputs['y_concept_next'] = self.get_avg_fusion_concepts(outputs['y_concept_next'],data['cshft'])
-        outputs['y_concept_all'] = self.get_avg_fusion_concepts(outputs['y_concept_all'],data['cshft'])
-        outputs['y_question_all'] = (outputs["y_question_all"] * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
-        
-        return outputs
+        concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+        output = self.out(concat_q).squeeze(-1)
+        m = nn.Sigmoid()
+        preds = m(output)
+       
+        return preds, c_reg_loss
        
 
 
 
 class AKTQue(QueBaseModel):
     def __init__(self, num_q,num_c, emb_size,n_blocks=1, dropout=0.1, emb_type='qid',kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5,d_ff=256,emb_path="", pretrain_dim=768,device='cpu',seed=0):
-        model_name = "akt_que"
+        model_name = "dkt_que"
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
         self.model = AKTQueNet(num_q=num_q, num_c=num_c, emb_size=emb_size, n_blocks=n_blocks, dropout=dropout, d_ff=d_ff, 
             kq_same=kq_same, final_fc_dim=final_fc_dim, num_attn_heads=num_attn_heads, separate_qa=separate_qa, 
             l2=l2, emb_type=emb_type, emb_path=emb_path, pretrain_dim=pretrain_dim)
         self.model = self.model.to(device)
-        self.emb_type = self.model.emb_type
+    
+    def train_one_step(self,data):
+        y,reg_loss,data_new = self.predict_one_step(data,return_details=True)
+        loss = self.get_loss(y,data_new['rshft'],data_new['sm'])#get loss
+        print(f"reg_loss is {reg_loss}")
+        loss = loss+reg_loss
+        return y,loss
 
-    def predict(self,dataset,batch_size,return_ts=False,process=True):
-        test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
-        self.model.eval()
-        with torch.no_grad():
-            y_trues = []
-            y_pred_dict = {}
-            for data in test_loader:
-                new_data = self.batch_to_device(data,process=process)
-                outputs,data_new = self.predict_one_step(data,return_details=True)
-               
-                for key in outputs:
-                    # print(f"key is {key},shape is {outputs[key].shape}")
-                    if not key.startswith("y") or key in ['y_qc_predict']:
-                        continue
-                    elif key not in y_pred_dict:
-                       y_pred_dict[key] = []
-                    # print(f"outputs is {outputs}")
-                    y = torch.masked_select(outputs[key], new_data['sm']).detach().cpu()#get label
-                    y_pred_dict[key].append(y.numpy())
-                
-                t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
-                y_trues.append(t.numpy())
-        results = y_pred_dict
-        for key in results:
-            results[key] = np.concatenate(results[key], axis=0)
-        ts = np.concatenate(y_trues, axis=0)
-        results['ts'] = ts
-        return results
 
-    def evaluate(self,dataset,batch_size,acc_threshold=0.5):
-        results = self.predict(dataset,batch_size=batch_size)
-        eval_result = {}
-        ts = results["ts"]
-        for key in results:
-            if not key.startswith("y") or key in ['y_qc_predict']:
-                pass
-            else:
-                ps = results[key]
-                kt_auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
-                prelabels = [1 if p >= acc_threshold else 0 for p in ps]
-                kt_acc = metrics.accuracy_score(ts, prelabels)
-                if key!="y":
-                    eval_result["{}_kt_auc".format(key)] = kt_auc
-                    eval_result["{}_kt_acc".format(key)] = kt_acc
-                else:
-                    eval_result["auc"] = kt_auc
-                    eval_result["acc"] = kt_acc
-        self.eval_result = eval_result
-        return eval_result
-
-    def get_merge_loss(self,loss_question,loss_concept,loss_mode):
-        if loss_mode in ["c"]:
-            loss = loss_concept
-        elif loss_mode in ["q"]:
-            loss = loss_question
-        elif loss_mode in ["qc"]:
-            loss = (loss_question+loss_concept)/2
-        return loss
-
-    def train_one_step(self,data,process=True,return_all=False):
-        outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-        all_loss_mode,next_loss_mode =  self.model.loss_mode.replace("_dyn","").split("_")[0].split("-")
-
-        # predict next loss
-        loss_next_question = self.get_loss(outputs['y_question_next'],data_new['rshft'],data_new['sm'])
-        loss_next_concept = self.get_loss(outputs['y_concept_next'],data_new['rshft'],data_new['sm'])
-        loss_next = self.get_merge_loss(loss_next_question,loss_next_concept,next_loss_mode)
-
-        # predict all loss
-        loss_all_question = self.get_loss(outputs['y_question_all'],data_new['rshft'],data_new['sm'])
-        loss_all_concept = self.get_loss(outputs['y_concept_all'],data_new['rshft'],data_new['sm'])
-        loss_all = self.get_merge_loss(loss_all_question,loss_all_concept,all_loss_mode)
-        
-
-        loss = loss_all + loss_next + outputs['reg_loss'] 
-        print(f"loss={loss:.3f},loss_all={loss_all:.3f},loss_next={loss_next:.3f},loss_next_question={loss_next_question:.3f},loss_next_concept={loss_next_concept:.3f},loss_all_question={loss_all_question:.3f},loss_all_concept={loss_all_concept:.3f}")
-
-        return outputs['y'],loss
-
-    def get_merge_y(self,y_question,y_concept,predict_mode):
-        if predict_mode=="c":
-            y = y_concept
-        elif predict_mode=="q":
-            y = y_question
-        elif predict_mode in ["qc"]:
-            y = (y_question+y_concept)/2
-        return y
-
-    def predict_one_step(self,data,return_details=False,process=True):
-        all_predict_mode,next_predict_mode = self.model.predict_mode.split("_")[0].split("-")
-
-        data_new = self.batch_to_device(data,process=process)
-        outputs = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long(),data_new)
-
-       
-        # predict next results
-        y_qc_next = self.get_merge_y(outputs['y_question_next'],outputs['y_concept_next'],next_predict_mode)
-        outputs['y_qc_next'] = y_qc_next
-
-        # predict all results
-        y_qc_all = self.get_merge_y(outputs['y_question_all'],outputs['y_concept_all'],all_predict_mode)
-        outputs['y_qc_all'] = y_qc_all
-
-        y = (y_qc_all + y_qc_next)/2
-
-        outputs['y'] = y
+    def predict_one_step(self,data,return_details=False):
+        data_new = self.batch_to_device(data)
+        # q, c, r, t, qshft, cshft, rshft, tshft, m, sm, cq, cc, cr, ct = self.batch_to_device(data)
+        y, reg_loss = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long())
+        y = y[:,1:]
         if return_details:
-            return outputs,data_new
+            return y,reg_loss,data_new
         else:
             return y
 
@@ -323,7 +155,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'akt','akt_que'}:
+        if model_type in {'akt'}:
             self.blocks_1 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)

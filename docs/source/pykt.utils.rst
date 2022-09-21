@@ -12,6 +12,14 @@ pykt.utils.utils module
    :undoc-members:
    :show-inheritance:
 
+pykt.utils.wandb\_utils module
+------------------------------
+
+.. automodule:: pykt.utils.wandb_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
