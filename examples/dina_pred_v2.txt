@@ -1,0 +1,114 @@
+wandb: Currently logged in as: shyann (use `wandb login --relogin` to force relogin)
+device:cuda
+Namespace(bz=64, fusion_type='late_fusion', save_dir='saved_model/assist2009_deepbkt_dina_v2_saved_model_224_0_0.2_256_512_512_4_2_0.0001_0.5_0.05_0.2_0_0', use_wandb=1)
+wandb: wandb version 0.13.3 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.9
+wandb: Syncing run laced-sunset-273
+wandb: ⭐️ View project at https://wandb.ai/shyann/wandb_predict
+wandb: 🚀 View run at https://wandb.ai/shyann/wandb_predict/runs/35ybbczk
+wandb: Run data is saved locally in /data/huangshuyan/shyann_dev/pykt-toolkit/examples/wandb/run-20220915_105343-35ybbczk
+wandb: Run `wandb offline` to turn off syncing.
+
+model_name is deepbkt
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+Read data from processed file: ../data/assist2009/test_window_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_window_sequences.csv, qlen: 20362, clen: 20362, rlen: 20362
+Read data from processed file: ../data/assist2009/test_question_sequences.csv_-1_qtest.pkl
+file path: ../data/assist2009/test_question_sequences.csv, qlen: 18292, clen: 18292, rlen: 18292
+Read data from processed file: ../data/assist2009/test_question_window_sequences.csv_-1_qtest.pkl
+file path: ../data/assist2009/test_question_window_sequences.csv, qlen: 30610, clen: 30610, rlen: 30610
+has test_question_file!
+Start predicting model: deepbkt, embtype: dina_v2, save_dir: saved_model/assist2009_deepbkt_dina_v2_saved_model_224_0_0.2_256_512_512_4_2_0.0001_0.5_0.05_0.2_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'final_fc_dim': 512, 'num_attn_heads': 4, 'n_blocks': 2, 'lambda_r': 0.5, 'sigmoida': 0.05, 'sigmoidb': 0.2}
+data_config: {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}
+ts.shape: (61904,), ps.shape: (61904,)
+testauc: 0.8346339511000767, testacc: 0.7750064616179891
+ts.shape: (62040,), ps.shape: (62040,)
+testauc: 0.8346339511000767, testacc: 0.7750064616179891, window_testauc: 0.8338290860224661, window_testacc: 0.7750161186331399
+testauc: 0.8346339511000767, testacc: 0.7750064616179891, window_testauc: 0.8338290860224661, window_testacc: 0.7750161186331399
+question_testauc: -1, question_testacc: -1, question_window_testauc: -1, question_window_testacc: -1
+wandb: Waiting for W&B process to finish, PID 5462... (success).
+wandb: - 0.00MB of 0.00MB uploaded (0.00MB deduped)wandb: \ 0.00MB of 0.00MB uploaded (0.00MB deduped)wandb: | 0.00MB of 0.00MB uploaded (0.00MB deduped)wandb: / 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: - 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: \ 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: | 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: / 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: - 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: \ 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: | 0.00MB of 0.01MB uploaded (0.00MB deduped)wandb: / 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: - 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: \ 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: | 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: / 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: - 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: \ 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb: | 0.01MB of 0.01MB uploaded (0.00MB deduped)wandb:                                                                                
+wandb: Run history:
+wandb:             add_uuid ▁
+wandb:                 d_ff ▁
+wandb:              d_model ▁
+wandb:              dropout ▁
+wandb:         final_fc_dim ▁
+wandb:                 fold ▁
+wandb:             lambda_r ▁
+wandb:        learning_rate ▁
+wandb:             n_blocks ▁
+wandb:       num_attn_heads ▁
+wandb:       oriaccconcepts ▁
+wandb:       oriacclate_all ▁
+wandb:      oriacclate_mean ▁
+wandb:      oriacclate_vote ▁
+wandb:       oriaucconcepts ▁
+wandb:       oriauclate_all ▁
+wandb:      oriauclate_mean ▁
+wandb:      oriauclate_vote ▁
+wandb:                 seed ▁
+wandb:             sigmoida ▁
+wandb:             sigmoidb ▁
+wandb:              testacc ▁
+wandb:              testauc ▁
+wandb:            use_wandb ▁
+wandb:       window_testacc ▁
+wandb:       window_testauc ▁
+wandb:    windowaccconcepts ▁
+wandb:    windowacclate_all ▁
+wandb:   windowacclate_mean ▁
+wandb:   windowacclate_vote ▁
+wandb:    windowaucconcepts ▁
+wandb:    windowauclate_all ▁
+wandb:   windowauclate_mean ▁
+wandb:   windowauclate_vote ▁
+wandb: 
+wandb: Run summary:
+wandb:             add_uuid 0
+wandb:                 d_ff 512
+wandb:              d_model 256
+wandb:         dataset_name assist2009
+wandb:              dropout 0.2
+wandb:             emb_type dina_v2
+wandb:         final_fc_dim 512
+wandb:                 fold 0
+wandb:             lambda_r 0.5
+wandb:        learning_rate 0.0001
+wandb:           model_name deepbkt
+wandb:             n_blocks 2
+wandb:       num_attn_heads 4
+wandb:       oriaccconcepts 0.70439
+wandb:       oriacclate_all 0.7086
+wandb:      oriacclate_mean 0.71107
+wandb:      oriacclate_vote 0.70978
+wandb:       oriaucconcepts 0.7504
+wandb:       oriauclate_all 0.76753
+wandb:      oriauclate_mean 0.77105
+wandb:      oriauclate_vote 0.77337
+wandb:             save_dir saved_model
+wandb:                 seed 224
+wandb:             sigmoida 0.05
+wandb:             sigmoidb 0.2
+wandb:              testacc 0.77501
+wandb:              testauc 0.83463
+wandb:            use_wandb 0
+wandb:       window_testacc 0.77502
+wandb:       window_testauc 0.83383
+wandb:    windowaccconcepts 0.70347
+wandb:    windowacclate_all 0.70753
+wandb:   windowacclate_mean 0.70965
+wandb:   windowacclate_vote 0.70881
+wandb:    windowaucconcepts 0.74994
+wandb:    windowauclate_all 0.76775
+wandb:   windowauclate_mean 0.77133
+wandb:   windowauclate_vote 0.77353
+wandb: 
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Synced laced-sunset-273: https://wandb.ai/shyann/wandb_predict/runs/35ybbczk
+wandb: Find logs at: ./wandb/run-20220915_105343-35ybbczk/logs/debug.log
+wandb: 
+

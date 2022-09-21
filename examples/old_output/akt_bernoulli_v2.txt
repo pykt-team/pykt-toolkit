@@ -1,0 +1,537 @@
+device:cuda
+2022-07-07 18:57:02 - main - said: load config files.
+Start init data
+assist2009 akt_vector {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-07 18:57:02 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_vector', 'emb_type': 'bernoulli_v2', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+Start training model: akt_vector, embtype: bernoulli_v2, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-07 18:57:08 - main - said: init_model
+model_name:akt_vector
+2022-07-07 18:57:08 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.6346, validacc: 0.6499, best epoch: 1, best auc: 0.6346, loss: 0.6618526629158059, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.6857, validacc: 0.6499, best epoch: 2, best auc: 0.6857, loss: 0.6277703390094744, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.701, validacc: 0.6684, best epoch: 3, best auc: 0.701, loss: 0.6073948396959622, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.7073, validacc: 0.7008, best epoch: 4, best auc: 0.7073, loss: 0.590898968010892, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.7129, validacc: 0.7015, best epoch: 5, best auc: 0.7129, loss: 0.5822558175059688, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.7175, validacc: 0.7037, best epoch: 6, best auc: 0.7175, loss: 0.5779911616964664, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.7216, validacc: 0.707, best epoch: 7, best auc: 0.7216, loss: 0.5746700148015328, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.7256, validacc: 0.7105, best epoch: 8, best auc: 0.7256, loss: 0.571403753775273, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.7294, validacc: 0.7136, best epoch: 9, best auc: 0.7294, loss: 0.568468855852548, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.7336, validacc: 0.717, best epoch: 10, best auc: 0.7336, loss: 0.5652667649853139, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.738, validacc: 0.7204, best epoch: 11, best auc: 0.738, loss: 0.5619087648030124, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.7425, validacc: 0.7241, best epoch: 12, best auc: 0.7425, loss: 0.5583867126767544, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.7472, validacc: 0.7274, best epoch: 13, best auc: 0.7472, loss: 0.5547371949629302, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.7521, validacc: 0.7317, best epoch: 14, best auc: 0.7521, loss: 0.5512209119625231, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.7571, validacc: 0.7349, best epoch: 15, best auc: 0.7571, loss: 0.5475410428302295, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.7628, validacc: 0.7384, best epoch: 16, best auc: 0.7628, loss: 0.5433072522213039, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.7693, validacc: 0.7417, best epoch: 17, best auc: 0.7693, loss: 0.538441373643432, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.7737, validacc: 0.7442, best epoch: 18, best auc: 0.7737, loss: 0.5343430712207485, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.7777, validacc: 0.7461, best epoch: 19, best auc: 0.7777, loss: 0.5306889080950523, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.7813, validacc: 0.7479, best epoch: 20, best auc: 0.7813, loss: 0.5275173670768444, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.7841, validacc: 0.7489, best epoch: 21, best auc: 0.7841, loss: 0.5247434111636113, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.7867, validacc: 0.7502, best epoch: 22, best auc: 0.7867, loss: 0.5218961965332375, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.7895, validacc: 0.7523, best epoch: 23, best auc: 0.7895, loss: 0.5194118164550834, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.7927, validacc: 0.7538, best epoch: 24, best auc: 0.7927, loss: 0.5165517433751352, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.7959, validacc: 0.7557, best epoch: 25, best auc: 0.7959, loss: 0.5134662323023024, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.7992, validacc: 0.758, best epoch: 26, best auc: 0.7992, loss: 0.5101181239912881, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.8023, validacc: 0.7601, best epoch: 27, best auc: 0.8023, loss: 0.5067931637522539, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.8053, validacc: 0.7624, best epoch: 28, best auc: 0.8053, loss: 0.5034461317968519, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.8077, validacc: 0.7644, best epoch: 29, best auc: 0.8077, loss: 0.5003518560101847, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.8101, validacc: 0.7661, best epoch: 30, best auc: 0.8101, loss: 0.4976562779641343, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.8122, validacc: 0.767, best epoch: 31, best auc: 0.8122, loss: 0.4954887490349642, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.8139, validacc: 0.7679, best epoch: 32, best auc: 0.8139, loss: 0.4925755016417093, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.8152, validacc: 0.7687, best epoch: 33, best auc: 0.8152, loss: 0.4915554013545556, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.8162, validacc: 0.7695, best epoch: 34, best auc: 0.8162, loss: 0.48950409860309013, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.8171, validacc: 0.7701, best epoch: 35, best auc: 0.8171, loss: 0.48844194968024796, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.8177, validacc: 0.7706, best epoch: 36, best auc: 0.8177, loss: 0.4871577450544337, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.8183, validacc: 0.771, best epoch: 37, best auc: 0.8183, loss: 0.48552379258152994, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.8189, validacc: 0.7712, best epoch: 38, best auc: 0.8189, loss: 0.4843798557173253, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.8194, validacc: 0.7712, best epoch: 39, best auc: 0.8194, loss: 0.4835229226375779, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.8199, validacc: 0.7714, best epoch: 40, best auc: 0.8199, loss: 0.4833374159496655, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.8203, validacc: 0.7715, best epoch: 41, best auc: 0.8203, loss: 0.48243279829156266, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.8207, validacc: 0.7721, best epoch: 42, best auc: 0.8207, loss: 0.48143721257430777, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.8211, validacc: 0.7719, best epoch: 43, best auc: 0.8211, loss: 0.4803267448353396, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.8214, validacc: 0.772, best epoch: 44, best auc: 0.8214, loss: 0.4802433226779364, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 45, validauc: 0.8218, validacc: 0.7723, best epoch: 45, best auc: 0.8218, loss: 0.4790934159082379, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 46, validauc: 0.8222, validacc: 0.7728, best epoch: 46, best auc: 0.8222, loss: 0.47848457718515447, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 47, validauc: 0.8225, validacc: 0.7726, best epoch: 47, best auc: 0.8225, loss: 0.47826390782621414, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 48, validauc: 0.8228, validacc: 0.7728, best epoch: 48, best auc: 0.8228, loss: 0.4769381292562825, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 49, validauc: 0.8231, validacc: 0.7731, best epoch: 49, best auc: 0.8231, loss: 0.47649552479062995, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 50, validauc: 0.8234, validacc: 0.7731, best epoch: 50, best auc: 0.8234, loss: 0.47622910814132097, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 51, validauc: 0.8237, validacc: 0.7737, best epoch: 51, best auc: 0.8237, loss: 0.47526554325312104, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 52, validauc: 0.824, validacc: 0.7738, best epoch: 52, best auc: 0.824, loss: 0.47462355323186883, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 53, validauc: 0.8243, validacc: 0.7737, best epoch: 53, best auc: 0.8243, loss: 0.47388577368369306, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 54, validauc: 0.8246, validacc: 0.7743, best epoch: 54, best auc: 0.8246, loss: 0.47319956927046025, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 55, validauc: 0.8249, validacc: 0.7742, best epoch: 55, best auc: 0.8249, loss: 0.4735635658468733, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 56, validauc: 0.8252, validacc: 0.7742, best epoch: 56, best auc: 0.8252, loss: 0.4721286085540352, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 57, validauc: 0.8255, validacc: 0.7747, best epoch: 57, best auc: 0.8255, loss: 0.47211380661708685, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 58, validauc: 0.8258, validacc: 0.7748, best epoch: 58, best auc: 0.8258, loss: 0.4712117415831157, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 59, validauc: 0.8261, validacc: 0.775, best epoch: 59, best auc: 0.8261, loss: 0.47083691269567424, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 60, validauc: 0.8264, validacc: 0.7754, best epoch: 60, best auc: 0.8264, loss: 0.46989583438068605, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 61, validauc: 0.8267, validacc: 0.7755, best epoch: 61, best auc: 0.8267, loss: 0.46975018040961586, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 62, validauc: 0.827, validacc: 0.7755, best epoch: 62, best auc: 0.827, loss: 0.4689363552384857, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 63, validauc: 0.8273, validacc: 0.7754, best epoch: 63, best auc: 0.8273, loss: 0.46908938950109863, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 64, validauc: 0.8276, validacc: 0.776, best epoch: 64, best auc: 0.8276, loss: 0.4681359743476842, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 65, validauc: 0.8279, validacc: 0.776, best epoch: 65, best auc: 0.8279, loss: 0.4677515125645535, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 66, validauc: 0.8282, validacc: 0.7762, best epoch: 66, best auc: 0.8282, loss: 0.4669297603984351, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 67, validauc: 0.8284, validacc: 0.7763, best epoch: 67, best auc: 0.8284, loss: 0.4668773297832898, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 68, validauc: 0.8288, validacc: 0.7767, best epoch: 68, best auc: 0.8288, loss: 0.4658637839699651, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 69, validauc: 0.8291, validacc: 0.7767, best epoch: 69, best auc: 0.8291, loss: 0.46505349974129234, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 70, validauc: 0.8294, validacc: 0.7769, best epoch: 70, best auc: 0.8294, loss: 0.4646800530285556, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 71, validauc: 0.8297, validacc: 0.7768, best epoch: 71, best auc: 0.8297, loss: 0.46440842072996763, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 72, validauc: 0.8301, validacc: 0.7771, best epoch: 72, best auc: 0.8301, loss: 0.46363778094207403, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 73, validauc: 0.8304, validacc: 0.7772, best epoch: 73, best auc: 0.8304, loss: 0.4625591998352587, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 74, validauc: 0.8307, validacc: 0.7771, best epoch: 74, best auc: 0.8307, loss: 0.4622638578092489, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 75, validauc: 0.8311, validacc: 0.7772, best epoch: 75, best auc: 0.8311, loss: 0.4616244864708352, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 76, validauc: 0.8314, validacc: 0.7773, best epoch: 76, best auc: 0.8314, loss: 0.4609403063831052, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 77, validauc: 0.8318, validacc: 0.7777, best epoch: 77, best auc: 0.8318, loss: 0.46045198963267775, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 78, validauc: 0.8321, validacc: 0.7784, best epoch: 78, best auc: 0.8321, loss: 0.46005200599236157, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 79, validauc: 0.8325, validacc: 0.7786, best epoch: 79, best auc: 0.8325, loss: 0.45880518958719735, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 80, validauc: 0.8328, validacc: 0.7782, best epoch: 80, best auc: 0.8328, loss: 0.4582784502692013, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 81, validauc: 0.8332, validacc: 0.7785, best epoch: 81, best auc: 0.8332, loss: 0.45810159211570217, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 82, validauc: 0.8336, validacc: 0.7788, best epoch: 82, best auc: 0.8336, loss: 0.4569847499499334, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 83, validauc: 0.8341, validacc: 0.7792, best epoch: 83, best auc: 0.8341, loss: 0.45678559165496196, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 84, validauc: 0.8346, validacc: 0.78, best epoch: 84, best auc: 0.8346, loss: 0.45578884800111535, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 85, validauc: 0.8349, validacc: 0.78, best epoch: 85, best auc: 0.8349, loss: 0.45505152692679435, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 86, validauc: 0.8353, validacc: 0.7797, best epoch: 86, best auc: 0.8353, loss: 0.45468705036513274, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 87, validauc: 0.8358, validacc: 0.7805, best epoch: 87, best auc: 0.8358, loss: 0.4538323081237327, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 88, validauc: 0.8362, validacc: 0.7807, best epoch: 88, best auc: 0.8362, loss: 0.45301972455187506, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 89, validauc: 0.8366, validacc: 0.7808, best epoch: 89, best auc: 0.8366, loss: 0.4519794381803515, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 90, validauc: 0.8372, validacc: 0.781, best epoch: 90, best auc: 0.8372, loss: 0.4516850674430573, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 91, validauc: 0.8376, validacc: 0.7813, best epoch: 91, best auc: 0.8376, loss: 0.45075769037269287, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 92, validauc: 0.8381, validacc: 0.7812, best epoch: 92, best auc: 0.8381, loss: 0.4498456055621782, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 93, validauc: 0.8387, validacc: 0.7817, best epoch: 93, best auc: 0.8387, loss: 0.44889913279875776, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 94, validauc: 0.8391, validacc: 0.7823, best epoch: 94, best auc: 0.8391, loss: 0.4484176195033274, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 95, validauc: 0.8396, validacc: 0.7822, best epoch: 95, best auc: 0.8396, loss: 0.44715808873202095, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 96, validauc: 0.84, validacc: 0.7826, best epoch: 96, best auc: 0.84, loss: 0.4465131139522524, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 97, validauc: 0.8407, validacc: 0.7829, best epoch: 97, best auc: 0.8407, loss: 0.4457350479527688, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 98, validauc: 0.841, validacc: 0.7833, best epoch: 98, best auc: 0.841, loss: 0.4456006772217651, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 99, validauc: 0.8416, validacc: 0.7837, best epoch: 99, best auc: 0.8416, loss: 0.4434827753645922, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 100, validauc: 0.8418, validacc: 0.7835, best epoch: 100, best auc: 0.8418, loss: 0.4430036576599967, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 101, validauc: 0.8427, validacc: 0.7846, best epoch: 101, best auc: 0.8427, loss: 0.4425005971890421, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 102, validauc: 0.8432, validacc: 0.7847, best epoch: 102, best auc: 0.8432, loss: 0.44089331518189034, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 103, validauc: 0.8435, validacc: 0.7847, best epoch: 103, best auc: 0.8435, loss: 0.43991775962101887, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 104, validauc: 0.844, validacc: 0.7851, best epoch: 104, best auc: 0.844, loss: 0.4390846568549253, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 105, validauc: 0.8446, validacc: 0.7858, best epoch: 105, best auc: 0.8446, loss: 0.4386900615328779, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 106, validauc: 0.845, validacc: 0.7855, best epoch: 106, best auc: 0.845, loss: 0.43761746124102424, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 107, validauc: 0.8454, validacc: 0.7853, best epoch: 107, best auc: 0.8454, loss: 0.43651364691354094, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 108, validauc: 0.8458, validacc: 0.7854, best epoch: 108, best auc: 0.8458, loss: 0.43592472053503356, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 109, validauc: 0.8463, validacc: 0.7859, best epoch: 109, best auc: 0.8463, loss: 0.4347485226233901, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 110, validauc: 0.8466, validacc: 0.7861, best epoch: 110, best auc: 0.8466, loss: 0.4342271753046285, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 111, validauc: 0.847, validacc: 0.7864, best epoch: 111, best auc: 0.847, loss: 0.4326813565400783, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 112, validauc: 0.8473, validacc: 0.7871, best epoch: 112, best auc: 0.8473, loss: 0.4312024915416328, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 113, validauc: 0.8478, validacc: 0.7872, best epoch: 113, best auc: 0.8478, loss: 0.4309904165824811, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 114, validauc: 0.8479, validacc: 0.7874, best epoch: 114, best auc: 0.8479, loss: 0.43035764108795527, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 115, validauc: 0.8484, validacc: 0.7874, best epoch: 115, best auc: 0.8484, loss: 0.42916177431900787, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 116, validauc: 0.8486, validacc: 0.7872, best epoch: 116, best auc: 0.8486, loss: 0.4288685036399798, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 117, validauc: 0.8489, validacc: 0.7876, best epoch: 117, best auc: 0.8489, loss: 0.4267891259760838, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 118, validauc: 0.8492, validacc: 0.7873, best epoch: 118, best auc: 0.8492, loss: 0.4264238012779747, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 119, validauc: 0.8493, validacc: 0.7876, best epoch: 119, best auc: 0.8493, loss: 0.42668413615294737, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 120, validauc: 0.8496, validacc: 0.7878, best epoch: 120, best auc: 0.8496, loss: 0.42559969188059726, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 121, validauc: 0.8498, validacc: 0.7876, best epoch: 121, best auc: 0.8498, loss: 0.4248935614392308, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 122, validauc: 0.8503, validacc: 0.7879, best epoch: 122, best auc: 0.8503, loss: 0.4240674833252984, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 123, validauc: 0.8504, validacc: 0.7877, best epoch: 123, best auc: 0.8504, loss: 0.42281864544797115, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 124, validauc: 0.8506, validacc: 0.7878, best epoch: 124, best auc: 0.8506, loss: 0.4223943930711174, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 125, validauc: 0.8508, validacc: 0.7878, best epoch: 125, best auc: 0.8508, loss: 0.42184769762350444, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 126, validauc: 0.851, validacc: 0.7881, best epoch: 126, best auc: 0.851, loss: 0.420883270375942, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 127, validauc: 0.8511, validacc: 0.788, best epoch: 127, best auc: 0.8511, loss: 0.4201733810533062, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 128, validauc: 0.8512, validacc: 0.7882, best epoch: 128, best auc: 0.8512, loss: 0.419431866996912, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 129, validauc: 0.8513, validacc: 0.788, best epoch: 129, best auc: 0.8513, loss: 0.4185291180686277, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 130, validauc: 0.8515, validacc: 0.7879, best epoch: 130, best auc: 0.8515, loss: 0.4184224698524981, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 131, validauc: 0.8516, validacc: 0.7878, best epoch: 131, best auc: 0.8516, loss: 0.417459883077467, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 132, validauc: 0.8518, validacc: 0.7883, best epoch: 132, best auc: 0.8518, loss: 0.4166811940627116, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 133, validauc: 0.8519, validacc: 0.7884, best epoch: 133, best auc: 0.8519, loss: 0.41673069692047293, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 134, validauc: 0.852, validacc: 0.7881, best epoch: 134, best auc: 0.852, loss: 0.4152434307495158, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 135, validauc: 0.8522, validacc: 0.7883, best epoch: 135, best auc: 0.8522, loss: 0.4150569419531509, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 136, validauc: 0.8522, validacc: 0.7883, best epoch: 135, best auc: 0.8522, loss: 0.41422171087114473, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 137, validauc: 0.8522, validacc: 0.7882, best epoch: 137, best auc: 0.8522, loss: 0.4136234177908231, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 138, validauc: 0.8523, validacc: 0.7881, best epoch: 138, best auc: 0.8523, loss: 0.41298919693333586, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 139, validauc: 0.8525, validacc: 0.7884, best epoch: 139, best auc: 0.8525, loss: 0.4122585599427402, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 140, validauc: 0.8525, validacc: 0.7884, best epoch: 139, best auc: 0.8525, loss: 0.4123553336800912, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 141, validauc: 0.8525, validacc: 0.7884, best epoch: 141, best auc: 0.8525, loss: 0.4111450614419896, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 142, validauc: 0.8525, validacc: 0.7884, best epoch: 142, best auc: 0.8525, loss: 0.4109764365327864, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 143, validauc: 0.8526, validacc: 0.7883, best epoch: 143, best auc: 0.8526, loss: 0.409970416358024, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 144, validauc: 0.8527, validacc: 0.7885, best epoch: 144, best auc: 0.8527, loss: 0.40972029400009374, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 145, validauc: 0.8527, validacc: 0.7884, best epoch: 145, best auc: 0.8527, loss: 0.4090025569968693, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 146, validauc: 0.8528, validacc: 0.7885, best epoch: 146, best auc: 0.8528, loss: 0.40965429549499105, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 147, validauc: 0.8528, validacc: 0.7885, best epoch: 146, best auc: 0.8528, loss: 0.408262906543056, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 148, validauc: 0.8528, validacc: 0.7885, best epoch: 146, best auc: 0.8528, loss: 0.40809767298645055, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 149, validauc: 0.8528, validacc: 0.7886, best epoch: 149, best auc: 0.8528, loss: 0.40664789726429157, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 150, validauc: 0.8529, validacc: 0.789, best epoch: 150, best auc: 0.8529, loss: 0.40699421059160473, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 151, validauc: 0.8529, validacc: 0.789, best epoch: 150, best auc: 0.8529, loss: 0.40629659799311746, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 152, validauc: 0.8529, validacc: 0.7887, best epoch: 152, best auc: 0.8529, loss: 0.4065579591450436, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 153, validauc: 0.8529, validacc: 0.7887, best epoch: 152, best auc: 0.8529, loss: 0.40613672103573784, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 154, validauc: 0.8529, validacc: 0.7884, best epoch: 154, best auc: 0.8529, loss: 0.40447735603664725, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 155, validauc: 0.8529, validacc: 0.7884, best epoch: 154, best auc: 0.8529, loss: 0.404524665283396, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 156, validauc: 0.8529, validacc: 0.7884, best epoch: 154, best auc: 0.8529, loss: 0.4039612029306609, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 157, validauc: 0.8529, validacc: 0.7884, best epoch: 154, best auc: 0.8529, loss: 0.4030689027217818, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 158, validauc: 0.8529, validacc: 0.7882, best epoch: 158, best auc: 0.8529, loss: 0.4029550416342937, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 159, validauc: 0.8529, validacc: 0.7882, best epoch: 158, best auc: 0.8529, loss: 0.40260659090140144, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 160, validauc: 0.8529, validacc: 0.7885, best epoch: 160, best auc: 0.8529, loss: 0.40260474238177824, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 161, validauc: 0.8529, validacc: 0.7885, best epoch: 160, best auc: 0.8529, loss: 0.4024206431126813, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 162, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.4024249349303954, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 163, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.40088795561201906, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 164, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.40084160677073927, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 165, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.400197414290987, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 166, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.40011118136010076, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 167, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.3999315354200381, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 168, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.3984604706350341, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 169, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.39918214908086275, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 170, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.3990800069947216, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 171, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.39824100347022995, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 172, validauc: 0.8529, validacc: 0.7888, best epoch: 162, best auc: 0.8529, loss: 0.39830152170427624, emb_type: bernoulli_v2, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_bernoulli_v2_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_vector	bernoulli_v2	0.8445	0.7773	-1	-1	0.8529	0.7888	162

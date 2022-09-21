@@ -17,7 +17,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbati
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
     elif model_name in ["deepbkt"]:
-        if model.emb_type.find("augmentation") != -1:
+        if model.emb_type.find("augmentation") != -1 and model.emb_type == "augmentation":
             y = torch.masked_select(ys[0], sm)
             augmentation_y = torch.masked_select(perturbation_ys[0], sm)
             # print(f"augmentation_y: {augmentation_y.shape}")
@@ -29,7 +29,42 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbati
             else:
                 pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
             perturbation_loss = mse_loss(y, augmentation_y)
-            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
+            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss
+        elif model.emb_type.find("augmentation") != -1 and model.emb_type in ["augmentation_v2", "augmentation_v3", "augmentation_bayesian", "augmentation_bayesian_v2", "augmentation_bayesian_v3"]:
+            y = torch.masked_select(ys[0], sm)
+            t = torch.masked_select(rshft, sm)
+            pred_loss = binary_cross_entropy(y.double(), t.double())
+            if model.emb_type in ["augmentation_v2"]:
+                augmentation_y = torch.masked_select(perturbation_ys[0], sm)
+                # print(f"augmentation_y: {augmentation_y.shape}")
+                augmentation_t = torch.masked_select(perturbation_rshft, sm).detach()
+                # print(f"augmentation_t: {augmentation_t.shape}")
+                perturbation_loss = mse_loss(augmentation_y, augmentation_t)
+            elif model.emb_type in ["augmentation_v3", "augmentation_bayesian", "augmentation_bayesian_v2", "augmentation_bayesian_v3"]:
+                # print(f"rshft: {rshft.shape}")
+                h, augmentation_h = [], []
+                for i in range(rshft.shape[0]):
+                    flag = 0
+                    for j in range(rshft.shape[1]):
+                        if sm[i][j] != 1:
+                            h.append(perturbation_ys[0][i][j - 1])
+                            augmentation_h.append(perturbation_rshft[i][j - 1])
+                            flag = 1
+                            break
+                        elif flag == 0 and j == rshft.shape[1] - 1:
+                            h.append(perturbation_ys[0][i][j - 1])
+                            augmentation_h.append(perturbation_rshft[i][j - 1])
+                            flag = 0
+                h = [x.cpu().detach().numpy() for x in h]                    
+                h = torch.tensor(h).float()
+                # print(f"h: {h.shape}")
+                augmentation_h = [x.cpu().detach().numpy() for x in augmentation_h] 
+                augmentation_h = torch.tensor(np.array(augmentation_h)).float()
+                # print(f"augmentation_h: {augmentation_h.shape}")
+                # print(f"h: {h}")
+                # print(f"augmentation_h: {augmentation_h}")
+                perturbation_loss = mse_loss(h, augmentation_h)
+            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss   
         elif model.emb_type.find("difficulty") != -1:
             y = torch.masked_select(ys[0], sm)
             t = torch.masked_select(rshft, sm)

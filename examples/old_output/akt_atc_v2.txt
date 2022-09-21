@@ -1,0 +1,263 @@
+device:cuda
+2022-07-15 11:22:06 - main - said: load config files.
+Start init data
+assist2009 akt_forget {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-15 11:22:06 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_forget', 'emb_type': 'atc', 'save_dir': 'saved_model', 'seed': 3407, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+Start training model: akt_forget, embtype: atc, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-15 11:22:09 - main - said: init_model
+2022-07-15 11:22:09 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.5204, validacc: 0.5127, best epoch: 1, best auc: 0.5204, loss: 19.809638380691478, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.5618, validacc: 0.6268, best epoch: 2, best auc: 0.5618, loss: 5.207167676142164, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.6023, validacc: 0.6434, best epoch: 3, best auc: 0.6023, loss: 1.7422992789887204, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.6331, validacc: 0.6454, best epoch: 4, best auc: 0.6331, loss: 1.117844125733863, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.6493, validacc: 0.6474, best epoch: 5, best auc: 0.6493, loss: 0.9034049760707026, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.657, validacc: 0.6487, best epoch: 6, best auc: 0.657, loss: 0.8040108681792724, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.6684, validacc: 0.6501, best epoch: 7, best auc: 0.6684, loss: 0.7461003604242422, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.6764, validacc: 0.6502, best epoch: 8, best auc: 0.6764, loss: 0.7037523897724216, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.6895, validacc: 0.6518, best epoch: 9, best auc: 0.6895, loss: 0.675392424222709, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.7039, validacc: 0.6523, best epoch: 10, best auc: 0.7039, loss: 0.6497122352533543, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.7133, validacc: 0.6544, best epoch: 11, best auc: 0.7133, loss: 0.6291221851431001, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.722, validacc: 0.6568, best epoch: 12, best auc: 0.722, loss: 0.6117734713197788, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.7317, validacc: 0.6607, best epoch: 13, best auc: 0.7317, loss: 0.598545568459918, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.7399, validacc: 0.6647, best epoch: 14, best auc: 0.7399, loss: 0.5851781955815296, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.7503, validacc: 0.6723, best epoch: 15, best auc: 0.7503, loss: 0.5731050353898208, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.7598, validacc: 0.6745, best epoch: 16, best auc: 0.7598, loss: 0.5607701723076697, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.769, validacc: 0.6803, best epoch: 17, best auc: 0.769, loss: 0.5489562966902256, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.776, validacc: 0.6851, best epoch: 18, best auc: 0.776, loss: 0.538367341028637, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.7847, validacc: 0.6858, best epoch: 19, best auc: 0.7847, loss: 0.5269645164965855, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.7918, validacc: 0.6952, best epoch: 20, best auc: 0.7918, loss: 0.5184065458636969, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.7961, validacc: 0.6954, best epoch: 21, best auc: 0.7961, loss: 0.5110087998413243, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.7991, validacc: 0.6976, best epoch: 22, best auc: 0.7991, loss: 0.5026497526177754, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8031, validacc: 0.7038, best epoch: 23, best auc: 0.8031, loss: 0.4967036753853324, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8069, validacc: 0.7055, best epoch: 24, best auc: 0.8069, loss: 0.49332242447661034, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8089, validacc: 0.7059, best epoch: 25, best auc: 0.8089, loss: 0.4855659652302382, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8132, validacc: 0.7113, best epoch: 26, best auc: 0.8132, loss: 0.4821258299054431, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.8168, validacc: 0.7163, best epoch: 27, best auc: 0.8168, loss: 0.47652747764861414, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.8177, validacc: 0.7171, best epoch: 28, best auc: 0.8177, loss: 0.4699074255830222, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.8196, validacc: 0.7165, best epoch: 29, best auc: 0.8196, loss: 0.46527266048590316, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.8222, validacc: 0.7213, best epoch: 30, best auc: 0.8222, loss: 0.46039900101692915, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.8247, validacc: 0.7251, best epoch: 31, best auc: 0.8247, loss: 0.45756873129572734, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.8247, validacc: 0.7251, best epoch: 31, best auc: 0.8247, loss: 0.45321855357239155, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.8266, validacc: 0.7314, best epoch: 33, best auc: 0.8266, loss: 0.4489673613516976, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.8274, validacc: 0.7311, best epoch: 34, best auc: 0.8274, loss: 0.44586961223181154, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.8286, validacc: 0.7335, best epoch: 35, best auc: 0.8286, loss: 0.4434012909326405, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.8303, validacc: 0.7368, best epoch: 36, best auc: 0.8303, loss: 0.43991133785795894, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.8306, validacc: 0.7364, best epoch: 37, best auc: 0.8306, loss: 0.43565021239403756, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.8316, validacc: 0.7376, best epoch: 38, best auc: 0.8316, loss: 0.4338411279771441, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.8326, validacc: 0.7406, best epoch: 39, best auc: 0.8326, loss: 0.4326589355005294, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.8334, validacc: 0.739, best epoch: 40, best auc: 0.8334, loss: 0.4296511758437176, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.8338, validacc: 0.7409, best epoch: 41, best auc: 0.8338, loss: 0.4262744321857593, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.8354, validacc: 0.742, best epoch: 42, best auc: 0.8354, loss: 0.4254834731945081, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.8356, validacc: 0.7446, best epoch: 43, best auc: 0.8356, loss: 0.42321153527694494, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.8364, validacc: 0.7453, best epoch: 44, best auc: 0.8364, loss: 0.4216851288111281, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 45, validauc: 0.8364, validacc: 0.7453, best epoch: 44, best auc: 0.8364, loss: 0.4203039013084758, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 46, validauc: 0.8374, validacc: 0.7465, best epoch: 46, best auc: 0.8374, loss: 0.4174540198090791, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 47, validauc: 0.8374, validacc: 0.7465, best epoch: 46, best auc: 0.8374, loss: 0.41577976191941685, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 48, validauc: 0.8377, validacc: 0.7485, best epoch: 48, best auc: 0.8377, loss: 0.4151270353403271, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 49, validauc: 0.8385, validacc: 0.7471, best epoch: 49, best auc: 0.8385, loss: 0.4124218115667926, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 50, validauc: 0.8391, validacc: 0.749, best epoch: 50, best auc: 0.8391, loss: 0.41064601287548363, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 51, validauc: 0.8396, validacc: 0.75, best epoch: 51, best auc: 0.8396, loss: 0.40929213760171224, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 52, validauc: 0.8396, validacc: 0.75, best epoch: 51, best auc: 0.8396, loss: 0.40791341363635025, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 53, validauc: 0.8396, validacc: 0.75, best epoch: 51, best auc: 0.8396, loss: 0.4067576884986121, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 54, validauc: 0.8401, validacc: 0.7511, best epoch: 54, best auc: 0.8401, loss: 0.40526247579262015, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 55, validauc: 0.8402, validacc: 0.7517, best epoch: 55, best auc: 0.8402, loss: 0.40499609082726246, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 56, validauc: 0.8406, validacc: 0.7512, best epoch: 56, best auc: 0.8406, loss: 0.4040210615423699, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 57, validauc: 0.8411, validacc: 0.7556, best epoch: 57, best auc: 0.8411, loss: 0.40151670642576587, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 58, validauc: 0.8411, validacc: 0.7556, best epoch: 57, best auc: 0.8411, loss: 0.40090482814777256, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 59, validauc: 0.8411, validacc: 0.7556, best epoch: 57, best auc: 0.8411, loss: 0.39943551378565556, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 60, validauc: 0.8419, validacc: 0.7565, best epoch: 60, best auc: 0.8419, loss: 0.399295819867842, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 61, validauc: 0.8419, validacc: 0.7565, best epoch: 60, best auc: 0.8419, loss: 0.39837570030214003, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 62, validauc: 0.8419, validacc: 0.7565, best epoch: 60, best auc: 0.8419, loss: 0.3970255470815987, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 63, validauc: 0.8423, validacc: 0.756, best epoch: 63, best auc: 0.8423, loss: 0.39650050650060137, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 64, validauc: 0.8423, validacc: 0.756, best epoch: 63, best auc: 0.8423, loss: 0.39483565638827395, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 65, validauc: 0.8425, validacc: 0.756, best epoch: 65, best auc: 0.8425, loss: 0.394489321747588, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 66, validauc: 0.8425, validacc: 0.756, best epoch: 65, best auc: 0.8425, loss: 0.3936513479015667, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 67, validauc: 0.8425, validacc: 0.756, best epoch: 65, best auc: 0.8425, loss: 0.39318155296307217, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 68, validauc: 0.8425, validacc: 0.756, best epoch: 65, best auc: 0.8425, loss: 0.3931132290400703, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 69, validauc: 0.8426, validacc: 0.7579, best epoch: 69, best auc: 0.8426, loss: 0.3912528570594181, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 70, validauc: 0.8426, validacc: 0.7579, best epoch: 69, best auc: 0.8426, loss: 0.39045029917088697, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 71, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.38973635504551435, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 72, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.38937703059520395, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 73, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.38928551843852316, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 74, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.3883121853362504, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 75, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.3870151863746811, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 76, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.38640555096348156, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 77, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.3853200377022461, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 78, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.385403245147661, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 79, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.38418300912965475, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 80, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.3834325162998801, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 81, validauc: 0.8432, validacc: 0.7594, best epoch: 71, best auc: 0.8432, loss: 0.3837958566966411, emb_type: atc, model: akt_forget, save_dir: saved_model/assist2009_akt_forget_atc_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_forget	atc	0.8337	0.7401	-1	-1	0.8432	0.7594	71

@@ -1,0 +1,146 @@
+device:cuda
+2022-08-02 16:19:17 - main - said: load config files.
+Start init data
+assist2009 akt {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 50, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'bridge2algebra2006': {'dpath': '../data/bridge2algebra2006', 'num_q': 129263, 'num_c': 493, 'input_type': ['questions', 'concepts'], 'max_concepts': 5, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'nips_task34': {'dpath': '../data/nips_task34', 'num_q': 948, 'num_c': 57, 'input_type': ['questions', 'concepts'], 'max_concepts': 2, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-08-02 16:19:17 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt', 'emb_type': 'qid', 'save_dir': 'saved_model', 'seed': 3407, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+Start training model: akt, embtype: qid, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-08-02 16:19:20 - main - said: init_model
+2022-08-02 16:19:21 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.773, validacc: 0.7428, best epoch: 1, best auc: 0.773, loss: 0.577553033397233, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.8016, validacc: 0.7659, best epoch: 2, best auc: 0.8016, loss: 0.5250602308457931, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.812, validacc: 0.77, best epoch: 3, best auc: 0.812, loss: 0.49927562802430553, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.817, validacc: 0.7717, best epoch: 4, best auc: 0.817, loss: 0.4859168791735789, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.8199, validacc: 0.7745, best epoch: 5, best auc: 0.8199, loss: 0.4791818064276596, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.8224, validacc: 0.7753, best epoch: 6, best auc: 0.8224, loss: 0.47403671914433115, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.824, validacc: 0.7758, best epoch: 7, best auc: 0.824, loss: 0.4706164794019106, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.825, validacc: 0.7756, best epoch: 8, best auc: 0.825, loss: 0.46821514835567707, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.8266, validacc: 0.7755, best epoch: 9, best auc: 0.8266, loss: 0.4658092040157363, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.8276, validacc: 0.776, best epoch: 10, best auc: 0.8276, loss: 0.4639538681753497, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.8284, validacc: 0.7778, best epoch: 11, best auc: 0.8284, loss: 0.4626488917018035, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.8293, validacc: 0.7768, best epoch: 12, best auc: 0.8293, loss: 0.46052584244816147, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.8307, validacc: 0.7774, best epoch: 13, best auc: 0.8307, loss: 0.45894904434348405, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.8314, validacc: 0.7795, best epoch: 14, best auc: 0.8314, loss: 0.45768507465447555, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.8326, validacc: 0.7801, best epoch: 15, best auc: 0.8326, loss: 0.45581453869598, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.8342, validacc: 0.7812, best epoch: 16, best auc: 0.8342, loss: 0.4539391528370116, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.8353, validacc: 0.7813, best epoch: 17, best auc: 0.8353, loss: 0.4523757529296429, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.8361, validacc: 0.7809, best epoch: 18, best auc: 0.8361, loss: 0.4498975292789893, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.8373, validacc: 0.7819, best epoch: 19, best auc: 0.8373, loss: 0.44770195638861604, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.8385, validacc: 0.7816, best epoch: 20, best auc: 0.8385, loss: 0.4452397974344462, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.8396, validacc: 0.7824, best epoch: 21, best auc: 0.8396, loss: 0.4419945288603251, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.8406, validacc: 0.7833, best epoch: 22, best auc: 0.8406, loss: 0.43964998083350926, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8406, validacc: 0.7833, best epoch: 22, best auc: 0.8406, loss: 0.4360910909655402, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4326801517677477, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4289819389715152, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.42556365887298586, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4225608087365796, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4191075335126502, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4159397699666323, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.4135877914196602, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.8417, validacc: 0.7838, best epoch: 24, best auc: 0.8417, loss: 0.41045603547432713, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.410590596834014, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.40765427640955515, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.40445951033822053, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.40241087145382703, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.401064232143969, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.4005089069968131, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.3971450160166132, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.3953181911176061, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.39350319516105586, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.39319341601972396, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.8421, validacc: 0.7827, best epoch: 32, best auc: 0.8421, loss: 0.3919277625225274, emb_type: qid, model: akt, save_dir: saved_model/assist2009_akt_qid_saved_model_3407_0_0.2_256_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt	qid	0.8336	0.7728	-1	-1	0.8421	0.7827	32

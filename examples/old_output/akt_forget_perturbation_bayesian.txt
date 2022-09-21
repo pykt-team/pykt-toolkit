@@ -1,0 +1,98 @@
+device:cuda
+2022-07-20 01:08:57 - main - said: load config files.
+Start init data
+assist2009 akt_perturbation {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 32
+2022-07-20 01:08:57 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_perturbation', 'emb_type': 'perturbation_bayesian', 'save_dir': 'saved_model', 'seed': 3407, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'lambda_r': 0.3, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+Start training model: akt_perturbation, embtype: perturbation_bayesian, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'lambda_r': 0.3, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 32, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-20 01:09:00 - main - said: init_model
+2022-07-20 01:09:01 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.8014, validacc: 0.7653, best epoch: 1, best auc: 0.8014, loss: 0.38838093199143015, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.8167, validacc: 0.7711, best epoch: 2, best auc: 0.8167, loss: 0.35296059868762536, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.8209, validacc: 0.7736, best epoch: 3, best auc: 0.8209, loss: 0.340402425934177, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.8241, validacc: 0.7752, best epoch: 4, best auc: 0.8241, loss: 0.3350627284517483, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.8269, validacc: 0.775, best epoch: 5, best auc: 0.8269, loss: 0.331831465608725, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.8292, validacc: 0.7763, best epoch: 6, best auc: 0.8292, loss: 0.32908190116988917, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.8316, validacc: 0.7786, best epoch: 7, best auc: 0.8316, loss: 0.326410630509652, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.8341, validacc: 0.7808, best epoch: 8, best auc: 0.8341, loss: 0.3245801207909488, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.8372, validacc: 0.7821, best epoch: 9, best auc: 0.8372, loss: 0.32188661325541146, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.84, validacc: 0.7839, best epoch: 10, best auc: 0.84, loss: 0.3194831713917738, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.8436, validacc: 0.7857, best epoch: 11, best auc: 0.8436, loss: 0.3159369803182121, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.8482, validacc: 0.7874, best epoch: 12, best auc: 0.8482, loss: 0.3118109171834609, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.8517, validacc: 0.7901, best epoch: 13, best auc: 0.8517, loss: 0.30651441726666084, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.8541, validacc: 0.7893, best epoch: 14, best auc: 0.8541, loss: 0.3003960793635393, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.8563, validacc: 0.7906, best epoch: 15, best auc: 0.8563, loss: 0.2945544218094598, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.2886700691926888, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.28301430706824177, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.27873378251522957, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.27531251408275836, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.2716797282412567, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.26793921841749857, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.2639348747885726, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.26075358009611993, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.2573814516058304, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.2547087024997426, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8566, validacc: 0.7911, best epoch: 16, best auc: 0.8566, loss: 0.25137833165956797, emb_type: perturbation_bayesian, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_bayesian_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_perturbation	perturbation_bayesian	0.8486	0.7808	-1	-1	0.8566	0.7911	16

@@ -44,91 +44,19 @@ class DeepBKT(nn.Module):
             self.bayesian = False
             self.forgetting = False
             self.difficulty = False
-        elif self.emb_type == "augmentation":
-            self.augmentation = True
-            self.bayesian = False
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "augmentation_v2":
-            self.augmentation = True
-            self.bayesian = False
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "augmentation_v3":
-            self.augmentation = True
-            self.bayesian = False
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "bayesian":
+            self.dina = False
+        elif self.emb_type.find("bayesian") != -1:
             self.augmentation = False
             self.bayesian = True
             self.forgetting = False
             self.difficulty = False
-        elif self.emb_type == "bayesian_v2":
-            self.augmentation = False
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "bayesian_v3":
-            self.augmentation = False
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "bayesian_v4":
-            self.augmentation = False
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type.find("forgetting") != -1:
-            self.augmentation = False
-            self.bayesian = False
-            self.forgetting = True
-            self.difficulty = False
-        elif self.emb_type == "augmentation_bayesian":
-            self.augmentation = True
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "augmentation_bayesian_v2":
-            self.augmentation = True
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "augmentation_bayesian_v3":
-            self.augmentation = True
-            self.bayesian = True
-            self.forgetting = False
-            self.difficulty = False
-        elif self.emb_type == "augmentation_forgetting":
-            self.augmentation = True
-            self.bayesian = False
-            self.forgetting = True
-            self.difficulty = False
-        elif self.emb_type == "all":
-            self.augmentation = True
-            self.bayesian = True
-            self.forgetting = True
-            self.difficulty = False
-        elif self.emb_type == "bayesian_forgetting":
-            self.augmentation = False
-            self.bayesian = True
-            self.forgetting = True
-            self.difficulty = False
-        elif self.emb_type == "difficulty":
-            self.difficulty = True
+            self.dina = False
+        elif self.emb_type.find("dina") != -1:
             self.augmentation = False
             self.bayesian = False
             self.forgetting = False
-        elif self.emb_type == "difficulty_v2":
-            self.difficulty = True
-            self.augmentation = False
-            self.bayesian = False
-            self.forgetting = False
-        elif self.emb_type == "difficulty_v3":
-            self.difficulty = True
-            self.augmentation = False
-            self.bayesian = False
-            self.forgetting = False
+            self.difficulty = False
+            self.dina = True
 
         if self.n_pid > 0:
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
@@ -139,40 +67,17 @@ class DeepBKT(nn.Module):
         self.qa_embed = nn.Embedding(2, embed_l)
         self.que_embed = nn.Embedding(self.n_pid + 1, embed_l)
 
-        if self.augmentation or self.bayesian:
+        if self.bayesian:
             self.guess = nn.Embedding(self.n_question + 1, 1)
             self.slipping = nn.Embedding(self.n_question + 1, 1)
             self.Sigmoid = nn.Sigmoid()
-            if self.bayesian:
-                self.mastery = nn.Embedding(self.n_question + 1, embed_l)
-                self.tanh = nn.Tanh()
-                self.sigmoid = nn.Sigmoid()
-                self.bayesian_linear1 = nn.Linear(embed_l + d_model, embed_l)
-                if emb_type in ["bayesian_v2", "bayesian_v3"]:
-                    self.bayesian_linear2 = nn.Linear(embed_l, 2 * embed_l)
-                    self.bayesian_linear3 = nn.Linear(embed_l, 2 * embed_l)
-                    self.bayesian_linear4 = nn.Linear(2*embed_l, embed_l)
-            
-        if self.forgetting:
-            self.dF = dict()
-            self.dr2w = dict()
-            self.dr = dict()
-            self.avgf = 0
-
-        if self.difficulty:
-            self.d_ans = dict()
-            self.d_corr = dict()
-            self.d_diff = dict()
-            self.avgdiff = 0
-            if emb_type != "difficulty_v2":
-                self.diff_linear = nn.Sequential(
-                nn.Linear(embed_l,
-                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-                nn.Linear(final_fc_dim, 1)
-            )
-            else:
-                self.diff_linear = nn.Linear(embed_l, 1)                
-
+            self.mastery = nn.Embedding(self.n_question + 1, embed_l)
+        elif self.dina:
+            self.guess = nn.Embedding(self.n_question + 1, 1)
+            self.slipping = nn.Embedding(self.n_question + 1, 1)
+            self.mastery = nn.Linear(embed_l, 1)
+            self.Sigmoid = nn.Sigmoid()            
+                  
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  seq_len=seq_len, kq_same=self.kq_same, model_type=self.model_type, emb_type=self.emb_type, use_pos=self.use_pos)
@@ -184,120 +89,11 @@ class DeepBKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, 1)
         )
-
-        # self.out = nn.Sequential(
-        #     nn.Linear(d_model + embed_l,
-        #             embed_l), nn.ReLU(), nn.Dropout(self.dropout)
-        #     )
-        # self.pred_linear = nn.Sequential(
-        #     nn.Linear(embed_l,
-        #             final_fc_dim), nn.ReLu(), nn.Dropout(self.dropout),
-        #     nn.Linear(final_fc_dim, 1)
-        # )
+        # self.out = nn.Linear(embed_l, 1)
 
         self.reset()
 
         self.qmatrix_t = nn.Embedding.from_pretrained(qmatrix.permute(1,0), freeze=True)
-
-    def calSkillF(self, cs, rs, sm):
-        concepts = set()
-        for i in range(cs.shape[0]): # batch
-            drs = dict()
-            for j in range(cs.shape[1]): # seqlen
-                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                # print(f"curc: {curc}")
-                if j != 0 and sm[i][j-1] != 1:
-                    break
-                
-                if curr == 1:
-                    self.dr.setdefault(curc, 0)
-                    self.dr[curc] += 1
-                elif curr == 0 and curc in drs and drs[curc][-1][0] == 1:
-                    self.dr2w.setdefault(curc, 0)
-                    self.dr2w[curc] += 1
-                drs.setdefault(curc, list())
-                drs[curc].append([curr, j])
-                concepts.add(curc)
-        print(f"dr2w: {self.dr2w}, dr: {self.dr}")
-        sum = 0
-        for c in self.dr:
-            if c not in self.dr2w:
-                self.dF[c] = 0
-            else:
-                self.dF[c] = self.dr2w[c] / self.dr[c]
-                sum += self.dr2w[c] / self.dr[c]
-        self.avgf = sum / len(self.dr)
-        print(f"dF: {self.dF}, avgf: {self.avgf}")
-
-    #----------forgetting version_v4-------------
-    def generate_forget(self, cs, rs):
-        fss = []
-        sub_dr2w, sub_dr = dict(), dict()
-        # print(f"cs: {cs.shape}")
-        for i in range(cs.shape[0]): # batch
-            curfs = []
-            sub_drs = dict()
-            dlast = dict()
-            for j in range(cs.shape[1]): # seqlen
-                curc, curr = cs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                if curc not in dlast:
-                    delta = 1
-                else:
-                    delta = j - dlast[curc]
-                if curc not in sub_dr:
-                    curf = (1 - self.dF.get(curc, self.avgf)) ** delta
-                else:
-                    curf = (1 - ((sub_dr2w.get(curc,0) + self.dr2w.get(curc,0))/(sub_dr[curc] + self.dr.get(curc,0)))) ** delta
-                curfs.append([curf]) 
-                dlast[curc] = j
-                if curr == 1:
-                    sub_dr.setdefault(curc, 0)
-                    sub_dr[curc] += 1
-                elif curr == 0 and curc in sub_drs and sub_drs[curc][-1][0] == 1:
-                    sub_dr2w.setdefault(curc, 0)
-                    sub_dr2w[curc] += 1
-                sub_drs.setdefault(curc, list())
-                sub_drs[curc].append([curr, j]) 
-            # print(f"{len(curfs)}")                  
-            fss.append(curfs)
-
-        # print(f"fss:{len(fss)}, fss:{len(fss[0])}")
-            # assert False
-        return torch.tensor(fss).float().to(device)
-
-    def calQueDiff(self, qs, rs, sm):
-        questions = set()
-        for i in range(qs.shape[0]): # batch
-            for j in range(qs.shape[1]): # seqlen
-                curq, curr = qs[i][j].detach().cpu().item(), rs[i][j].detach().cpu().item()
-                # print(f"curc: {curc}")
-                if j != 0 and sm[i][j-1] != 1:
-                    break
-                if curr == 0:
-                    self.d_corr.setdefault(curq, 0)
-                    self.d_corr[curq] += 1
-                self.d_ans.setdefault(curq, 0)
-                self.d_ans[curq] += 1
-                questions.add(curq)
-        # print(f"d_corr: {self.d_corr}, d_ans: {self.d_ans}")
-        for q in self.d_ans:
-            if q not in self.d_corr:
-                self.d_diff[q] = 0
-            else:
-                self.d_diff[q] = self.d_corr[q] / self.d_ans[q]
-        self.avgdiff = np.mean(list(self.d_diff.values()))
-        # print(f"d_diff: {self.d_diff}, avgdiff: {self.avgdiff}")
-
-    def generate_diff(self, qs, rs):
-        fss = []
-        for i in range(qs.shape[0]): # batch
-            curfs = []
-            for j in range(qs.shape[1]): # seqlen
-                curq = qs[i][j].detach().cpu().item()
-                curf = self.d_diff.get(curq, self.avgdiff)
-                curfs.append([curf])     
-            fss.append(curfs)
-        return torch.tensor(fss).float().to(device)
 
     def reset(self):
         for p in self.parameters():
@@ -308,17 +104,6 @@ class DeepBKT(nn.Module):
         batch_size = q_data.shape[0]
         seqlen = q_data.shape[1]
         emb_type = self.emb_type
-
-        # -----------------new version-------------------
-        if self.augmentation:
-            kc_slipping = self.slipping(q_data)
-            kc_slipping = torch.squeeze(self.Sigmoid(kc_slipping) * self.sigmoidb)
-            kc_guess = self.guess(q_data)
-            kc_guess = torch.squeeze(self.Sigmoid(kc_guess) * self.sigmoida)
-            new_target = torch.where(target == 0, torch.bernoulli(kc_slipping), 1 - torch.bernoulli(kc_guess))
-            q_data = q_data.repeat(2,1,1).reshape(-1, seqlen)
-            pid_data = pid_data.repeat(2,1,1).reshape(-1, seqlen)
-            target = torch.stack([target, new_target]).reshape(-1,seqlen).long()
 
         # Batch First
         q_embed_data = self.q_embed(q_data)
@@ -339,6 +124,7 @@ class DeepBKT(nn.Module):
                 relation_que_emb = torch.reshape(relation_que_emb / que_num, [2*batch_size,seqlen,-1])
             else:
                 relation_que_emb = torch.reshape(relation_que_emb / que_num, [batch_size,seqlen,-1])
+            # final_q_embed_data = final_q_embed_data + relation_que_emb
             new_q_embed_data = q_embed_data + relation_que_emb
             r_embed_data = self.qa_embed(target)
             final_qa_embed_data = new_q_embed_data + r_embed_data
@@ -347,77 +133,50 @@ class DeepBKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         if self.forgetting:
-            sLeft = self.generate_forget(q_data, target) #当前kc的遗忘率
+            sLeft = self.calfseqs(q_data) #当前kc的遗忘率
             # print(f"sLeft: {sLeft}")
-            d_output = self.model(final_q_embed_data, final_qa_embed_data, sLeft)
+            pid_embed_data=sLeft
+            d_output = self.model(final_q_embed_data, final_qa_embed_data, forget_rate=None, pid_embed_data=pid_embed_data)
         else:
             d_output = self.model(final_q_embed_data, final_qa_embed_data)
-            
-        #-----------------new version--------------
-        if self.bayesian and not self.augmentation and emb_type == "bayesian":
-            kc_slipping = self.slipping(q_data)
-            kc_slipping = self.Sigmoid(kc_slipping)
-            kc_guess = self.guess(q_data)
-            kc_guess = self.Sigmoid(kc_guess)
-            d_mastery = self.mastery(q_data)
-            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
-            bayesian_input = self.bayesian_linear1(bayesian_input)
-            output = bayesian_input * (1 - kc_slipping) + (d_mastery - bayesian_input) * kc_guess
-        # 先归一化再进行bayesian
-        elif self.bayesian and not self.augmentation and emb_type == "bayesian_v2":
-            kc_slipping = self.slipping(q_data)
-            kc_slipping = self.Sigmoid(kc_slipping)
-            kc_guess = self.guess(q_data)
-            kc_guess = self.Sigmoid(kc_guess)
-            d_mastery = self.mastery(q_data)
-            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
-            bayesian_input = self.bayesian_linear1(bayesian_input)
-            # print(f"bayesian_input: {bayesian_input.shape}")
-            bayesian_input1 = self.bayesian_linear2(bayesian_input)
-            bayesian_input_tmp = self.tanh(bayesian_input1)
-            bayesian_input2 = self.bayesian_linear3(bayesian_input)
-            bayesian_gain = self.sigmoid(bayesian_input2)
-            bayesian_final_input = (bayesian_input_tmp + 1)/2 * bayesian_gain
-            bayesian_final_input = self.bayesian_linear4(bayesian_final_input)
-            output = bayesian_final_input * (1 - kc_slipping) + (d_mastery - bayesian_final_input) * kc_guess
-        # 先bayesian再进行归一化
-        elif self.bayesian and not self.augmentation and emb_type == "bayesian_v3":
-            kc_slipping = self.slipping(q_data)
-            kc_slipping = self.Sigmoid(kc_slipping)
-            kc_guess = self.guess(q_data)
-            kc_guess = self.Sigmoid(kc_guess)
-            d_mastery = self.mastery(q_data)
-            bayesian_input = torch.cat([d_output, final_q_embed_data], dim=-1)
-            bayesian_input = self.bayesian_linear1(bayesian_input)
-            bayesian_output = bayesian_input * (1 - kc_slipping) + (d_mastery - bayesian_input) * kc_guess
-            bayesian_output1 = self.bayesian_linear2(bayesian_output)
-            output_tmp = self.tanh(bayesian_output1)
-            bayesian_output2 = self.bayesian_linear3(bayesian_output)
-            output_gain = self.sigmoid(bayesian_output2)
-            output = (output_tmp + 1)/2 * output_gain
-            output = self.bayesian_linear4(output)
-        elif self.bayesian and self.augmentation:
-            # print(f"using augmentation and bayesian")
-            tmp_output = output.reshape(2, batch_size, seqlen, -1)
-            new_qdata = q_data.reshape(2, batch_size, -1)
-            kc_slipping = self.slipping(new_qdata[0])
-            kc_slipping = self.Sigmoid(kc_slipping)
-            kc_guess = self.guess(new_qdata[0])
-            kc_guess = self.Sigmoid(kc_guess)
-            d_mastery = self.mastery(new_qdata[0])
-            new_ouput = tmp_output[0] * (1 - kc_slipping) + (d_mastery - tmp_output[0]) * kc_guess
-            output = torch.stack([new_ouput, tmp_output[1]])
 
-        if emb_type == "qid":
+        if emb_type == "qid" or emb_type.find("forgetting") != -1 or emb_type.find("dina") != -1:
             concat_q = torch.cat([d_output, final_q_embed_data], dim=-1)
         else:
             concat_q = torch.cat([output, final_q_embed_data], dim=-1)
 
         output = self.out(concat_q).squeeze(-1)
-        # output = self.out(concat_q)
         m = nn.Sigmoid()
-        # output = self.pred_linear(output).squeeze(-1)
         preds = m(output)
+
+        #-----------------new version--------------
+        if self.bayesian and not self.augmentation and emb_type == "bayesian":
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping) * self.sigmoidb
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess) * self.sigmoida
+            d_mastery = self.mastery(q_data)
+            bayesian_input = self.Sigmoid(d_output) * d_output
+            output = bayesian_input * (1 - kc_slipping) + (d_mastery - bayesian_input) * kc_guess
+        elif self.bayesian and not self.augmentation and emb_type == "bayesian_v2":
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping) * self.sigmoidb
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess) * self.sigmoida
+            d_mastery = self.mastery(q_data)
+            output = d_output * (1 - kc_slipping) + (d_mastery - d_output) * kc_guess
+            output = self.Sigmoid(output) * output
+        elif self.dina:
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping)
+            kc_slipping = self.Sigmoid(kc_slipping) * self.sigmoidb
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess)
+            kc_guess = self.Sigmoid(kc_guess) * self.sigmoida
+            # theta = self.mastery(d_output)
+            # knowledge = self.qmatrix_t(q_data)
+            # n = torch.sum(knowledge * (self.Sigmoid(theta) - 0.5), dim=2)
+            # n = self.Sigmoid(theta)
 
         if not qtest and emb_type.find("difficulty") != -1:
             target_diff = self.generate_diff(q_data, target).squeeze(-1)
@@ -425,16 +184,24 @@ class DeepBKT(nn.Module):
             pred_diff = m(pred_diff)
             return preds, target_diff, pred_diff
         elif not qtest and not self.augmentation:
+            if self.dina:
+                # print(f"preds_before:{preds}")
+                kc_guess = torch.squeeze(kc_guess,-1)
+                kc_slipping = torch.squeeze(kc_slipping,-1)
+                # n = torch.squeeze(n,-1)
+                preds = torch.where(preds >= 0.5, 1, 0)
+                preds = (1 - kc_slipping) ** preds * kc_guess**(1 - preds)
+                preds = torch.where(preds >= 0.5, 1, 0)
+                # preds = preds * (1 - kc_slipping) + (1 - preds) * kc_guess
             return preds
         elif not qtest and self.augmentation and emb_type == "augmentation":
             preds = preds.reshape(-1, batch_size, seqlen)
             # print(f"preds: {preds[0].shape}")
             return preds[0], preds[1], new_target
-        elif not qtest and self.augmentation and emb_type in ["augmentation_v2", "augmentation_v3", "augmentation_bayesian_v2", "augmentation_bayesian_v3"]:
-            d_output = d_output.reshape(-1, batch_size, seqlen)
+        elif not qtest and self.augmentation and emb_type in ["augmentation_v2", "augmentation_v3", "augmentation_bayesian", "augmentation_bayesian_v2", "augmentation_bayesian_v3"]:
+            tmp_d_output = d_output.reshape(2, batch_size, seqlen, -1)
             preds = preds.reshape(-1, batch_size, seqlen)
-            # print(f"preds: {preds[0].shape}")
-            return preds[0], d_output[0], d_output[1]
+            return preds[0], tmp_d_output[0], tmp_d_output[1]
         elif qtest and self.augmentation:
             preds = preds.reshape(-1, batch_size, seqlen)
             concat_q = concat_q.reshape(-1, batch_size, seqlen)
@@ -607,8 +374,8 @@ class MultiHeadAttention(nn.Module):
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
         gammas = self.gammas
-        if self.emb_type.find("pdiff") == -1:
-            pdiff = None
+        # if self.emb_type.find("pdiff") == -1:
+        #     pdiff = None
         scores = attention(q, k, v, self.d_k,
                         mask, self.dropout, zero_pad, gammas, forget_rate, pdiff)
 
@@ -638,36 +405,39 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, forget_rate=Non
     # print(f"scores: {scores.shape}")
 
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
+    if pdiff is not None:
+        x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
+        x2 = x1.transpose(0, 1).contiguous()
 
-    # x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
-    # x2 = x1.transpose(0, 1).contiguous()
-
-    # with torch.no_grad():
-    #     scores_ = scores.masked_fill(mask == 0, -1e32)
-    #     scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
-    #     scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
-    #     distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
-    #     disttotal_scores = torch.sum(
-    #         scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
-    #     # print(f"distotal_scores: {disttotal_scores}")
-    #     position_effect = torch.abs(
-    #         x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
-    #     # bs, 8, sl, sl positive distance
-    #     dist_scores = torch.clamp(
-    #         (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
-    #     dist_scores = dist_scores.sqrt().detach()
-    # m = nn.Softplus()
-    # gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
-    # # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
-    # if pdiff == None:
-    #     total_effect = torch.clamp(torch.clamp(
-    #         (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-    # else:
-    #     diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
-    #     diff = diff.sigmoid().exp()
-    #     total_effect = torch.clamp(torch.clamp(
-    #         (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-    # scores = scores * total_effect
+        with torch.no_grad():
+            scores_ = scores.masked_fill(mask == 0, -1e32)
+            scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
+            scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
+            distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
+            disttotal_scores = torch.sum(
+                scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
+            # print(f"distotal_scores: {disttotal_scores}")
+            position_effect = torch.abs(
+                x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
+            # bs, 8, sl, sl positive distance
+            dist_scores = torch.clamp(
+                (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
+            dist_scores = dist_scores.sqrt().detach()
+        m = nn.Softplus()
+        gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
+        # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
+        # print(f"pdiff: {pdiff}")
+        if pdiff == None:
+            total_effect = torch.clamp(torch.clamp(
+                (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        else:
+            # print("pdiff")
+            diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
+            diff = diff.sigmoid().exp()
+            # total_effect = torch.clamp(torch.clamp(
+            #     (diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+            total_effect = torch.clamp(torch.clamp(diff, min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        scores = scores * total_effect
     # print(f"forget_rate: {forget_rate.shape}")
     # print(f"scores: {scores}")
     if forget_rate is not None:

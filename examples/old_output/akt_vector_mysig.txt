@@ -1,0 +1,524 @@
+device:cuda
+2022-07-14 18:58:41 - main - said: load config files.
+Start init data
+assist2009 akt_vector {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-14 18:58:41 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_vector', 'emb_type': 'qid', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+Start training model: akt_vector, embtype: qid, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-14 18:58:44 - main - said: init_model
+2022-07-14 18:58:45 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.514, validacc: 0.6499, best epoch: 1, best auc: 0.514, loss: 1.6515914004683496, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.5673, validacc: 0.6442, best epoch: 2, best auc: 0.5673, loss: 0.8241287697503838, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.677, validacc: 0.6873, best epoch: 3, best auc: 0.677, loss: 0.631527087947934, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.7, validacc: 0.6954, best epoch: 4, best auc: 0.7, loss: 0.6022653396082035, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.7079, validacc: 0.6966, best epoch: 5, best auc: 0.7079, loss: 0.5927750849995773, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.7125, validacc: 0.6977, best epoch: 6, best auc: 0.7125, loss: 0.588971577210843, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.7161, validacc: 0.7, best epoch: 7, best auc: 0.7161, loss: 0.5862776944794349, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.7193, validacc: 0.7019, best epoch: 8, best auc: 0.7193, loss: 0.5834817615414803, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.7222, validacc: 0.7052, best epoch: 9, best auc: 0.7222, loss: 0.5815469861818944, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.7248, validacc: 0.7071, best epoch: 10, best auc: 0.7248, loss: 0.5787354388577031, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.7276, validacc: 0.7088, best epoch: 11, best auc: 0.7276, loss: 0.5774785520256661, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.7304, validacc: 0.7113, best epoch: 12, best auc: 0.7304, loss: 0.574344870522813, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.7335, validacc: 0.7138, best epoch: 13, best auc: 0.7335, loss: 0.5723540900525003, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.7367, validacc: 0.7167, best epoch: 14, best auc: 0.7367, loss: 0.5694115469534796, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.7401, validacc: 0.7201, best epoch: 15, best auc: 0.7401, loss: 0.5663240723606444, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.7433, validacc: 0.7228, best epoch: 16, best auc: 0.7433, loss: 0.5645819927763781, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.7466, validacc: 0.725, best epoch: 17, best auc: 0.7466, loss: 0.5614385833121881, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.7497, validacc: 0.727, best epoch: 18, best auc: 0.7497, loss: 0.5593631455249303, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.7529, validacc: 0.7292, best epoch: 19, best auc: 0.7529, loss: 0.5565573591462848, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.7564, validacc: 0.7317, best epoch: 20, best auc: 0.7564, loss: 0.5542343875537814, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.7598, validacc: 0.7348, best epoch: 21, best auc: 0.7598, loss: 0.5508172286107867, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.7633, validacc: 0.7373, best epoch: 22, best auc: 0.7633, loss: 0.548040287379015, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.7667, validacc: 0.74, best epoch: 23, best auc: 0.7667, loss: 0.5459536232846137, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.7697, validacc: 0.7422, best epoch: 24, best auc: 0.7697, loss: 0.5434882185448725, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.7724, validacc: 0.7432, best epoch: 25, best auc: 0.7724, loss: 0.5402798954087755, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.7747, validacc: 0.7445, best epoch: 26, best auc: 0.7747, loss: 0.5387203399163473, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.7767, validacc: 0.7451, best epoch: 27, best auc: 0.7767, loss: 0.5362414388592941, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.7783, validacc: 0.7456, best epoch: 28, best auc: 0.7783, loss: 0.5347577545188971, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.7798, validacc: 0.7458, best epoch: 29, best auc: 0.7798, loss: 0.5331849122615737, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.7812, validacc: 0.7469, best epoch: 30, best auc: 0.7812, loss: 0.5319653948906313, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.7824, validacc: 0.7474, best epoch: 31, best auc: 0.7824, loss: 0.5305874043956563, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.7838, validacc: 0.748, best epoch: 32, best auc: 0.7838, loss: 0.5288546339424506, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.785, validacc: 0.7486, best epoch: 33, best auc: 0.785, loss: 0.5270442767305663, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.7862, validacc: 0.7493, best epoch: 34, best auc: 0.7862, loss: 0.5255394474410896, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.7875, validacc: 0.7498, best epoch: 35, best auc: 0.7875, loss: 0.5247848741392759, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.7888, validacc: 0.7507, best epoch: 36, best auc: 0.7888, loss: 0.5231332892719146, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.7901, validacc: 0.7513, best epoch: 37, best auc: 0.7901, loss: 0.5224723131131636, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.7915, validacc: 0.7519, best epoch: 38, best auc: 0.7915, loss: 0.5203969832010522, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.7928, validacc: 0.7524, best epoch: 39, best auc: 0.7928, loss: 0.5192089807505259, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.7943, validacc: 0.7533, best epoch: 40, best auc: 0.7943, loss: 0.5174999016851922, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.7957, validacc: 0.7546, best epoch: 41, best auc: 0.7957, loss: 0.5161782452365778, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.7971, validacc: 0.7563, best epoch: 42, best auc: 0.7971, loss: 0.5148959721731762, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.7987, validacc: 0.7573, best epoch: 43, best auc: 0.7987, loss: 0.5133621657824836, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.8004, validacc: 0.7581, best epoch: 44, best auc: 0.8004, loss: 0.5114502459049745, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 45, validauc: 0.802, validacc: 0.7597, best epoch: 45, best auc: 0.802, loss: 0.5097111700065114, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 46, validauc: 0.8036, validacc: 0.7608, best epoch: 46, best auc: 0.8036, loss: 0.5079953830672428, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 47, validauc: 0.805, validacc: 0.7623, best epoch: 47, best auc: 0.805, loss: 0.5069458406718689, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 48, validauc: 0.8065, validacc: 0.7634, best epoch: 48, best auc: 0.8065, loss: 0.5041201771874353, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 49, validauc: 0.8077, validacc: 0.7647, best epoch: 49, best auc: 0.8077, loss: 0.5035199838256275, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 50, validauc: 0.809, validacc: 0.7649, best epoch: 50, best auc: 0.809, loss: 0.501291589354326, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 51, validauc: 0.8103, validacc: 0.7655, best epoch: 51, best auc: 0.8103, loss: 0.49989040123563716, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 52, validauc: 0.8117, validacc: 0.7662, best epoch: 52, best auc: 0.8117, loss: 0.4977593229576001, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 53, validauc: 0.813, validacc: 0.7663, best epoch: 53, best auc: 0.813, loss: 0.49683173945732945, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 54, validauc: 0.8143, validacc: 0.7671, best epoch: 54, best auc: 0.8143, loss: 0.49452359954926206, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 55, validauc: 0.8155, validacc: 0.7674, best epoch: 55, best auc: 0.8155, loss: 0.4938478255042397, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 56, validauc: 0.8166, validacc: 0.7679, best epoch: 56, best auc: 0.8166, loss: 0.4915889391606738, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 57, validauc: 0.8175, validacc: 0.7686, best epoch: 57, best auc: 0.8175, loss: 0.49055752312122686, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 58, validauc: 0.8184, validacc: 0.769, best epoch: 58, best auc: 0.8184, loss: 0.48962445788823744, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 59, validauc: 0.8191, validacc: 0.77, best epoch: 59, best auc: 0.8191, loss: 0.4879172285918089, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 60, validauc: 0.8198, validacc: 0.7704, best epoch: 60, best auc: 0.8198, loss: 0.48737564748149387, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 61, validauc: 0.8203, validacc: 0.7707, best epoch: 61, best auc: 0.8203, loss: 0.48682332305694614, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 62, validauc: 0.8208, validacc: 0.7711, best epoch: 62, best auc: 0.8208, loss: 0.4856694960361789, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 63, validauc: 0.8214, validacc: 0.7714, best epoch: 63, best auc: 0.8214, loss: 0.48364033789728755, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 64, validauc: 0.822, validacc: 0.7718, best epoch: 64, best auc: 0.822, loss: 0.48305282097706725, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 65, validauc: 0.8227, validacc: 0.7723, best epoch: 65, best auc: 0.8227, loss: 0.48254470379001013, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 66, validauc: 0.8235, validacc: 0.7728, best epoch: 66, best auc: 0.8235, loss: 0.4813583156483426, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 67, validauc: 0.8242, validacc: 0.7738, best epoch: 67, best auc: 0.8242, loss: 0.48042457833759333, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 68, validauc: 0.8248, validacc: 0.7737, best epoch: 68, best auc: 0.8248, loss: 0.4796868259905105, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 69, validauc: 0.8253, validacc: 0.7739, best epoch: 69, best auc: 0.8253, loss: 0.478939858794629, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 70, validauc: 0.8257, validacc: 0.7735, best epoch: 70, best auc: 0.8257, loss: 0.4779295130114805, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 71, validauc: 0.8261, validacc: 0.774, best epoch: 71, best auc: 0.8261, loss: 0.47767324439128683, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 72, validauc: 0.8265, validacc: 0.7741, best epoch: 72, best auc: 0.8265, loss: 0.47655962963686066, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 73, validauc: 0.8268, validacc: 0.774, best epoch: 73, best auc: 0.8268, loss: 0.47572536283931494, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 74, validauc: 0.8273, validacc: 0.7742, best epoch: 74, best auc: 0.8273, loss: 0.47488146542815696, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 75, validauc: 0.8276, validacc: 0.7745, best epoch: 75, best auc: 0.8276, loss: 0.47372426188064204, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 76, validauc: 0.828, validacc: 0.7748, best epoch: 76, best auc: 0.828, loss: 0.4732950318657057, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 77, validauc: 0.8285, validacc: 0.7753, best epoch: 77, best auc: 0.8285, loss: 0.4725547414259443, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 78, validauc: 0.8291, validacc: 0.7757, best epoch: 78, best auc: 0.8291, loss: 0.47179005219723735, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 79, validauc: 0.8296, validacc: 0.776, best epoch: 79, best auc: 0.8296, loss: 0.471495678824109, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 80, validauc: 0.8302, validacc: 0.7763, best epoch: 80, best auc: 0.8302, loss: 0.4702453949222068, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 81, validauc: 0.8307, validacc: 0.777, best epoch: 81, best auc: 0.8307, loss: 0.4693048932123918, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 82, validauc: 0.8314, validacc: 0.7771, best epoch: 82, best auc: 0.8314, loss: 0.46823018899559443, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 83, validauc: 0.832, validacc: 0.7776, best epoch: 83, best auc: 0.832, loss: 0.4687161885501097, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 84, validauc: 0.8325, validacc: 0.7779, best epoch: 84, best auc: 0.8325, loss: 0.4665796349541309, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 85, validauc: 0.8331, validacc: 0.7783, best epoch: 85, best auc: 0.8331, loss: 0.4668323848814591, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 86, validauc: 0.8336, validacc: 0.7788, best epoch: 86, best auc: 0.8336, loss: 0.465266186189176, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 87, validauc: 0.8341, validacc: 0.7792, best epoch: 87, best auc: 0.8341, loss: 0.4645827727738571, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 88, validauc: 0.8346, validacc: 0.7791, best epoch: 88, best auc: 0.8346, loss: 0.4631305129453091, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 89, validauc: 0.8352, validacc: 0.7791, best epoch: 89, best auc: 0.8352, loss: 0.4624341293739162, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 90, validauc: 0.8357, validacc: 0.7793, best epoch: 90, best auc: 0.8357, loss: 0.4617037987462858, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 91, validauc: 0.8362, validacc: 0.7799, best epoch: 91, best auc: 0.8362, loss: 0.4613696121821193, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 92, validauc: 0.8366, validacc: 0.7797, best epoch: 92, best auc: 0.8366, loss: 0.45966537027954124, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 93, validauc: 0.8372, validacc: 0.7803, best epoch: 93, best auc: 0.8372, loss: 0.4596550584526055, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 94, validauc: 0.8377, validacc: 0.7806, best epoch: 94, best auc: 0.8377, loss: 0.4586596927832252, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 95, validauc: 0.8381, validacc: 0.781, best epoch: 95, best auc: 0.8381, loss: 0.45716954329054227, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 96, validauc: 0.8384, validacc: 0.7811, best epoch: 96, best auc: 0.8384, loss: 0.45702554841857096, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 97, validauc: 0.839, validacc: 0.7815, best epoch: 97, best auc: 0.839, loss: 0.4558248491230484, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 98, validauc: 0.8394, validacc: 0.7817, best epoch: 98, best auc: 0.8394, loss: 0.4547294857871657, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 99, validauc: 0.8399, validacc: 0.7823, best epoch: 99, best auc: 0.8399, loss: 0.45395551436764175, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 100, validauc: 0.8403, validacc: 0.7826, best epoch: 100, best auc: 0.8403, loss: 0.4536393482782701, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 101, validauc: 0.8408, validacc: 0.7829, best epoch: 101, best auc: 0.8408, loss: 0.4523529301725648, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 102, validauc: 0.8412, validacc: 0.7831, best epoch: 102, best auc: 0.8412, loss: 0.4510335483554917, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 103, validauc: 0.8417, validacc: 0.7832, best epoch: 103, best auc: 0.8417, loss: 0.4506224593399746, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 104, validauc: 0.8421, validacc: 0.7836, best epoch: 104, best auc: 0.8421, loss: 0.4498085929081705, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 105, validauc: 0.8426, validacc: 0.7835, best epoch: 105, best auc: 0.8426, loss: 0.44889201041868354, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 106, validauc: 0.8428, validacc: 0.7839, best epoch: 106, best auc: 0.8428, loss: 0.4478179653857712, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 107, validauc: 0.8434, validacc: 0.7839, best epoch: 107, best auc: 0.8434, loss: 0.44717072399197527, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 108, validauc: 0.8438, validacc: 0.7844, best epoch: 108, best auc: 0.8438, loss: 0.4460800702561128, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 109, validauc: 0.8443, validacc: 0.7848, best epoch: 109, best auc: 0.8443, loss: 0.4449062776846855, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 110, validauc: 0.8448, validacc: 0.7851, best epoch: 110, best auc: 0.8448, loss: 0.4435658983371211, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 111, validauc: 0.845, validacc: 0.785, best epoch: 111, best auc: 0.845, loss: 0.44299191230309615, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 112, validauc: 0.8455, validacc: 0.7855, best epoch: 112, best auc: 0.8455, loss: 0.4424558771666694, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 113, validauc: 0.8458, validacc: 0.7854, best epoch: 113, best auc: 0.8458, loss: 0.44164770705480705, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 114, validauc: 0.8462, validacc: 0.7857, best epoch: 114, best auc: 0.8462, loss: 0.44076901043459404, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 115, validauc: 0.8466, validacc: 0.7864, best epoch: 115, best auc: 0.8466, loss: 0.43992875544523624, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 116, validauc: 0.847, validacc: 0.7863, best epoch: 116, best auc: 0.847, loss: 0.4383835101449969, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 117, validauc: 0.8473, validacc: 0.7859, best epoch: 117, best auc: 0.8473, loss: 0.43804607089894887, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 118, validauc: 0.8477, validacc: 0.7865, best epoch: 118, best auc: 0.8477, loss: 0.43703167425833706, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 119, validauc: 0.8481, validacc: 0.7866, best epoch: 119, best auc: 0.8481, loss: 0.4363205504369955, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 120, validauc: 0.8483, validacc: 0.7868, best epoch: 120, best auc: 0.8483, loss: 0.4347510306508571, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 121, validauc: 0.8487, validacc: 0.7867, best epoch: 121, best auc: 0.8487, loss: 0.43427826363318456, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 122, validauc: 0.849, validacc: 0.7866, best epoch: 122, best auc: 0.849, loss: 0.43339185390146984, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 123, validauc: 0.8492, validacc: 0.7866, best epoch: 123, best auc: 0.8492, loss: 0.4323193138612617, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 124, validauc: 0.8495, validacc: 0.787, best epoch: 124, best auc: 0.8495, loss: 0.4315482989729145, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 125, validauc: 0.8498, validacc: 0.7873, best epoch: 125, best auc: 0.8498, loss: 0.43109009165242074, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 126, validauc: 0.85, validacc: 0.7872, best epoch: 126, best auc: 0.85, loss: 0.42963515600009744, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 127, validauc: 0.8501, validacc: 0.7873, best epoch: 127, best auc: 0.8501, loss: 0.42940194013864347, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 128, validauc: 0.8503, validacc: 0.7875, best epoch: 128, best auc: 0.8503, loss: 0.4287421788135754, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 129, validauc: 0.8506, validacc: 0.7874, best epoch: 129, best auc: 0.8506, loss: 0.42734340430845386, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 130, validauc: 0.8508, validacc: 0.7878, best epoch: 130, best auc: 0.8508, loss: 0.426796203644205, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 131, validauc: 0.8509, validacc: 0.7879, best epoch: 131, best auc: 0.8509, loss: 0.42594045878111314, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 132, validauc: 0.851, validacc: 0.788, best epoch: 132, best auc: 0.851, loss: 0.42572839785951383, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 133, validauc: 0.8513, validacc: 0.7881, best epoch: 133, best auc: 0.8513, loss: 0.4243757229962462, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 134, validauc: 0.8513, validacc: 0.7881, best epoch: 133, best auc: 0.8513, loss: 0.42424140192040877, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 135, validauc: 0.8514, validacc: 0.7886, best epoch: 135, best auc: 0.8514, loss: 0.42324916499118964, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 136, validauc: 0.8516, validacc: 0.7885, best epoch: 136, best auc: 0.8516, loss: 0.4227853395628683, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 137, validauc: 0.8518, validacc: 0.788, best epoch: 137, best auc: 0.8518, loss: 0.42216108505543054, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 138, validauc: 0.8519, validacc: 0.7888, best epoch: 138, best auc: 0.8519, loss: 0.42089301814316626, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 139, validauc: 0.852, validacc: 0.7884, best epoch: 139, best auc: 0.852, loss: 0.42094973118545936, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 140, validauc: 0.852, validacc: 0.7884, best epoch: 139, best auc: 0.852, loss: 0.420333828321586, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 141, validauc: 0.852, validacc: 0.7884, best epoch: 139, best auc: 0.852, loss: 0.41914726968280647, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 142, validauc: 0.852, validacc: 0.7881, best epoch: 142, best auc: 0.852, loss: 0.4185578968678576, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 143, validauc: 0.852, validacc: 0.7888, best epoch: 143, best auc: 0.852, loss: 0.4176265833047585, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 144, validauc: 0.8521, validacc: 0.7889, best epoch: 144, best auc: 0.8521, loss: 0.4180143753673979, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 145, validauc: 0.8523, validacc: 0.7892, best epoch: 145, best auc: 0.8523, loss: 0.4172808380999122, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 146, validauc: 0.8524, validacc: 0.7888, best epoch: 146, best auc: 0.8524, loss: 0.4170439200168386, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 147, validauc: 0.8524, validacc: 0.7888, best epoch: 146, best auc: 0.8524, loss: 0.41627937114988084, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 148, validauc: 0.8524, validacc: 0.7888, best epoch: 146, best auc: 0.8524, loss: 0.4158697769022693, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 149, validauc: 0.8524, validacc: 0.7888, best epoch: 146, best auc: 0.8524, loss: 0.4135293970210195, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 150, validauc: 0.8524, validacc: 0.7891, best epoch: 150, best auc: 0.8524, loss: 0.4139452670901546, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 151, validauc: 0.8524, validacc: 0.7891, best epoch: 150, best auc: 0.8524, loss: 0.4142345993713019, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 152, validauc: 0.8524, validacc: 0.7891, best epoch: 150, best auc: 0.8524, loss: 0.4142083417968108, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 153, validauc: 0.8524, validacc: 0.789, best epoch: 153, best auc: 0.8524, loss: 0.4128132246909091, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 154, validauc: 0.8525, validacc: 0.7895, best epoch: 154, best auc: 0.8525, loss: 0.4125575833877484, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 155, validauc: 0.8525, validacc: 0.7891, best epoch: 155, best auc: 0.8525, loss: 0.4113794620832099, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 156, validauc: 0.8525, validacc: 0.7891, best epoch: 155, best auc: 0.8525, loss: 0.41107987004422225, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 157, validauc: 0.8525, validacc: 0.7891, best epoch: 155, best auc: 0.8525, loss: 0.4104014191088401, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 158, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.4102372315669416, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 159, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.4095499431216692, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 160, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40935331430274363, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 161, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40836586556989446, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 162, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.4083868587185587, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 163, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40854938428217746, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 164, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.4080275887996156, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 165, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40694690889482166, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 166, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40682631733846025, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 167, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.4064912319009017, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 168, validauc: 0.8525, validacc: 0.7891, best epoch: 158, best auc: 0.8525, loss: 0.40520795312840957, emb_type: qid, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_qid_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_vector	qid	0.8437	0.7775	-1	-1	0.8525	0.7891	158

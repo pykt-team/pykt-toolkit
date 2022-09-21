@@ -1,0 +1,142 @@
+device:cuda
+2022-07-14 23:22:54 - main - said: load config files.
+Start init data
+statics2011 skvmn {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-14 23:22:54 - main - said: init_dataset
+Read data from processed file: ../data/statics2011/train_valid_sequences.csv_0.pkl
+file path: ../data/statics2011/train_valid_sequences.csv, qlen: 0, clen: 196, rlen: 196
+Read data from processed file: ../data/statics2011/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/statics2011/train_valid_sequences.csv, qlen: 0, clen: 715, rlen: 715
+Read data from processed file: ../data/statics2011/test_sequences.csv_-1.pkl
+file path: ../data/statics2011/test_sequences.csv, qlen: 0, clen: 213, rlen: 213
+params: {'dataset_name': 'statics2011', 'model_name': 'skvmn', 'emb_type': 'qid', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.2, 'dim_s': 200, 'learning_rate': 0.001, 'size_m': 50, 'use_wandb': 0, 'add_uuid': 0}, params_str: statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+Start training model: skvmn, embtype: qid, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0, dataset_name: statics2011
+model_config: {'dropout': 0.2, 'dim_s': 200, 'learning_rate': 0.001, 'size_m': 50, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': 200}
+2022-07-14 23:22:58 - main - said: init_model
+2022-07-14 23:22:58 - main - said: train model
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 1, validauc: 0.6347, validacc: 0.7822, best epoch: 1, best auc: 0.6347, loss: 0.590280352188537, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 2, validauc: 0.6737, validacc: 0.779, best epoch: 2, best auc: 0.6737, loss: 0.522984257827649, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 3, validauc: 0.6977, validacc: 0.7892, best epoch: 3, best auc: 0.6977, loss: 0.5068691449200847, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 4, validauc: 0.7236, validacc: 0.7931, best epoch: 4, best auc: 0.7236, loss: 0.49417855298860597, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 5, validauc: 0.7391, validacc: 0.7974, best epoch: 5, best auc: 0.7391, loss: 0.4805875000989987, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 6, validauc: 0.7505, validacc: 0.7966, best epoch: 6, best auc: 0.7505, loss: 0.4724240534451312, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 7, validauc: 0.7574, validacc: 0.8009, best epoch: 7, best auc: 0.7574, loss: 0.46086963493343114, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 8, validauc: 0.7699, validacc: 0.8038, best epoch: 8, best auc: 0.7699, loss: 0.4530353886912641, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 9, validauc: 0.7735, validacc: 0.8031, best epoch: 9, best auc: 0.7735, loss: 0.4441323103094563, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 10, validauc: 0.7789, validacc: 0.8047, best epoch: 10, best auc: 0.7789, loss: 0.43979140715886916, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 11, validauc: 0.7821, validacc: 0.808, best epoch: 11, best auc: 0.7821, loss: 0.43316147588287573, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 12, validauc: 0.7821, validacc: 0.808, best epoch: 11, best auc: 0.7821, loss: 0.4273690973684967, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 13, validauc: 0.7855, validacc: 0.8046, best epoch: 13, best auc: 0.7855, loss: 0.424320200589841, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 14, validauc: 0.7857, validacc: 0.8064, best epoch: 14, best auc: 0.7857, loss: 0.4199781269963454, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 15, validauc: 0.7903, validacc: 0.8065, best epoch: 15, best auc: 0.7903, loss: 0.41490259569369203, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 16, validauc: 0.7903, validacc: 0.8065, best epoch: 15, best auc: 0.7903, loss: 0.41200098577135397, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 17, validauc: 0.7903, validacc: 0.8065, best epoch: 15, best auc: 0.7903, loss: 0.4096894051466396, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 18, validauc: 0.7918, validacc: 0.8057, best epoch: 18, best auc: 0.7918, loss: 0.40637476029602415, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 19, validauc: 0.7918, validacc: 0.8057, best epoch: 18, best auc: 0.7918, loss: 0.40483975526623467, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 20, validauc: 0.7928, validacc: 0.8062, best epoch: 20, best auc: 0.7928, loss: 0.40224489414830683, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 21, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.3992025860529225, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 22, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.39485686975028944, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 23, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.3940658541335362, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 24, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.3899753589293453, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 25, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.38976952827990635, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 26, validauc: 0.7931, validacc: 0.8073, best epoch: 21, best auc: 0.7931, loss: 0.38620056376743556, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 27, validauc: 0.7936, validacc: 0.8068, best epoch: 27, best auc: 0.7936, loss: 0.3823876038690995, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 28, validauc: 0.7936, validacc: 0.8068, best epoch: 27, best auc: 0.7936, loss: 0.3786464724498795, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 29, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.3752841106737564, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 30, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.37212950771666115, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 31, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.36873856798020926, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 32, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.36652365983538787, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 33, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.36489341538749653, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 34, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.36344005814410735, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0/data/huangshuyan/shyann_dev/pykt-toolkit/pykt/models/skvmn.py:334: UserWarning: This overload of nonzero is deprecated:
+	nonzero()
+Consider using one of the following signatures instead:
+	nonzero(*, bool as_tuple) (Triggered internally at  /pytorch/torch/csrc/utils/python_arg_parser.cpp:882.)
+  batch_identity_indices = (_values >= 0).nonzero() #找到t
+
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 35, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.361194485403322, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 36, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.35535358113198817, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 37, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.35259165438544, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 38, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.3509743560054078, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (33522,), ps.shape: (33522,)
+Epoch: 39, validauc: 0.796, validacc: 0.8063, best epoch: 29, best auc: 0.796, loss: 0.34845714292989843, emb_type: qid, model: skvmn, save_dir: saved_model/statics2011_skvmn_qid_saved_model_42_0_0.2_200_0.001_50_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (34978,), ps.shape: (34978,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	skvmn	qid	0.7931	0.7838	-1	-1	0.796	0.8063	29

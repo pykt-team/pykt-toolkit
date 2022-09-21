@@ -1,0 +1,215 @@
+device:cuda
+2022-07-25 18:18:52 - main - said: load config files.
+Start init data
+assist2009 deepbkt {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 50, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'bridge2algebra2006': {'dpath': '../data/bridge2algebra2006', 'num_q': 129263, 'num_c': 493, 'input_type': ['questions', 'concepts'], 'max_concepts': 5, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'nips_task34': {'dpath': '../data/nips_task34', 'num_q': 948, 'num_c': 57, 'input_type': ['questions', 'concepts'], 'max_concepts': 2, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-25 18:18:52 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'deepbkt', 'emb_type': 'bayesian', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'final_fc_dim': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+Start training model: deepbkt, embtype: bayesian, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'final_fc_dim': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-25 18:18:55 - main - said: init_model
+2022-07-25 18:18:55 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.6282, validacc: 0.6491, best epoch: 1, best auc: 0.6282, loss: 0.653632900067996, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.676, validacc: 0.6714, best epoch: 2, best auc: 0.676, loss: 0.6138480893947017, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.7094, validacc: 0.7099, best epoch: 3, best auc: 0.7094, loss: 0.5916686339866786, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.7286, validacc: 0.7209, best epoch: 4, best auc: 0.7286, loss: 0.5746378474628372, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.7418, validacc: 0.7276, best epoch: 5, best auc: 0.7418, loss: 0.5633289400908538, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.7516, validacc: 0.7352, best epoch: 6, best auc: 0.7516, loss: 0.5538108148121764, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.7577, validacc: 0.7383, best epoch: 7, best auc: 0.7577, loss: 0.5448894785219783, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.7686, validacc: 0.7439, best epoch: 8, best auc: 0.7686, loss: 0.5374358199807984, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.7729, validacc: 0.7464, best epoch: 9, best auc: 0.7729, loss: 0.5300890432792281, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.7772, validacc: 0.7483, best epoch: 10, best auc: 0.7772, loss: 0.5246128813600945, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.782, validacc: 0.7497, best epoch: 11, best auc: 0.782, loss: 0.5191746846279558, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.7866, validacc: 0.7551, best epoch: 12, best auc: 0.7866, loss: 0.5132249092847241, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.7914, validacc: 0.7571, best epoch: 13, best auc: 0.7914, loss: 0.5089469842753607, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.7939, validacc: 0.7595, best epoch: 14, best auc: 0.7939, loss: 0.5026741111953982, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.7962, validacc: 0.7609, best epoch: 15, best auc: 0.7962, loss: 0.4996635760400984, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.7998, validacc: 0.7619, best epoch: 16, best auc: 0.7998, loss: 0.49469522611327116, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.8011, validacc: 0.7639, best epoch: 17, best auc: 0.8011, loss: 0.49049875521014474, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.8044, validacc: 0.7657, best epoch: 18, best auc: 0.8044, loss: 0.48622002267991143, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.8059, validacc: 0.7661, best epoch: 19, best auc: 0.8059, loss: 0.4813064850613002, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.8079, validacc: 0.7657, best epoch: 20, best auc: 0.8079, loss: 0.4789930366809872, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.8096, validacc: 0.7671, best epoch: 21, best auc: 0.8096, loss: 0.4747416748494722, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.8099, validacc: 0.7672, best epoch: 22, best auc: 0.8099, loss: 0.47124346497740444, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8121, validacc: 0.7686, best epoch: 23, best auc: 0.8121, loss: 0.46881114689294234, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8143, validacc: 0.7697, best epoch: 24, best auc: 0.8143, loss: 0.4635941017613158, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8158, validacc: 0.7708, best epoch: 25, best auc: 0.8158, loss: 0.4604805743238165, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8169, validacc: 0.7723, best epoch: 26, best auc: 0.8169, loss: 0.45617179141364056, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.818, validacc: 0.7724, best epoch: 27, best auc: 0.818, loss: 0.45187276903418266, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.8191, validacc: 0.7735, best epoch: 28, best auc: 0.8191, loss: 0.44879638592841536, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.8205, validacc: 0.7736, best epoch: 29, best auc: 0.8205, loss: 0.4454747317878946, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.8219, validacc: 0.7748, best epoch: 30, best auc: 0.8219, loss: 0.44178513806381053, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.8235, validacc: 0.7751, best epoch: 31, best auc: 0.8235, loss: 0.43771987085574054, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.8241, validacc: 0.775, best epoch: 32, best auc: 0.8241, loss: 0.43349268566612364, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.8258, validacc: 0.7759, best epoch: 33, best auc: 0.8258, loss: 0.4328230501231963, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.8263, validacc: 0.7762, best epoch: 34, best auc: 0.8263, loss: 0.4276265989034913, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.8285, validacc: 0.7774, best epoch: 35, best auc: 0.8285, loss: 0.4245898043628091, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.8285, validacc: 0.7774, best epoch: 35, best auc: 0.8285, loss: 0.4210244492710908, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.83, validacc: 0.7775, best epoch: 37, best auc: 0.83, loss: 0.41827916479707317, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.8303, validacc: 0.7774, best epoch: 38, best auc: 0.8303, loss: 0.41767246277126596, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.8312, validacc: 0.7788, best epoch: 39, best auc: 0.8312, loss: 0.4127519585227229, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.8312, validacc: 0.7788, best epoch: 39, best auc: 0.8312, loss: 0.4088482714261819, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.8312, validacc: 0.7788, best epoch: 39, best auc: 0.8312, loss: 0.40549464524142026, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.8313, validacc: 0.7783, best epoch: 42, best auc: 0.8313, loss: 0.4029518180404996, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.3992983647906674, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.3971125772011486, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 45, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.3982389986029546, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 46, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.39641262828533635, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 47, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.3910250401729687, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 48, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.38629888783649297, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 49, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.38396411089894905, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 50, validauc: 0.8324, validacc: 0.7781, best epoch: 43, best auc: 0.8324, loss: 0.38333435294135154, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 51, validauc: 0.8338, validacc: 0.7789, best epoch: 51, best auc: 0.8338, loss: 0.37975653053529684, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 52, validauc: 0.835, validacc: 0.7793, best epoch: 52, best auc: 0.835, loss: 0.3757842601009645, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 53, validauc: 0.8352, validacc: 0.7794, best epoch: 53, best auc: 0.8352, loss: 0.3731406955235199, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 54, validauc: 0.8352, validacc: 0.7794, best epoch: 53, best auc: 0.8352, loss: 0.3734972919702561, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 55, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.37172135658750644, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 56, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.3666042296824365, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 57, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.3630262909279643, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 58, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.36018170676266753, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 59, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.35688352754303926, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 60, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.3541065016558386, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 61, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.35166133292909274, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 62, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.35232523100023316, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 63, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.3498678232836134, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 64, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.3464019881727703, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 65, validauc: 0.8358, validacc: 0.7805, best epoch: 55, best auc: 0.8358, loss: 0.34385931007743514, emb_type: bayesian, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_bayesian_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	deepbkt	bayesian	0.8293	0.7702	-1	-1	0.8358	0.7805	55

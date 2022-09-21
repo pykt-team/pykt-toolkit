@@ -116,6 +116,9 @@ def main(params):
     if model_name in ["deepbkt"] and emb_type.find("forgetting") != -1 or emb_type.find("all") != -1:
         print(f"start addF2AKT to model: {model_name}!")
         addF2AKT(model, train_loader, valid_loader, test_loader)
+    if model_name in ["akt"] and emb_type.find("forget") != -1:
+        print(f"start addF2AKT to model: {model_name}!")
+        addF2AKT(model, train_loader, valid_loader, test_loader)
     if model_name == "hawkes":
         weight_p, bias_p = [], []
         for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):

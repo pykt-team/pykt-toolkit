@@ -1,0 +1,152 @@
+device:cuda
+2022-07-25 12:09:30 - main - said: load config files.
+Start init data
+assist2009 deepbkt {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 50, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'bridge2algebra2006': {'dpath': '../data/bridge2algebra2006', 'num_q': 129263, 'num_c': 493, 'input_type': ['questions', 'concepts'], 'max_concepts': 5, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'nips_task34': {'dpath': '../data/nips_task34', 'num_q': 948, 'num_c': 57, 'input_type': ['questions', 'concepts'], 'max_concepts': 2, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-25 12:09:30 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'deepbkt', 'emb_type': 'augmentation', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'final_fc_dim': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+Start training model: deepbkt, embtype: augmentation, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'final_fc_dim': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-25 12:09:34 - main - said: init_model
+2022-07-25 12:09:34 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.7197, validacc: 0.7039, best epoch: 1, best auc: 0.7197, loss: 0.6236719890921599, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.7379, validacc: 0.7221, best epoch: 2, best auc: 0.7379, loss: 0.5701396137681378, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.7503, validacc: 0.7317, best epoch: 3, best auc: 0.7503, loss: 0.5564756351740222, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.7648, validacc: 0.7408, best epoch: 4, best auc: 0.7648, loss: 0.5451171184873315, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.7752, validacc: 0.7463, best epoch: 5, best auc: 0.7752, loss: 0.5350987578759151, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.7842, validacc: 0.753, best epoch: 6, best auc: 0.7842, loss: 0.5268561176151172, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.792, validacc: 0.7573, best epoch: 7, best auc: 0.792, loss: 0.5184213977450708, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.7972, validacc: 0.7607, best epoch: 8, best auc: 0.7972, loss: 0.5119756732009982, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.8021, validacc: 0.7624, best epoch: 9, best auc: 0.8021, loss: 0.5042194129358688, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.8055, validacc: 0.7651, best epoch: 10, best auc: 0.8055, loss: 0.4971568873010111, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.8097, validacc: 0.7673, best epoch: 11, best auc: 0.8097, loss: 0.4917285598508758, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.8121, validacc: 0.7678, best epoch: 12, best auc: 0.8121, loss: 0.4874035197386312, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.815, validacc: 0.7706, best epoch: 13, best auc: 0.815, loss: 0.4810185563443543, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.816, validacc: 0.7717, best epoch: 14, best auc: 0.816, loss: 0.4759699395679567, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.8185, validacc: 0.7734, best epoch: 15, best auc: 0.8185, loss: 0.4715586987025224, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.8219, validacc: 0.7737, best epoch: 16, best auc: 0.8219, loss: 0.46650436708628745, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.8233, validacc: 0.7747, best epoch: 17, best auc: 0.8233, loss: 0.4616266734870391, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.8271, validacc: 0.777, best epoch: 18, best auc: 0.8271, loss: 0.4570305842600251, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.8292, validacc: 0.7777, best epoch: 19, best auc: 0.8292, loss: 0.4513621569884057, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.8295, validacc: 0.7761, best epoch: 20, best auc: 0.8295, loss: 0.4464737286142188, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.8351, validacc: 0.7815, best epoch: 21, best auc: 0.8351, loss: 0.4403680663529334, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.8354, validacc: 0.7809, best epoch: 22, best auc: 0.8354, loss: 0.43313536449597073, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8386, validacc: 0.7821, best epoch: 23, best auc: 0.8386, loss: 0.4270577195396617, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8392, validacc: 0.783, best epoch: 24, best auc: 0.8392, loss: 0.4214458006266016, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8415, validacc: 0.7844, best epoch: 25, best auc: 0.8415, loss: 0.4153450316851392, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8423, validacc: 0.7839, best epoch: 26, best auc: 0.8423, loss: 0.4090025341512769, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.8434, validacc: 0.7835, best epoch: 27, best auc: 0.8434, loss: 0.40419346836520903, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.8434, validacc: 0.7835, best epoch: 27, best auc: 0.8434, loss: 0.3980622418158455, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.8442, validacc: 0.7848, best epoch: 29, best auc: 0.8442, loss: 0.39311737989863427, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.8444, validacc: 0.7857, best epoch: 30, best auc: 0.8444, loss: 0.39067457246477294, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.8444, validacc: 0.7857, best epoch: 30, best auc: 0.8444, loss: 0.38613183537898776, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.8444, validacc: 0.7857, best epoch: 30, best auc: 0.8444, loss: 0.3831794611153149, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.8445, validacc: 0.7834, best epoch: 33, best auc: 0.8445, loss: 0.3825836880016599, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.3765699510881424, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.37264175920006454, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.3695567014253817, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.3678863779076549, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.36510663423885964, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.36187760618447506, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.3589111104139451, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.35798705689935756, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.3558382839788042, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.35201050908158066, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.8446, validacc: 0.783, best epoch: 34, best auc: 0.8446, loss: 0.35238482196387694, emb_type: augmentation, model: deepbkt, save_dir: saved_model/assist2009_deepbkt_augmentation_saved_model_42_0_0.2_256_512_512_8_4_0.0001_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	deepbkt	augmentation	0.8364	0.773	-1	-1	0.8446	0.783	34

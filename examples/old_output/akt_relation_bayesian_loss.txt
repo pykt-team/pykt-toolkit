@@ -1,0 +1,588 @@
+device:cuda
+2022-07-08 14:03:03 - main - said: load config files.
+Start init data
+assist2009 akt_vector {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 64
+2022-07-08 14:03:03 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_vector', 'emb_type': 'relation_bayesian_loss', 'save_dir': 'saved_model', 'seed': 42, 'fold': 0, 'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+Start training model: akt_vector, embtype: relation_bayesian_loss, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.05, 'd_model': 256, 'd_ff': 256, 'num_attn_heads': 8, 'n_blocks': 1, 'learning_rate': 1e-05, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 64, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-08 14:03:06 - main - said: init_model
+model_name:akt_vector
+2022-07-08 14:03:06 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.5082, validacc: 0.5158, best epoch: 1, best auc: 0.5082, loss: 0.7217147939792757, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.5135, validacc: 0.5358, best epoch: 2, best auc: 0.5135, loss: 0.7123716476148703, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.5214, validacc: 0.5622, best epoch: 3, best auc: 0.5214, loss: 0.7036111466633769, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.5339, validacc: 0.5786, best epoch: 4, best auc: 0.5339, loss: 0.6950128137117413, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.5467, validacc: 0.5944, best epoch: 5, best auc: 0.5467, loss: 0.6870467259919347, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.5578, validacc: 0.5996, best epoch: 6, best auc: 0.5578, loss: 0.6801532055019507, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.5673, validacc: 0.6107, best epoch: 7, best auc: 0.5673, loss: 0.6745367633466913, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.5764, validacc: 0.6154, best epoch: 8, best auc: 0.5764, loss: 0.6696488748201596, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.584, validacc: 0.621, best epoch: 9, best auc: 0.584, loss: 0.6651937567597549, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.5908, validacc: 0.6273, best epoch: 10, best auc: 0.5908, loss: 0.6612912217196977, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.5959, validacc: 0.6315, best epoch: 11, best auc: 0.5959, loss: 0.6580107709282378, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.6018, validacc: 0.633, best epoch: 12, best auc: 0.6018, loss: 0.6551724537300927, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.6058, validacc: 0.6348, best epoch: 13, best auc: 0.6058, loss: 0.6526705152494248, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.6096, validacc: 0.6356, best epoch: 14, best auc: 0.6096, loss: 0.6505991039869873, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.6137, validacc: 0.6366, best epoch: 15, best auc: 0.6137, loss: 0.6486040594326373, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.6165, validacc: 0.6365, best epoch: 16, best auc: 0.6165, loss: 0.6469016457679236, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.6196, validacc: 0.6378, best epoch: 17, best auc: 0.6196, loss: 0.6451986706141375, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.6233, validacc: 0.641, best epoch: 18, best auc: 0.6233, loss: 0.643363282013623, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.6274, validacc: 0.6451, best epoch: 19, best auc: 0.6274, loss: 0.6410728028880124, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.6299, validacc: 0.6458, best epoch: 20, best auc: 0.6299, loss: 0.6392533827763698, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.632, validacc: 0.6471, best epoch: 21, best auc: 0.632, loss: 0.6380607409607805, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.6335, validacc: 0.6476, best epoch: 22, best auc: 0.6335, loss: 0.63684619169998, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.6351, validacc: 0.6481, best epoch: 23, best auc: 0.6351, loss: 0.6360524548535527, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.6361, validacc: 0.6487, best epoch: 24, best auc: 0.6361, loss: 0.6351824939415672, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.6372, validacc: 0.6495, best epoch: 25, best auc: 0.6372, loss: 0.6343105120380595, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.6377, validacc: 0.6499, best epoch: 26, best auc: 0.6377, loss: 0.6338960620797333, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.6387, validacc: 0.6507, best epoch: 27, best auc: 0.6387, loss: 0.6333352249772211, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 28, validauc: 0.6392, validacc: 0.6511, best epoch: 28, best auc: 0.6392, loss: 0.6328550432024892, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 29, validauc: 0.6397, validacc: 0.6514, best epoch: 29, best auc: 0.6397, loss: 0.6322038245437217, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 30, validauc: 0.6401, validacc: 0.652, best epoch: 30, best auc: 0.6401, loss: 0.6319642345506392, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 31, validauc: 0.641, validacc: 0.652, best epoch: 31, best auc: 0.641, loss: 0.6315636607105769, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 32, validauc: 0.641, validacc: 0.652, best epoch: 31, best auc: 0.641, loss: 0.6313007740786283, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 33, validauc: 0.6423, validacc: 0.6528, best epoch: 33, best auc: 0.6423, loss: 0.6308139761602923, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 34, validauc: 0.6423, validacc: 0.6528, best epoch: 33, best auc: 0.6423, loss: 0.6305727470586222, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 35, validauc: 0.6426, validacc: 0.6529, best epoch: 35, best auc: 0.6426, loss: 0.6303797990051477, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 36, validauc: 0.6429, validacc: 0.6532, best epoch: 36, best auc: 0.6429, loss: 0.6300848943237111, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 37, validauc: 0.6431, validacc: 0.6532, best epoch: 37, best auc: 0.6431, loss: 0.6296970384494761, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 38, validauc: 0.6437, validacc: 0.6533, best epoch: 38, best auc: 0.6437, loss: 0.629291877683896, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 39, validauc: 0.6445, validacc: 0.6535, best epoch: 39, best auc: 0.6445, loss: 0.6291185530524533, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 40, validauc: 0.6445, validacc: 0.6535, best epoch: 39, best auc: 0.6445, loss: 0.6289283456577525, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 41, validauc: 0.6448, validacc: 0.654, best epoch: 41, best auc: 0.6448, loss: 0.6285038529250428, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 42, validauc: 0.6452, validacc: 0.6545, best epoch: 42, best auc: 0.6452, loss: 0.6281146427822778, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 43, validauc: 0.6454, validacc: 0.6544, best epoch: 43, best auc: 0.6454, loss: 0.6280268449673246, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 44, validauc: 0.6455, validacc: 0.6548, best epoch: 44, best auc: 0.6455, loss: 0.6278995658945017, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 45, validauc: 0.6457, validacc: 0.6548, best epoch: 45, best auc: 0.6457, loss: 0.6276061506948294, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 46, validauc: 0.6461, validacc: 0.6549, best epoch: 46, best auc: 0.6461, loss: 0.6272830598834557, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 47, validauc: 0.6466, validacc: 0.655, best epoch: 47, best auc: 0.6466, loss: 0.6270799839093821, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 48, validauc: 0.6471, validacc: 0.6549, best epoch: 48, best auc: 0.6471, loss: 0.6269055440524087, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 49, validauc: 0.6471, validacc: 0.6549, best epoch: 48, best auc: 0.6471, loss: 0.626571089327246, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 50, validauc: 0.6473, validacc: 0.655, best epoch: 50, best auc: 0.6473, loss: 0.6263637647489008, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 51, validauc: 0.6473, validacc: 0.655, best epoch: 50, best auc: 0.6473, loss: 0.6258357418576259, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 52, validauc: 0.6479, validacc: 0.655, best epoch: 52, best auc: 0.6479, loss: 0.6257607155974415, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 53, validauc: 0.6483, validacc: 0.655, best epoch: 53, best auc: 0.6483, loss: 0.6256818222688718, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 54, validauc: 0.6483, validacc: 0.655, best epoch: 53, best auc: 0.6483, loss: 0.6254311791030933, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 55, validauc: 0.6487, validacc: 0.6552, best epoch: 55, best auc: 0.6487, loss: 0.6250187553695232, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 56, validauc: 0.649, validacc: 0.6549, best epoch: 56, best auc: 0.649, loss: 0.62508318500895, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 57, validauc: 0.6494, validacc: 0.6554, best epoch: 57, best auc: 0.6494, loss: 0.6246165806803695, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 58, validauc: 0.6504, validacc: 0.6555, best epoch: 58, best auc: 0.6504, loss: 0.6244488339808271, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 59, validauc: 0.6504, validacc: 0.6555, best epoch: 58, best auc: 0.6504, loss: 0.6241885008584078, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 60, validauc: 0.6505, validacc: 0.6557, best epoch: 60, best auc: 0.6505, loss: 0.6239552730208584, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 61, validauc: 0.6505, validacc: 0.6557, best epoch: 61, best auc: 0.6505, loss: 0.6236183087801329, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 62, validauc: 0.6509, validacc: 0.6557, best epoch: 62, best auc: 0.6509, loss: 0.6233479299834251, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 63, validauc: 0.6514, validacc: 0.6562, best epoch: 63, best auc: 0.6514, loss: 0.6230798325433891, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 64, validauc: 0.6514, validacc: 0.6562, best epoch: 63, best auc: 0.6514, loss: 0.6228079399785087, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 65, validauc: 0.6521, validacc: 0.6561, best epoch: 65, best auc: 0.6521, loss: 0.6225997578321535, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 66, validauc: 0.6521, validacc: 0.6561, best epoch: 65, best auc: 0.6521, loss: 0.6224073952987048, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 67, validauc: 0.6521, validacc: 0.6561, best epoch: 65, best auc: 0.6521, loss: 0.6221735517845685, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 68, validauc: 0.6526, validacc: 0.6564, best epoch: 68, best auc: 0.6526, loss: 0.6221515281730161, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 69, validauc: 0.6532, validacc: 0.6565, best epoch: 69, best auc: 0.6532, loss: 0.6217075825143067, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 70, validauc: 0.6532, validacc: 0.6565, best epoch: 69, best auc: 0.6532, loss: 0.621460942385037, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 71, validauc: 0.6532, validacc: 0.6565, best epoch: 69, best auc: 0.6532, loss: 0.6212325399338307, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 72, validauc: 0.6532, validacc: 0.6565, best epoch: 69, best auc: 0.6532, loss: 0.6209106615493946, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 73, validauc: 0.6538, validacc: 0.6564, best epoch: 73, best auc: 0.6538, loss: 0.6207363316825916, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 74, validauc: 0.6546, validacc: 0.6568, best epoch: 74, best auc: 0.6546, loss: 0.6203621172413541, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 75, validauc: 0.6546, validacc: 0.6568, best epoch: 74, best auc: 0.6546, loss: 0.6202363774702154, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 76, validauc: 0.6546, validacc: 0.6568, best epoch: 74, best auc: 0.6546, loss: 0.6199838943979872, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 77, validauc: 0.6552, validacc: 0.657, best epoch: 77, best auc: 0.6552, loss: 0.6197037837931306, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 78, validauc: 0.6553, validacc: 0.6572, best epoch: 78, best auc: 0.6553, loss: 0.6193498191734962, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 79, validauc: 0.6561, validacc: 0.6571, best epoch: 79, best auc: 0.6561, loss: 0.6191637549721533, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 80, validauc: 0.6565, validacc: 0.6571, best epoch: 80, best auc: 0.6565, loss: 0.6187944211339802, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 81, validauc: 0.6565, validacc: 0.6571, best epoch: 80, best auc: 0.6565, loss: 0.6189264567279427, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 82, validauc: 0.6571, validacc: 0.6574, best epoch: 82, best auc: 0.6571, loss: 0.6182704257816082, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 83, validauc: 0.6571, validacc: 0.6574, best epoch: 82, best auc: 0.6571, loss: 0.6181959014741675, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 84, validauc: 0.6572, validacc: 0.6577, best epoch: 84, best auc: 0.6572, loss: 0.6178530786516442, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 85, validauc: 0.6577, validacc: 0.6577, best epoch: 85, best auc: 0.6577, loss: 0.6175483230894262, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 86, validauc: 0.6579, validacc: 0.6581, best epoch: 86, best auc: 0.6579, loss: 0.6170736512421281, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 87, validauc: 0.6586, validacc: 0.658, best epoch: 87, best auc: 0.6586, loss: 0.6171160127603835, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 88, validauc: 0.6591, validacc: 0.6579, best epoch: 88, best auc: 0.6591, loss: 0.6166496661586909, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 89, validauc: 0.6595, validacc: 0.658, best epoch: 89, best auc: 0.6595, loss: 0.6163515041893404, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 90, validauc: 0.6595, validacc: 0.6584, best epoch: 90, best auc: 0.6595, loss: 0.6162140075336567, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 91, validauc: 0.6599, validacc: 0.6582, best epoch: 91, best auc: 0.6599, loss: 0.6159907330123943, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 92, validauc: 0.6599, validacc: 0.6582, best epoch: 91, best auc: 0.6599, loss: 0.6155172918766528, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 93, validauc: 0.66, validacc: 0.6586, best epoch: 93, best auc: 0.66, loss: 0.6155676374679909, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 94, validauc: 0.6604, validacc: 0.659, best epoch: 94, best auc: 0.6604, loss: 0.6148299336637183, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 95, validauc: 0.6604, validacc: 0.659, best epoch: 94, best auc: 0.6604, loss: 0.6145203061778709, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 96, validauc: 0.6618, validacc: 0.6592, best epoch: 96, best auc: 0.6618, loss: 0.6145852255461283, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 97, validauc: 0.6618, validacc: 0.6587, best epoch: 97, best auc: 0.6618, loss: 0.613986831965416, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 98, validauc: 0.6618, validacc: 0.6587, best epoch: 97, best auc: 0.6618, loss: 0.6137216613632577, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 99, validauc: 0.6618, validacc: 0.6587, best epoch: 97, best auc: 0.6618, loss: 0.6136241737287509, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 100, validauc: 0.6635, validacc: 0.6589, best epoch: 100, best auc: 0.6635, loss: 0.6131170949067006, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 101, validauc: 0.6638, validacc: 0.6592, best epoch: 101, best auc: 0.6638, loss: 0.6130033147842302, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 102, validauc: 0.6638, validacc: 0.6592, best epoch: 101, best auc: 0.6638, loss: 0.6127685506410726, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 103, validauc: 0.6638, validacc: 0.6592, best epoch: 101, best auc: 0.6638, loss: 0.6122427409753018, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 104, validauc: 0.6656, validacc: 0.6598, best epoch: 104, best auc: 0.6656, loss: 0.6121604748899286, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 105, validauc: 0.6656, validacc: 0.6598, best epoch: 104, best auc: 0.6656, loss: 0.6118259406106747, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 106, validauc: 0.6656, validacc: 0.6598, best epoch: 104, best auc: 0.6656, loss: 0.6116140652373768, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 107, validauc: 0.6656, validacc: 0.6598, best epoch: 104, best auc: 0.6656, loss: 0.6114532422374677, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 108, validauc: 0.6669, validacc: 0.6601, best epoch: 108, best auc: 0.6669, loss: 0.6109071873222103, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 109, validauc: 0.6669, validacc: 0.6601, best epoch: 108, best auc: 0.6669, loss: 0.6109400211153039, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 110, validauc: 0.6671, validacc: 0.6607, best epoch: 110, best auc: 0.6671, loss: 0.6102216095011493, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 111, validauc: 0.6672, validacc: 0.6608, best epoch: 111, best auc: 0.6672, loss: 0.6101265514101933, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 112, validauc: 0.6672, validacc: 0.6608, best epoch: 111, best auc: 0.6672, loss: 0.609925526652727, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 113, validauc: 0.6672, validacc: 0.6608, best epoch: 111, best auc: 0.6672, loss: 0.6098336186538669, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 114, validauc: 0.6677, validacc: 0.661, best epoch: 114, best auc: 0.6677, loss: 0.609168142920329, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 115, validauc: 0.6677, validacc: 0.661, best epoch: 114, best auc: 0.6677, loss: 0.6090840169491972, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 116, validauc: 0.6677, validacc: 0.661, best epoch: 114, best auc: 0.6677, loss: 0.6088178574153159, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 117, validauc: 0.6679, validacc: 0.661, best epoch: 117, best auc: 0.6679, loss: 0.6084476367397172, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 118, validauc: 0.6691, validacc: 0.6616, best epoch: 118, best auc: 0.6691, loss: 0.6082316686330358, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 119, validauc: 0.6691, validacc: 0.6616, best epoch: 118, best auc: 0.6691, loss: 0.6076750072080267, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 120, validauc: 0.6691, validacc: 0.6616, best epoch: 118, best auc: 0.6691, loss: 0.6076857142148088, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 121, validauc: 0.6692, validacc: 0.6618, best epoch: 121, best auc: 0.6692, loss: 0.6074761987440956, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 122, validauc: 0.6695, validacc: 0.6618, best epoch: 122, best auc: 0.6695, loss: 0.6072654464391647, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 123, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.6068334133282309, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 124, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.6066580842504127, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 125, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.6065128831001757, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 126, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.60630415142639, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 127, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.6058883306175956, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 128, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.605858487610807, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 129, validauc: 0.6703, validacc: 0.6618, best epoch: 123, best auc: 0.6703, loss: 0.6055052944772227, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 130, validauc: 0.6704, validacc: 0.6625, best epoch: 130, best auc: 0.6704, loss: 0.6053339842984217, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 131, validauc: 0.6704, validacc: 0.6625, best epoch: 130, best auc: 0.6704, loss: 0.6050576437268305, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 132, validauc: 0.6704, validacc: 0.6625, best epoch: 130, best auc: 0.6704, loss: 0.6049400843482594, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 133, validauc: 0.6704, validacc: 0.6626, best epoch: 133, best auc: 0.6704, loss: 0.6045510474116731, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 134, validauc: 0.6704, validacc: 0.6626, best epoch: 133, best auc: 0.6704, loss: 0.6040260306578332, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 135, validauc: 0.6713, validacc: 0.6626, best epoch: 135, best auc: 0.6713, loss: 0.6043055048693714, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 136, validauc: 0.672, validacc: 0.6628, best epoch: 136, best auc: 0.672, loss: 0.603882287376848, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 137, validauc: 0.672, validacc: 0.6628, best epoch: 136, best auc: 0.672, loss: 0.6037912124557819, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 138, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.6034640663695817, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 139, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.6034389687220787, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 140, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.6031926148228576, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 141, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.603026243825222, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 142, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.6027448330449752, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 143, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.6022637261387134, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 144, validauc: 0.672, validacc: 0.6628, best epoch: 138, best auc: 0.672, loss: 0.601849082813806, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 145, validauc: 0.6731, validacc: 0.6629, best epoch: 145, best auc: 0.6731, loss: 0.601990251475495, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 146, validauc: 0.6731, validacc: 0.6629, best epoch: 145, best auc: 0.6731, loss: 0.6016505538252729, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 147, validauc: 0.6731, validacc: 0.6629, best epoch: 145, best auc: 0.6731, loss: 0.6017413697961492, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 148, validauc: 0.6731, validacc: 0.6629, best epoch: 145, best auc: 0.6731, loss: 0.6016851964185598, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 149, validauc: 0.6736, validacc: 0.6626, best epoch: 149, best auc: 0.6736, loss: 0.6012355555055925, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 150, validauc: 0.6736, validacc: 0.6626, best epoch: 149, best auc: 0.6736, loss: 0.6011269487543762, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 151, validauc: 0.6737, validacc: 0.6627, best epoch: 151, best auc: 0.6737, loss: 0.6009411832967428, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 152, validauc: 0.6737, validacc: 0.6627, best epoch: 151, best auc: 0.6737, loss: 0.6004533865034284, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 153, validauc: 0.6741, validacc: 0.663, best epoch: 153, best auc: 0.6741, loss: 0.6003687202246261, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 154, validauc: 0.6741, validacc: 0.663, best epoch: 153, best auc: 0.6741, loss: 0.600073459790904, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 155, validauc: 0.6748, validacc: 0.6626, best epoch: 155, best auc: 0.6748, loss: 0.6004003261967803, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 156, validauc: 0.6748, validacc: 0.6626, best epoch: 155, best auc: 0.6748, loss: 0.5999843364030515, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 157, validauc: 0.6748, validacc: 0.6634, best epoch: 157, best auc: 0.6748, loss: 0.599755850960833, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 158, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5995574497528268, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 159, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.599776116234112, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 160, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5993187454440186, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 161, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.59892793163045, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 162, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5983422697257241, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 163, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.598880932128961, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 164, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5985907765969579, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 165, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5983741625861617, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 166, validauc: 0.6751, validacc: 0.6629, best epoch: 158, best auc: 0.6751, loss: 0.5978864752499419, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 167, validauc: 0.6754, validacc: 0.6629, best epoch: 167, best auc: 0.6754, loss: 0.5981304556533235, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 168, validauc: 0.6754, validacc: 0.6629, best epoch: 167, best auc: 0.6754, loss: 0.5977309013249381, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 169, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5979546753678858, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 170, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5973423534246342, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 171, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5974073082300527, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 172, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5968496478020975, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 173, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5970854510672634, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 174, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5968343308602001, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 175, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5967995685692468, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 176, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.5967543734076454, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 177, validauc: 0.6757, validacc: 0.6631, best epoch: 169, best auc: 0.6757, loss: 0.596279953576028, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 178, validauc: 0.6757, validacc: 0.6633, best epoch: 178, best auc: 0.6757, loss: 0.5961290645865188, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 179, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5961695062527791, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 180, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5957350531436018, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 181, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5956415378533839, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 182, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5956296392743251, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 183, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5956439272549747, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 184, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5954293517364855, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 185, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5954634387629113, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 186, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5948139454431993, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 187, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5949799241005201, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 188, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5948034451346714, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 189, validauc: 0.677, validacc: 0.6628, best epoch: 179, best auc: 0.677, loss: 0.5948236940341194, emb_type: relation_bayesian_loss, model: akt_vector, save_dir: saved_model/assist2009_akt_vector_relation_bayesian_loss_saved_model_42_0_0.05_256_256_8_1_1e-05_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_vector	relation_bayesian_loss	0.6703	0.6584	-1	-1	0.677	0.6628	179

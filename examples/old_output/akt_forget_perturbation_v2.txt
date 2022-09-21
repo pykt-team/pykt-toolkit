@@ -1,0 +1,101 @@
+device:cuda
+2022-07-19 23:43:07 - main - said: load config files.
+Start init data
+assist2009 akt_perturbation {'assist2015': {'dpath': '../data/assist2015', 'num_q': 0, 'num_c': 100, 'input_type': ['concepts'], 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'algebra2005': {'dpath': '../data/algebra2005', 'num_q': 173113, 'num_c': 112, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2009': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}, 'slepemapy': {'dpath': '../data/slepemapy', 'num_q': 2913, 'num_c': 1458, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2017': {'dpath': '../data/assist2017', 'num_q': 3162, 'num_c': 102, 'input_type': ['questions', 'concepts'], 'min_seq_len': 3, 'maxlen': 500, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'assist2012': {'dpath': '../data/assist2012', 'num_q': 53070, 'num_c': 265, 'input_type': ['questions', 'concepts'], 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}, 'statics2011': {'dpath': '../data/statics2011', 'num_q': 0, 'num_c': 1223, 'input_type': ['concepts'], 'emb_path': '', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv'}, 'junyi2015': {'dpath': '../data/junyi2015', 'num_q': 721, 'num_c': 39, 'input_type': ['questions', 'concepts'], 'max_concepts': 1, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv'}} 0 32
+2022-07-19 23:43:07 - main - said: init_dataset
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_0.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 741, clen: 741, rlen: 741
+Read data from processed file: ../data/assist2009/train_valid_sequences.csv_1_2_3_4.pkl
+file path: ../data/assist2009/train_valid_sequences.csv, qlen: 3016, clen: 3016, rlen: 3016
+Read data from processed file: ../data/assist2009/test_sequences.csv_-1.pkl
+file path: ../data/assist2009/test_sequences.csv, qlen: 904, clen: 904, rlen: 904
+params: {'dataset_name': 'assist2009', 'model_name': 'akt_perturbation', 'emb_type': 'perturbation', 'save_dir': 'saved_model', 'seed': 3407, 'fold': 0, 'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'lambda_r': 0.3, 'use_wandb': 0, 'add_uuid': 0}, params_str: assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+Start training model: akt_perturbation, embtype: perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0, dataset_name: assist2009
+model_config: {'dropout': 0.2, 'd_model': 256, 'd_ff': 512, 'num_attn_heads': 8, 'n_blocks': 4, 'learning_rate': 0.0001, 'lambda_r': 0.3, 'use_wandb': 0, 'add_uuid': 0}
+train_config: {'batch_size': 32, 'num_epochs': 200, 'optimizer': 'adam', 'seq_len': {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv'}}
+2022-07-19 23:43:11 - main - said: init_model
+2022-07-19 23:43:11 - main - said: train model
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 1, validauc: 0.7974, validacc: 0.7635, best epoch: 1, best auc: 0.7974, loss: 0.3909980207745323, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 2, validauc: 0.8155, validacc: 0.7707, best epoch: 2, best auc: 0.8155, loss: 0.35580061251196526, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 3, validauc: 0.8199, validacc: 0.7726, best epoch: 3, best auc: 0.8199, loss: 0.3423322061791721, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 4, validauc: 0.8232, validacc: 0.7749, best epoch: 4, best auc: 0.8232, loss: 0.33636510527773605, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 5, validauc: 0.826, validacc: 0.7749, best epoch: 5, best auc: 0.826, loss: 0.33295253414243736, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 6, validauc: 0.8286, validacc: 0.7769, best epoch: 6, best auc: 0.8286, loss: 0.3298622685930739, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 7, validauc: 0.831, validacc: 0.7783, best epoch: 7, best auc: 0.831, loss: 0.32731122716737165, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 8, validauc: 0.8336, validacc: 0.7794, best epoch: 8, best auc: 0.8336, loss: 0.3248791280287298, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 9, validauc: 0.8366, validacc: 0.7814, best epoch: 9, best auc: 0.8366, loss: 0.32263765135090877, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 10, validauc: 0.8405, validacc: 0.7839, best epoch: 10, best auc: 0.8405, loss: 0.31944770967542174, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 11, validauc: 0.8448, validacc: 0.7856, best epoch: 11, best auc: 0.8448, loss: 0.315878843772922, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 12, validauc: 0.8492, validacc: 0.7878, best epoch: 12, best auc: 0.8492, loss: 0.31094613838176144, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 13, validauc: 0.8526, validacc: 0.7891, best epoch: 13, best auc: 0.8526, loss: 0.30555371097601536, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 14, validauc: 0.8548, validacc: 0.7917, best epoch: 14, best auc: 0.8548, loss: 0.2991783409534938, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 15, validauc: 0.8558, validacc: 0.7919, best epoch: 15, best auc: 0.8558, loss: 0.2932842042034748, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 16, validauc: 0.8565, validacc: 0.7919, best epoch: 16, best auc: 0.8565, loss: 0.287974053834801, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 17, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.2831555029129505, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 18, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.27922320226682895, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 19, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.27583916897114014, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 20, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.2724010027225134, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 21, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.26938901596704035, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 22, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.26685723242054654, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 23, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.26344719061695715, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 24, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.2601466037457277, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 25, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.25693715491521196, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 26, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.254958622233212, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (52825,), ps.shape: (52825,)
+Epoch: 27, validauc: 0.8567, validacc: 0.792, best epoch: 17, best auc: 0.8567, loss: 0.2514802091741284, emb_type: perturbation, model: akt_perturbation, save_dir: saved_model/assist2009_akt_perturbation_perturbation_saved_model_3407_0_0.2_256_512_8_4_0.0001_0.3_0_0
+            testauc: -1, testacc: -1, window_testauc: -1, window_testacc: -1
+ts.shape: (61904,), ps.shape: (61904,)
+fold	modelname	embtype	testauc	testacc	window_testauc	window_testacc	validauc	validacc	best_epoch
+0	akt_perturbation	perturbation	0.8492	0.781	-1	-1	0.8567	0.792	17
