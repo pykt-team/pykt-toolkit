@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from wandb.apis.public import gql
 import json
-
+from multiprocessing.pool import ThreadPool # 线程池
 
 def get_runs_result(runs):
     result_list = []
@@ -84,11 +84,13 @@ class WandbUtils:
         sweep_id = self._get_sweep_id(id,input_type)
         sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
         df,model_config_keys = get_runs_result(sweep.runs)
+        
         if drop_na:
             df = df.dropna()
             df['create_time'] = df['_timestamp'].apply(int)
         if only_finish:
             df = df[df['state'] == 'finished'].copy()
+
         if drop_duplicate:
             df.drop_duplicates(model_config_keys)
         df = df.sort_values("create_time")
@@ -96,7 +98,7 @@ class WandbUtils:
         df.index = range(len(df))
         return df
 
-    def get_multi_df(self,id_list=[],input_type="sweep_name"):
+    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True):
         """Get multi sweep result
 
         Args:
@@ -108,7 +110,7 @@ class WandbUtils:
         """
         df_list = []
         for id in id_list:
-            df = self.get_df(id,input_type=input_type)
+            df = self.get_df(id,input_type=input_type,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish)
             df[input_type] = id
             df_list.append(df)
         return df_list
@@ -228,24 +230,24 @@ class WandbUtils:
         print(f"We will stop the sweep, by {cmd}")
 
     
-    def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
         check_result_list = []
-        for sweep_name in sweep_key_list:
-            try:
-                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-                check_result['sweep_name'] = sweep_name
-                check_result_list.append(check_result)
-            except:
-                pass
 
-        if stop:#stop sweep
+        def check_help(sweep_name, input_type='sweep_name',
+                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df):
+            check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
+                                                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            return check_result
+        p = ThreadPool(n_jobs)
+        check_result_list = p.map(check_help, sweep_key_list)
+        p.close()
+        if stop:  # stop sweep
             for result in check_result_list:
-                if result['State'] and result['stop_cmd']!=0:
+                if result['State'] and result['stop_cmd'] != 0:
                     self.stop_sweep(result['stop_cmd'])
         return check_result_list
 
-    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         """Check sweeps by pattern
         
         Args:
@@ -263,7 +265,7 @@ class WandbUtils:
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 sweep_key_list.append(sweep_name)
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         
         return check_result_list
 
@@ -272,22 +274,22 @@ class WandbUtils:
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list
 
-    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
         if len(sweep_key_list)!=5:
             print("Input error, please check")
             return 
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
 
-    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
-        if os.path.exists(best_path):
+        if os.path.exists(best_path) and not force_reget:
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
             row_list = []
             for result in check_result_list:
                 df = result['df']
@@ -298,13 +300,25 @@ class WandbUtils:
             df.to_csv(best_path,index=False)
         return df
 
+    def get_model_run_time(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
+        """Get the average run second in one sweep
+        """
+        check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
+        df_merge = pd.concat([x['df'] for x in check_result_list])
+        run_time_list = df_merge['_runtime'].tolist()
+        avg_run_time = int(np.mean(run_time_list))
+        std_run_time = int(np.std(run_time_list))
+        return avg_run_time,std_run_time
+
+    
+
     #修改wandb配置文件
-    def generate_wandb(self, fpath, ftarget, model_path):
+    def generate_wandb(self, dataset_name, model_name, emb_type, fpath, ftarget, model_path):
         with open(fpath,"r") as fin,\
             open(ftarget,"w") as fout:
             data = yaml.load(fin, Loader=yaml.FullLoader)
             name = ftarget.split('_')
-            data['name'] = '_'.join(name[:4])
+            data['name'] = '_'.join([dataset_name, model_name, emb_type, 'prediction'])
             data['parameters']['save_dir']['values'] = model_path
             data['parameters']['save_dir']['values'] = model_path
             yaml.dump(data, fout)
@@ -332,15 +346,24 @@ class WandbUtils:
             else:
                 fallsh.write(pre + ftarget + " -p {}".format(self.project_name) + "\n")
 
-    def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", fusion_pred=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
+    def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", eval_test=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
         """extracting the best models which performance best performance on the validation data for testing 
         
         Args:
             df: dataframe of best results in each fold
-            dataset_name: the metric to check. Defaults to validauc.
+            dataset_name: dataset_name
+            model_name: model_name
+            emb_type: embedding_type, default:qid
+            eval_test: evaluating on testing set, default:True
+            fpath: the yaml template for prediction in wandb, default: "./seedwandb/predict.yaml"
+            config_file: the config template of generating prediction file, default: "../configs/best_model.json"
+            wandb_key: the key of wandb account
+            pred_wandbs: the directory of prediction yaml files, default: "pred_wandbs"
+            launch_file: the launch file of starting the wandb prediction, default: "start_predict.sh"
+            generate_all: starting all the files on the pred_wandbs directory or not, default:False
             
         Returns:
-            the best model path in each fold
+            the launch file (e.g., "start_predict.sh") for wandb prediction of the best models in each fold
         """
         if not os.path.exists(pred_dir):
             os.makedirs(pred_dir)
@@ -352,21 +375,26 @@ class WandbUtils:
             print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
             model_path_fold_first.append(model_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
-        if fusion_pred:
-            self.generate_wandb(fpath, ftarget, model_path_fold_first)
+        if eval_test:
+            self.generate_wandb(dataset_name, model_name, emb_type, fpath, ftarget, model_path_fold_first)
             dconfig["model_path_fold_first"] = model_path_fold_first
             self.write_config(dataset_name, dconfig, CONFIG_FILE)
             self.generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
 
     def extract_prediction_results(self, dataset_name, model_name, emb_type="qid", print_std=True):
-#         try:
-#             all_res = self.get_df("pred_wandbs/{}_{}_{}_fold".format(dataset_name, model_name, emb_type),input_type="sweep_name")
-#         except:
-#             all_res = self.get_df("pred_wandbs/{}_{}_fold".format(dataset_name, model_name),input_type="sweep_name")
-        try:
-            all_res = self.get_df("pred_wandbs/{}_{}_{}".format(dataset_name, model_name, emb_type), input_type="sweep_name")
-        except:
-            all_res = self.get_df("pred_wandbs/{}_{}".format(dataset_name, model_name), input_type="sweep_name")
+
+        """calculating the results on the testing data in the best model in validation set.
+        
+        Args:
+            dataset_name: dataset_name
+            model_name: model_name
+            emb_type: embedding_type, default:qid
+            print_std: print the standard deviation results or not, default:True
+
+        Returns:
+            the average results of auc, acc in 5-folds and the corresponding standard deviation results
+        """
+        all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)

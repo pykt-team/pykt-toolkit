@@ -3,6 +3,7 @@
 #You can run `sh multi_run_all.sh {dataset} {models} {task_name} {log_name}> result.txt`, all the commnds for start agents will write to result.txt. project_name = $task_name-$dataset
 #For example:
 #sh multi_run_all.sh nips_task34 "gkt,kqn,atktfix" nips2022_tmp2 rerun_tabchen> result.txt
+#all model list, "akt,dkt,dkvmn,dkt_forget,dkt+,sakt,gkt,kqn,atktfix,atkt,saint"
 #-----------------
 
 dataset=$1
