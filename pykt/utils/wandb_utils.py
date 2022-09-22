@@ -396,6 +396,9 @@ class WandbUtils:
         """
         all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
+        if len(all_res) == 5:
+            print("Failure running exists, please check!!!")
+            return
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
         repeated_window_aucs = np.unique(all_res["window_testauc"].values)
