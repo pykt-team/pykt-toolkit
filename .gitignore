@@ -41,3 +41,5 @@ examples/aaai2023/
 examples/all_wandbs/
 data_old
 examples/nips2022/
+examples/results/wandb_result/
+examples/*.pred
