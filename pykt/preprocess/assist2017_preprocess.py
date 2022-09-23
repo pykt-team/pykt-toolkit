@@ -1,47 +1,50 @@
-#!/usr/bin/env python
-# coding=utf-8
-
 import pandas as pd
-import numpy as np
-from .utils import sta_infos, write_txt, change2timestamp, replace_text
+from .utils import sta_infos, write_txt, format_list2str
 
-KEYS = ["studentId", "skill", "problemId"]
+keys = ["studentId", "skill", "problemId"]
+
 
 def read_data_from_csv(read_file, write_file):
+    df = pd.read_csv(read_file, encoding='utf-8', low_memory=False)
+
     stares = []
+    ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, keys, stares)
+    print(
+        f"original interaction num: {df.shape[0]}, user num: {df['studentId'].nunique()}, question num: {df['problemId'].nunique()}, "
+        f"concept num: {df['skill'].nunique()}, avg(ins) per s:{avgins}, avg(c) per q:{avgcq}, na:{na}")
 
-    df = pd.read_csv(read_file, dtype=str, low_memory=False, usecols=['startTime', 'timeTaken', 'studentId', 'skill', 'problemId', 'correct'])
+    df["index"] = range(len(df))
 
-    ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
-    print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
+    df = df.dropna(subset=["studentId", "problemId", "correct", "skill", "startTime"])
+    df = df[df['correct'].isin([0, 1])]  
+    df.loc[:, 'timeTaken'] = df['timeTaken'].apply(lambda x: round(x * 1000))
 
-    df["index"] = df.index
-    df = df.dropna(subset=['skill', 'problemId'])
-    #filter invalid record
-    df = df[df["correct"].isin([str(0),str(1)])]
-
-    ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares, "~~")
+    ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, keys, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
-    user_inters = []
-    for user, group in df.groupby("studentId", sort=False):
-        group = group.sort_values(by=["startTime", "index"], ascending=True)
-        group["startTime"] = group["startTime"].astype(str)
+    df2 = df[["index", "studentId", "problemId", "skill", "correct", "timeTaken", "startTime"]]
+    ui_df = df2.groupby(['studentId'], sort=False)
 
-        seq_problems = group["problemId"].tolist()
-        seq_ans = group["correct"].tolist()
-        seq_start_time = group["startTime"].tolist()
-        seq_skills = group["skill"].tolist()
-        seq_len = len(seq_ans)
-        seq_use_time = group["timeTaken"].tolist()
+    user_inter = []
+    for ui in ui_df:
+        user, tmp_inter = ui[0], ui[1]  
+        tmp_inter.loc[:, 'startTime'] = tmp_inter.loc[:, 'startTime'].apply(lambda t: int(t) * 1000)
+        tmp_inter = tmp_inter.sort_values(by=['startTime', 'index'])
 
-        assert seq_len == len(seq_problems) == len(seq_skills) == len(seq_ans) == len(seq_start_time)
-        
-        user_inters.append(
-            [[user, str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_use_time])
+        tmp_inter['startTime'] = tmp_inter['startTime']
 
-    write_txt(write_file, user_inters)
+        seq_len = len(tmp_inter)
+        seq_problems = tmp_inter['problemId'].tolist()
+        seq_skills = tmp_inter['skill'].tolist()
+        seq_ans = tmp_inter['correct'].tolist()
+        seq_submit_time = tmp_inter['startTime'].tolist()
+        seq_response_cost = tmp_inter['timeTaken'].tolist()
 
-    print("\n".join(stares))
+        assert seq_len == len(seq_problems) == len(seq_skills) == len(seq_ans) == len(seq_submit_time) == len(seq_response_cost)
 
-    return
+        user_inter.append(
+            [[str(user), str(seq_len)], format_list2str(seq_problems), seq_skills, format_list2str(seq_ans), format_list2str(seq_submit_time), format_list2str(seq_response_cost)])
+
+    write_txt(write_file, user_inter)
+
+
