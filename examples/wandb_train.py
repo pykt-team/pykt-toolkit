@@ -71,7 +71,7 @@ def main(params):
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt", "lpkt"]:
+        if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
         # if model_name in ["skvmn"]:
         #     train_config["batch_size"] = 32 

@@ -371,7 +371,7 @@ class WandbUtils:
         dconfig = dict()
         for i, row in df.iterrows():
             fold, model_path = row["fold"], row["model_save_path"]
-            model_path = model_path.rstrip("qid_model.ckpt")
+            model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
             print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
             model_path_fold_first.append(model_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
@@ -396,6 +396,9 @@ class WandbUtils:
         """
         all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
+        if len(all_res) < 5:
+            print("Failure running exists, please check!!!")
+            return
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
         repeated_window_aucs = np.unique(all_res["window_testauc"].values)
