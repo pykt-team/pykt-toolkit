@@ -695,7 +695,13 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             #     print(f"input to dktforget ! cin: {cin.shape}, k: {k}")
             #     for key in dcur:
             #         print(key, dcur[key].shape, din[key].shape, dcur[key], din[key])
-            y = model(cin.long(), rin.long(), din, dcur)
+            dgaps = dict()
+            for key in din:
+                dgaps[key] = din[key]
+            for key in dcur:
+                dgaps["shft_"+key] = dcur[key]
+            # y = model(cin.long(), rin.long(), din, dcur)
+            y = model(cin.long(), rin.long(), dgaps)
             pred = y[0][-1][cout.item()]
         elif model_name in ["kqn", "sakt"]:
             curc = torch.tensor([[cout.item()]]).to(device)
@@ -985,7 +991,13 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = model(curc.long(), curr.long())
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:
-            y = model(curc.long(), curr.long(), curd, curdshft)
+            dgaps = dict()
+            for key in curd:
+                dgaps[key] = curd[key]
+            for key in curdshft:
+                dgaps["shft_"+key] = curdshft[key]
+            y = model(curc.long(), curr.long(), dgaps)
+            # y = model(curc.long(), curr.long(), curd, curdshft)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkvmn","deep_irt", "skvmn"]:
             y = model(ccc.long(), ccr.long())

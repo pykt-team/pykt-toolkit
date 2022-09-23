@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from wandb.apis.public import gql
 import json
-
+from multiprocessing.pool import ThreadPool # 线程池
 
 def get_runs_result(runs):
     result_list = []
@@ -84,11 +84,13 @@ class WandbUtils:
         sweep_id = self._get_sweep_id(id,input_type)
         sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
         df,model_config_keys = get_runs_result(sweep.runs)
+        
         if drop_na:
             df = df.dropna()
             df['create_time'] = df['_timestamp'].apply(int)
         if only_finish:
             df = df[df['state'] == 'finished'].copy()
+
         if drop_duplicate:
             df.drop_duplicates(model_config_keys)
         df = df.sort_values("create_time")
@@ -96,7 +98,7 @@ class WandbUtils:
         df.index = range(len(df))
         return df
 
-    def get_multi_df(self,id_list=[],input_type="sweep_name"):
+    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True):
         """Get multi sweep result
 
         Args:
@@ -108,7 +110,7 @@ class WandbUtils:
         """
         df_list = []
         for id in id_list:
-            df = self.get_df(id,input_type=input_type)
+            df = self.get_df(id,input_type=input_type,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish)
             df[input_type] = id
             df_list.append(df)
         return df_list
@@ -228,24 +230,24 @@ class WandbUtils:
         print(f"We will stop the sweep, by {cmd}")
 
     
-    def check_sweep_list(self,sweep_key_list,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
         check_result_list = []
-        for sweep_name in sweep_key_list:
-            try:
-                check_result = self.check_sweep_early_stop(sweep_name,input_type='sweep_name',
-                        metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df)
-                check_result['sweep_name'] = sweep_name
-                check_result_list.append(check_result)
-            except:
-                pass
 
-        if stop:#stop sweep
+        def check_help(sweep_name, input_type='sweep_name',
+                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df):
+            check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
+                                                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            return check_result
+        p = ThreadPool(n_jobs)
+        check_result_list = p.map(check_help, sweep_key_list)
+        p.close()
+        if stop:  # stop sweep
             for result in check_result_list:
-                if result['State'] and result['stop_cmd']!=0:
+                if result['State'] and result['stop_cmd'] != 0:
                     self.stop_sweep(result['stop_cmd'])
         return check_result_list
 
-    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         """Check sweeps by pattern
         
         Args:
@@ -263,7 +265,7 @@ class WandbUtils:
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 sweep_key_list.append(sweep_name)
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         
         return check_result_list
 
@@ -272,22 +274,22 @@ class WandbUtils:
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list
 
-    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False):
+    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
         sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
         if len(sweep_key_list)!=5:
             print("Input error, please check")
             return 
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
 
-    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result"):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
-        if os.path.exists(best_path):
+        if os.path.exists(best_path) and not force_reget:
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True)
+            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
             row_list = []
             for result in check_result_list:
                 df = result['df']
@@ -297,6 +299,18 @@ class WandbUtils:
             df = pd.DataFrame(row_list)
             df.to_csv(best_path,index=False)
         return df
+
+    def get_model_run_time(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
+        """Get the average run second in one sweep
+        """
+        check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
+        df_merge = pd.concat([x['df'] for x in check_result_list])
+        run_time_list = df_merge['_runtime'].tolist()
+        avg_run_time = int(np.mean(run_time_list))
+        std_run_time = int(np.std(run_time_list))
+        return avg_run_time,std_run_time
+
+    
 
     #修改wandb配置文件
     def generate_wandb(self, dataset_name, model_name, emb_type, fpath, ftarget, model_path):
@@ -382,6 +396,9 @@ class WandbUtils:
         """
         all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
+        if len(all_res) < 5:
+            print("Failure running exists, please check!!!")
+            return
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
         repeated_window_aucs = np.unique(all_res["window_testauc"].values)
