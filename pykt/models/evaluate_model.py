@@ -209,7 +209,7 @@ def effective_fusion(df, model, model_name, fusion_type):
         dres.setdefault(key, [])
         dres[key].append(np.array(dcur[key]))
     # early fusion
-    if "early_fusion" in fusion_type and model_name in hasearly:
+    if "early_fusion" in fusion_type and model_name in hasearly+['kqn','lpkt']:
         curhs = [torch.tensor(curh).float().to(device) for curh in curhs]
         curr = torch.tensor(curr).long().to(device)
         p = early_fusion(curhs, model, model_name)
