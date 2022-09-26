@@ -141,4 +141,4 @@ class LPKT(nn.Module):
         if not qtest:
             return pred
         else:
-            return pred, hidden_state, e_data
+            return pred, hidden_state[:,:-1,:], e_data

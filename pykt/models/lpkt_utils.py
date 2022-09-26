@@ -21,7 +21,7 @@ def generate_qmatrix(data_config, gamma=0.0):
     n_problem, n_skill = data_config["num_q"], data_config["num_c"]
     q_matrix = np.zeros((n_problem + 1, n_skill + 1)) + gamma
     for p in problem2skill.keys():
-        for c in problem2skill[q]:
+        for c in problem2skill[p]:
             q_matrix[p][c] = 1
     np.savez(os.path.join(data_config["dpath"], "qmatrix.npz"), matrix = q_matrix)
     return q_matrix
