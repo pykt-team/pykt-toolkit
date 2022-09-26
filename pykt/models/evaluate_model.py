@@ -147,8 +147,7 @@ def early_fusion(curhs, model, model_name):
     elif model_name == "hawkes":
         p = curhs[0].sigmoid()
     elif model_name == "lpkt":
-        y = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / self.d_k
-        p = curhs[0].sigmoid()
+        p = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / model.d_k
     return p
 
 def late_fusion(dcur, curdf, fusion_type=["mean", "vote", "all"]):
@@ -209,7 +208,7 @@ def effective_fusion(df, model, model_name, fusion_type):
         dres.setdefault(key, [])
         dres[key].append(np.array(dcur[key]))
     # early fusion
-    if "early_fusion" in fusion_type and model_name in hasearly+['kqn','lpkt']:
+    if "early_fusion" in fusion_type and model_name in hasearly:
         curhs = [torch.tensor(curh).float().to(device) for curh in curhs]
         curr = torch.tensor(curr).long().to(device)
         p = early_fusion(curhs, model, model_name)
@@ -244,9 +243,9 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             df["ek"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
             df["es"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
         elif model_name == "lpkt":
+            # print(f"hidden:{hs[0].shape}")
             df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
-            df["e_data"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
-            df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
+            # print(f"e_data:{hs[1].shape}")
             df["e_data"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
 
         df = df[df["select"] != 0]
