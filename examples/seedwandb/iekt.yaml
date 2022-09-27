@@ -23,7 +23,7 @@ parameters:
     acq_levels:
         values: [10,20,30]
     gamma:
-        values: [0.2,0.4,0.6,0.8,0.93]
+        values: [0.2,0.4,0.6,0.8]
     dropout:
         values: [0.05,0.1,0.3,0.5]
     learning_rate:
