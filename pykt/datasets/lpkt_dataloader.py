@@ -235,9 +235,12 @@ class LPKTDataset(Dataset):
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
 
             #cal interval time
-            timestamps = dori["tseqs"][-1]
-            shft_timestamps = [0] + timestamps[:-1]
-            it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
+            if "timestamps" in row:
+                timestamps = dori["tseqs"][-1]
+                shft_timestamps = [0] + timestamps[:-1]
+                it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
+            else:
+                it = np.ones(len(dori["cseqs"][-1])).astype(int)
             tmp_it = [self.it2idx[str(t)] for t in it]
             dori["itseqs"].append(tmp_it)
 
