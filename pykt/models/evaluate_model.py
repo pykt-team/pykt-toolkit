@@ -939,7 +939,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
         if cit.shape[0] > 0:
             finalits = torch.cat(dits, axis=0)
             finalitshfts = torch.cat(ditshfts, axis=0)
-    if model_names != lpkt:
+    if model_name != 'lpkt':
         return qidxs, finalqs, finalcs, finalrs, finalts, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finald, finaldshft  
     else: 
         return qidxs, finalqs, finalcs, finalrs, finalts, finalits, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finalitshfts, finald, finaldshft
