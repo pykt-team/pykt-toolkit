@@ -116,7 +116,7 @@ class WandbUtils:
         df.index = range(len(df))
         return df
 
-    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True):
+    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
         """Get multi sweep result
 
         Args:
@@ -126,11 +126,13 @@ class WandbUtils:
         Returns:
             _type_: _description_
         """
-        df_list = []
-        for id in id_list:
+        def get_df_help(id):
             df = self.get_df(id,input_type=input_type,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish)
             df[input_type] = id
-            df_list.append(df)
+            return df
+        p = ThreadPool(n_jobs)
+        df_list = p.map(get_df_help, id_list)
+        p.close()
         return df_list
 
     def get_sweep_info(self,id,input_type="sweep_name"):
@@ -300,6 +302,28 @@ class WandbUtils:
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         
         return check_result_list
+
+    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False):
+        sweep_key_list = []
+        for sweep_name in self.sweep_keys:
+            if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
+                sweep_key_list.append(sweep_name)
+        print(f"sweep_key_list is {sweep_key_list}")
+        
+        info_list = []
+        p = ThreadPool(n_jobs)
+        results = p.map(self.get_sweep_info, sweep_key_list)
+        p.close()
+
+        for i, key in enumerate(sweep_key_list):
+            info = results[i]
+            info.update({'sweep_pattern':sweep_pattern,"key":key,
+                    'agent_name': f"pykt-team/{self.project_name}/{self.sweep_dict[key]}"})
+            info_list.append(info)
+        if return_df:
+            return pd.DataFrame(info_list)
+        else:
+            return info_list
 
     def get_all_fold_name(self,dataset_name,model_name,emb_type="qid"):
         sweep_key_list = [f"{dataset_name}_{model_name}_{emb_type}_{fold}" for fold in range(5)]
