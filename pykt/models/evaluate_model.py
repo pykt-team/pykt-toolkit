@@ -595,17 +595,14 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                             rtmp.append(k)
                         else:
                             break
-                    # dfshape = curdforget["rgaps"].shape
-                    # print(f"currin: {currin.shape}, curdforget: {dfshape}, rtmp: {rtmp}")
-                    # print(f"rtmp: {rtmp}")
+
                     end = rtmp[-1]+1
                     uid = row["uid"]
-                    # if use_pred:
-                    # curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(curdforget, dforget, is_repeat, qidx, uid, idx, curqin, curcin, currin, model_name, model, t, cq, cc, cr, end, fout, atkt_pad)
+
                     curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
-                    
+                    dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
                     late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)    
-                    # print("\t".join([str(idx), str(uid), str(k), str(qidx), str(late_mean), str(late_vote), str(late_all)]))    
+   
                     fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")      
                     t = end
                     qidx += 1
@@ -645,6 +642,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
+    for key in dcur:
+        print(f"649 - {key} shape is {dcur[key].shape}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
@@ -666,7 +665,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             start = cinlen - maxlen + 1
         
         cin, rin = cin[:,start:], rin[:,start:]
-        # print(f"start: {start}, cin: {cin.shape}")
+
         if cq.shape[0] > 0:
             qin = qin[:, start:]
         if ct.shape[0] > 0:
@@ -691,11 +690,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             for key in dforget:
                 curd = torch.tensor([[dforget[key][k]]]).long().to(device)
                 dcur[key] = torch.cat((din[key][:,1:], curd), axis=1)
-                # print(f"cin: {cin.shape}, dcur key: {dcur[key].shape}")
-            # if idx == 13:
-            #     print(f"input to dktforget ! cin: {cin.shape}, k: {k}")
-            #     for key in dcur:
-            #         print(key, dcur[key].shape, din[key].shape, dcur[key], din[key])
             dgaps = dict()
             for key in din:
                 dgaps[key] = din[key]
@@ -788,7 +782,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         nextcin = cc[0:k+1].unsqueeze(0)
         nextrin = torch.cat((nextrin, cpred), axis=1)### change!!
 
-        # print(f"nextqin: {nextqin.shape}")
         # update nextdforget
         if model_name == "dkt_forget":
             for key in nextdforget:
