@@ -544,9 +544,13 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             questions = [] if "questions" not in row else row["questions"].split(",")
             times = [] if "timestamps" not in row else row["timestamps"].split(",")
             if model_name == "lpkt":
-                shft_times = [0] + times[:-1]
-                it_times = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
-                it_times = [it2idx[str(t)] for t in it]
+                if times != []:
+                    times = [int(x) for x in times]
+                    shft_times = [0] + times[:-1]
+                    it_times = np.maximum(np.minimum((np.array(times) - np.array(shft_times)) // 60, 43200),-1)
+                else:
+                    it_times = np.ones(len(concepts)).astype(int)
+                it_times = [it2idx.get(str(t)) for t in it_times]
 
             qlen, qtrainlen, ctrainlen = get_cur_teststart(is_repeat, train_ratio)
             # print(f"idx: {idx}, qlen: {qlen}, qtrainlen: {qtrainlen}, ctrainlen: {ctrainlen}")
@@ -565,7 +569,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             curqin = cq[0:ctrainlen].unsqueeze(0) if cq.shape[0] > 0 else cq
             curtin = ct[0:ctrainlen].unsqueeze(0) if ct.shape[0] > 0 else ct
             if model_name == "lpkt":
-                curitin = ct[0:ctrainlen].unsqueeze(0) if cit.shape[0] > 0 else cit
+                curitin = cit[0:ctrainlen].unsqueeze(0) if cit.shape[0] > 0 else cit
             dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
             if model_name == "lpkt":
                 dcur["curitin"] = curitin
@@ -939,7 +943,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
         if cit.shape[0] > 0:
             finalits = torch.cat(dits, axis=0)
             finalitshfts = torch.cat(ditshfts, axis=0)
-    if model_names != lpkt:
+    if model_name != "lpkt":
         return qidxs, finalqs, finalcs, finalrs, finalts, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finald, finaldshft  
     else: 
         return qidxs, finalqs, finalcs, finalrs, finalts, finalits, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finalitshfts, finald, finaldshft
@@ -1025,7 +1029,10 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name == "lpkt":
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
-            y = model(ccq.long(), ccr.long(), ccit.long())
+            print(f"ccc:{torch.max(ccc)}")
+            print(f"ccr:{torch.max(ccr)}")
+            print(f"ccit:{torch.max(ccit)}")
+            y = model(ccc.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
         elif model_name == "gkt":
             y = model(ccc.long(), ccr.long())
