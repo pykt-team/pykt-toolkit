@@ -11,8 +11,7 @@ dnames = {
     "assist2015": "Assist2015", 
     "algebra2005": "Algebra2005",
     "bridge2algebra2006": "Bridge2006",
-    "nips_task34": "NIPS34"
-    ,
+    "nips_task34": "NIPS34",
     "statics2011": "Statics2011",
     "poj": "POJ"
 }

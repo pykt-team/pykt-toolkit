@@ -223,8 +223,7 @@ def early_fusion(curhs, model, model_name):
     elif model_name == "hawkes":
         p = curhs[0].sigmoid()
     elif model_name == "lpkt":
-        y = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / self.d_k
-        p = curhs[0].sigmoid()
+        p = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / model.d_k
     return p
 
 def late_fusion(dcur, curdf, fusion_type=["mean", "vote", "all"]):
@@ -256,10 +255,11 @@ def effective_fusion(df, model, model_name, fusion_type):
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
     hasearly = ["dkvmn", "deep_irt", "lpkt", "skvmn", "akt", "cakt", "bakt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]
+    # hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
-        if model_name in hasearly:
+        if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
             curhs[0].append(curdf["hidden"].mean().astype(float))
         elif model_name == "kqn":
             curhs[0].append(curdf["ek"].mean().astype(float))
@@ -320,7 +320,9 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             df["ek"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
             df["es"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
         elif model_name == "lpkt":
+            # print(f"hidden:{hs[0].shape}")
             df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
+            # print(f"e_data:{hs[1].shape}")
             df["e_data"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
 
         df = df[df["select"] != 0]
@@ -346,7 +348,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
                 drest[key] = [dmerge[key][0][rest_start:]]
             elif model_name == "kqn" or model_name == "lpkt":
-                drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]              
+                drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]             
         else:
             drest[key] = dmerge[key][rest_start:] 
     restlen = drest["cr"].shape[0]
@@ -489,8 +491,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = model(cc.long(), cq.long(), ct.long(), cr.long(), True)
                 y, h = y[:, 1:]
             elif model_name == "lpkt":
-                cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
-                y, h, e_data = model(cq.long(), cr.long(), cit.long(), True)
+                cit = torch.cat((dcurori["itseqs"][:,0:1], dcurori["shft_itseqs"]), dim=1)
+                y, h, e_data = model(cq.long(), cr.long(), cit.long(), at_data=None, qtest=True)
                 start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device) # add the first hidden emb
                 h = torch.cat((start_hemb, h), dim=1)
                 # e_data = torch.cat((start_hemb, e_data), dim=1)
@@ -1044,7 +1046,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
         if cit.shape[0] > 0:
             finalits = torch.cat(dits, axis=0)
             finalitshfts = torch.cat(ditshfts, axis=0)
-    if model_names != lpkt:
+    if model_name != 'lpkt':
         return qidxs, finalqs, finalcs, finalrs, finalts, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finald, finaldshft  
     else: 
         return qidxs, finalqs, finalcs, finalrs, finalts, finalits, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finalitshfts, finald, finaldshft
