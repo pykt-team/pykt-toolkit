@@ -53,7 +53,12 @@
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
-        "test_question_window_file": "test_question_window_sequences.csv"
+        "test_question_window_file": "test_question_window_sequences.csv",
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     },
     "assist2009": {
         "dpath": "../data/assist2009",
@@ -183,7 +188,12 @@
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
-        "test_window_file": "test_window_sequences.csv"
+        "test_window_file": "test_window_sequences.csv",
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     },
     "junyi2015": {
         "dpath": "../data/junyi2015",
@@ -237,7 +247,12 @@
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
-        "test_question_window_file": "test_question_window_sequences.csv"
+        "test_question_window_file": "test_question_window_sequences.csv",
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     },
     "ednet": {
         "dpath": "../data/ednet",
@@ -291,7 +306,12 @@
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
-        "test_question_window_file": "test_question_window_sequences.csv"
+        "test_question_window_file": "test_question_window_sequences.csv",
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     },
     "poj": {
         "dpath": "../data/poj",
@@ -315,6 +335,11 @@
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
-        "test_window_file": "test_window_sequences.csv"
+        "test_window_file": "test_window_sequences.csv",
+        "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "test_file_quelevel": "test_sequences_quelevel.csv",
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     }
 }

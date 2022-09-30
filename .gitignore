@@ -48,3 +48,5 @@ __pycache__/
 log.*
 *.swp
 *.bak
+logs/
+examples/best_model_path
