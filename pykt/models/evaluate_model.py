@@ -1022,9 +1022,6 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name == "lpkt":
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
-            print(f"ccc:{torch.max(ccc)}")
-            print(f"ccr:{torch.max(ccr)}")
-            print(f"ccit:{torch.max(ccit)}")
             y = model(ccc.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
         elif model_name == "gkt":
