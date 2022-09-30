@@ -93,9 +93,11 @@ def extend_multi_concepts(df, effective_keys):
     if "questions" not in effective_keys or "concepts" not in effective_keys:
         print("has no questions or concepts! return original.")
         return df, effective_keys
-    extend_keys = set(df.columns) - {"uid"}
+    extend_keys = set(df.columns) - set(ONE_KEYS)#{"uid"}
 
     dres = {"uid": df["uid"]}
+    if "fold" in df.columns:
+        dres["fold"] = df["fold"]
     for _, row in df.iterrows():
         dextend_infos = dict()
         for key in extend_keys:
@@ -115,6 +117,7 @@ def extend_multi_concepts(df, effective_keys):
             else:
                 for key in extend_keys:
                     dextend_res.setdefault(key, [])
+                    # print(f"key: {key}")
                     dextend_res[key].append(dextend_infos[key][i])
                 dextend_res["is_repeat"].append("0")
         for key in dextend_res:

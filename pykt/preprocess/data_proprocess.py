@@ -29,9 +29,14 @@ def process_raw_data(dataset_name,dname2paths):
         from .junyi2015_preprocess import read_data_from_csv, load_q2c
     elif dataset_name == "ednet":
         from .ednet_preprocess import read_data_from_csv
+    elif dataset_name == "peiyou":
+        from .aaai2022_competition import read_data_from_csv, load_q2c
     
     if dataset_name == "junyi2015":
         dq2c = load_q2c(readf.replace("junyi_ProblemLog_original.csv","junyi_Exercise_table.csv"))
+        read_data_from_csv(readf, writef, dq2c)
+    elif dataset_name == "peiyou":
+        dq2c = load_q2c(readf.replace("grade3_students_b_200.csv","map_questions.json"))
         read_data_from_csv(readf, writef, dq2c)
     elif dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)

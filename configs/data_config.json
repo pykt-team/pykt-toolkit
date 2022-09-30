@@ -308,5 +308,33 @@
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
         "test_window_file": "test_window_sequences.csv"
+    },
+    "peiyou": {
+        "dpath": "../data/peiyou",
+        "num_q": 7652,
+        "num_c": 865,
+        "dq2c": "dq2c.pkl",
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
+        "max_concepts": 6,
+        "min_seq_len": 3,
+        "maxlen": 200,
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
     }
 }
