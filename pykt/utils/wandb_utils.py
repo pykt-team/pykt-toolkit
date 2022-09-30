@@ -32,10 +32,15 @@ class WandbUtils:
     >self.sweep_dict is {'mx2tvwfy': ['mx2tvwfy']}
     
     """
-    def __init__(self,user,project_name) -> None:
+    def __init__(self,user,project_name,use_cache=False,print_details=True,cache_dir='results/wandb_result') -> None:
         self.user = user
         self.project_name = project_name
+        self.print_details = print_details
         self._init_wandb()
+        self.cache_dir = cache_dir
+        os.makedirs(self.cache_dir,exist_ok=True)
+        self.use_cache = use_cache
+        
         
 
     def _init_wandb(self):
@@ -43,7 +48,8 @@ class WandbUtils:
         self.project = self.api.project(name=self.project_name)
         self.sweep_dict = self.get_sweep_dict()
         self.invert_sweep_dict = dict(zip(list(self.sweep_dict.values()),list(self.sweep_dict.keys())))
-        print(f"self.sweep_dict is {self.sweep_dict}")
+        if self.print_details:
+            print(f"self.sweep_dict is {self.sweep_dict}")
         self.sweep_keys = list(self.sweep_dict.keys())
         self.sweep_keys.sort()
     
@@ -81,10 +87,22 @@ class WandbUtils:
         Returns:
             pd.Data: _description_
         """
+       
+            
         sweep_id = self._get_sweep_id(id,input_type)
-        sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
-        df,model_config_keys = get_runs_result(sweep.runs)
-        
+        df_cache_path = os.path.join(self.cache_dir,f"{sweep_id}.csv")
+        key_cache_path = os.path.join(self.cache_dir,f"{sweep_id}_model_config_keys.json")
+        if self.use_cache and os.path.exists(df_cache_path):
+            df = pd.read_csv(df_cache_path)
+            model_config_keys = json.load(open(key_cache_path,'r'))
+        else:
+            sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
+            df,model_config_keys = get_runs_result(sweep.runs)
+            #save to file
+            df.to_csv(df_cache_path,index=False)
+            with open(key_cache_path,'w') as f:
+                json.dump(model_config_keys,f)
+
         if drop_na:
             df = df.dropna()
             df['create_time'] = df['_timestamp'].apply(int)
@@ -98,7 +116,7 @@ class WandbUtils:
         df.index = range(len(df))
         return df
 
-    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True):
+    def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
         """Get multi sweep result
 
         Args:
@@ -108,12 +126,45 @@ class WandbUtils:
         Returns:
             _type_: _description_
         """
-        df_list = []
-        for id in id_list:
+        def get_df_help(id):
             df = self.get_df(id,input_type=input_type,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish)
             df[input_type] = id
-            df_list.append(df)
+            return df
+        p = ThreadPool(n_jobs)
+        df_list = p.map(get_df_help, id_list)
+        p.close()
         return df_list
+
+    def get_sweep_info(self,id,input_type="sweep_name"):
+        """Get sweep run status
+
+        Args:
+            id (str): the sweep name or sweep id.
+            input_type (str, optional): the type of id. Defaults to sweep_name.
+
+        Returns:
+            str: the state of sweep. 'RUNNING', 'CANCELED' or 'FINISHED'
+        """
+        #remove config,id,name  
+        query = gql(
+            """query Sweep($project: String, $entity: String, $name: String!) {
+                project(name: $project, entityName: $entity) {
+                    sweep(sweepName: $name) {
+                        state
+                        runCount
+                        runCountExpected
+                    }
+                },
+            }
+            """)
+        sweep_id = self._get_sweep_id(id,input_type)
+        variables = {
+                "entity": self.user,
+                "project": self.project_name,
+                "name": sweep_id}
+        result = self.project.client.execute(query,variable_values=variables)['project']['sweep']
+        result.update(variables)
+        return result
 
     def get_sweep_status(self,id,input_type="sweep_name"):
         """Get sweep run status
@@ -125,26 +176,8 @@ class WandbUtils:
         Returns:
             str: the state of sweep. 'RUNNING', 'CANCELED' or 'FINISHED'
         """
-        query = gql(
-            """query Sweep($project: String, $entity: String, $name: String!) {
-                project(name: $project, entityName: $entity) {
-                    sweep(sweepName: $name) {
-                        id
-                        name
-                        bestLoss
-                        config
-                        state
-                    }
-                },
-            }
-            """)
-        sweep_id = self._get_sweep_id(id,input_type)
-        variables = {
-                "entity": self.user,
-                "project": self.project_name,
-                "name": sweep_id}
-        status = self.project.client.execute(query,variable_values=variables)['project']['sweep']['state']
-        return status
+        result = self.get_sweep_info(id,input_type)
+        return result['state']
 
     def get_sweep_run_num(self,id,input_type="sweep_name"):
         """Get sweep run num
@@ -221,8 +254,9 @@ class WandbUtils:
                     report['first_best_index'] = first_best_index
                 else:
                     report['state'] = False
-        print(f"    details: {id} state is {report['state']},num of runs is {report['num_run']}")
-        print("-"*60+'\n')
+        if self.print_details:
+            print(f"    details: {id} state is {report['state']},num of runs is {report['num_run']}")
+            print("-"*60+'\n')
         return report
 
     def stop_sweep(self,cmd):
@@ -269,6 +303,28 @@ class WandbUtils:
         
         return check_result_list
 
+    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False):
+        sweep_key_list = []
+        for sweep_name in self.sweep_keys:
+            if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
+                sweep_key_list.append(sweep_name)
+        print(f"sweep_key_list is {sweep_key_list}")
+        
+        info_list = []
+        p = ThreadPool(n_jobs)
+        results = p.map(self.get_sweep_info, sweep_key_list)
+        p.close()
+
+        for i, key in enumerate(sweep_key_list):
+            info = results[i]
+            info.update({'sweep_pattern':sweep_pattern,"key":key,
+                    'agent_name': f"pykt-team/{self.project_name}/{self.sweep_dict[key]}"})
+            info_list.append(info)
+        if return_df:
+            return pd.DataFrame(info_list)
+        else:
+            return info_list
+
     def get_all_fold_name(self,dataset_name,model_name,emb_type="qid"):
         sweep_key_list = [f"{dataset_name}_{model_name}_{emb_type}_{fold}" for fold in range(5)]
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
@@ -282,7 +338,7 @@ class WandbUtils:
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
 
-    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False):
+    def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False,k=5):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
         if os.path.exists(best_path) and not force_reget:
@@ -297,7 +353,11 @@ class WandbUtils:
                 df = df.sort_values(metric,ascending=False)
                 row_list.append(df.iloc[0])
             df = pd.DataFrame(row_list)
-            df.to_csv(best_path,index=False)
+            if len(df)!=k:
+                print(f"The df have {len(df)} rows not equal fold num {k}")
+                raise 
+            else:
+                df.to_csv(best_path,index=False)
         return df
 
     def get_model_run_time(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5):
@@ -308,7 +368,7 @@ class WandbUtils:
         run_time_list = df_merge['_runtime'].tolist()
         avg_run_time = int(np.mean(run_time_list))
         std_run_time = int(np.std(run_time_list))
-        return avg_run_time,std_run_time
+        return avg_run_time,std_run_time,df_merge
 
     
 
