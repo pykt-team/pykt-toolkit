@@ -432,7 +432,7 @@ class WandbUtils:
         for i, row in df.iterrows():
             fold, model_path = row["fold"], row["model_save_path"]
             model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
-            print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
+            print(f"cp -r {model_path} ./best_model_path/{dataset_name}/{model_name}/")
             model_path_fold_first.append(model_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
         if eval_test:
