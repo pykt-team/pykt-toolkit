@@ -221,32 +221,30 @@ def update_question_df(df):
     t_label, vp_preds, ap_preds, ep_preds, lmp_preds = [], [], [], [], []
     line = 0
     for i, row in df.iterrows():
-        cpreds = [float(p) for p in row["concept_preds"].split(",")]
-        vp, ap = float(row["late_vote"]), float(row["late_all"])
-        lowl, highl = [], []
-        for p in cpreds:
-            if p >= 0.5:
-                highl.append(p)
+        cpreds = np.array([float(p) for p in row["concept_preds"].split(",")])
+        # vp, ap = float(row["late_vote"]), float(row["late_all"])
+        high, low = [], []
+        for pred in cpreds:
+            if pred >= 0.5:
+                high.append(pred)
             else:
-                lowl.append(p)
-        low = np.mean(lowl) if len(lowl) > 0 else 0.4999
+                low.append(pred)
+        correctnum = list(cpreds>=0.5).count(True)
 
-        vp_probility = np.mean(highl) if int(vp) == 1 else low
-        ap_probility = np.mean(highl) if int(ap) == 1 else low
+        vp_probility = np.mean(high) if correctnum / len(cpreds) >= 0.5 else np.mean(low)
+        ap_probility = np.mean(high) if correctnum == len(cpreds) else np.mean(low)
         if have_early:
             ep_probility = float(row["early_preds"])
         else:
             ep_probility = 0
         lmp_probility = float(row["late_mean"])
-        cvp = 1 if vp_probility >= 0.5 else 0
-        if cvp != int(vp):
-            print(f"line: {line} cvp: {cvp}, vp: {vp}")
+
         t_label.append(int(row["late_trues"]))
 
-        vp_preds.append(vp_probility)
-        ap_preds.append(ap_probility)
-        ep_preds.append(ep_probility)
-        lmp_preds.append(lmp_probility)
+        vp_preds.append(vp_probility)#late vote
+        ap_preds.append(ap_probility)#late all
+        lmp_preds.append(lmp_probility)#late_mean
+        ep_preds.append(ep_probility)#early 
 
     late_vote, late_all = np.array(vp_preds), np.array(ap_preds)  # ,vote,all
     early_preds, late_mean = np.array(
@@ -424,12 +422,12 @@ def get_one_result(root_save_dir, stu_inter_num_dict, data_dict, cut, skip=False
             except:
                 print("Fail 知识点win")
 
-            # #长短序列
-            # try:
-            #     print("Start 知识点长短序列")
-            #     concept_update_l2(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict)
-            # except:
-            #     print("Fail 知识点长短序列")
+            #长短序列
+            try:
+                print("Start 知识点长短序列")
+                concept_update_l2(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict)
+            except:
+                print("Fail 知识点长短序列")
 
             
             if not data_dict['df_que_test'] is None:
