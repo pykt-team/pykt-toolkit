@@ -6,6 +6,7 @@ import yaml
 from wandb.apis.public import gql
 import json
 from multiprocessing.pool import ThreadPool # 线程池
+from .utils import debug_print
 
 def get_runs_result(runs):
     result_list = []
@@ -134,6 +135,13 @@ class WandbUtils:
         df_list = p.map(get_df_help, id_list)
         p.close()
         return df_list
+    
+    def get_multi_df_by_pattern(self,sweep_pattern,drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
+        sweep_key_list = []
+        for sweep_name in self.sweep_keys:
+            if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
+                sweep_key_list.append(sweep_name)
+        return self.get_multi_df(sweep_key_list,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish,n_jobs=n_jobs)
 
     def get_sweep_info(self,id,input_type="sweep_name"):
         """Get sweep run status
@@ -193,6 +201,18 @@ class WandbUtils:
         sweep = self.api.sweep(f"{self.user}/{self.project_name}/{sweep_id}")
         return len(sweep.runs)
 
+    def get_stop_index(self,df,metric="validauc",metric_type="max",min_run_num=200,patience=50):
+        finish = False
+        df[f'{metric}_precsion3'] = df[metric].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
+        for i in range(min_run_num,len(df)):
+            best_value = df[:i][f'{metric}_precsion3'].max()#get best value
+            first_best_index = df[df[f'{metric}_precsion3']==best_value]['run_index'].min()
+            not_improve_num = len(df[df['run_index'] >= first_best_index])
+            if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
+                finish = True 
+                break
+        stop_info = {"finish":finish,"not_improve_num":not_improve_num,"stop_index":i,"first_best_index":first_best_index}
+        return stop_info
 
     def check_sweep_early_stop(self,id,input_type="sweep_name",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
         """Check sweep early stop
@@ -230,37 +250,30 @@ class WandbUtils:
             if num_run<min_run_num:
                 report['state'] = False
             else:
-                #
                 if 'df' not in report:
                     df = self.get_df(sweep_id,input_type="sweep_id",only_finish=True)#get sweep result
-                    report['df'] = df
-                df[f'{metric}_precsion3'] = df[metric].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
-                #find stop point
-                finish = False
-                for i in range(min_run_num,len(df)):
-                    best_value = df[:i][f'{metric}_precsion3'].max()#get best value
-                    first_best_index = df[df[f'{metric}_precsion3']==best_value]['run_index'].min()
-                    not_improve_num = len(df[df['run_index'] >= first_best_index])
-                    if not_improve_num > patience:#如果连续 patience 次没有提高，则停止
-                        finish = True 
-                        break
-                if finish:
-                    df = df[:i].copy()#only keep before stop point
-                    report['not_improve_num'] = not_improve_num
+                stop_info = self.get_stop_index(df,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
+                if stop_info['finish']:
+                    df = df[:stop_info['stop_index']]#only keep before stop point
+                    report['not_improve_num'] = stop_info['not_improve_num']
                     stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
                     report['state'] = True
                     report['stop_cmd'] = stop_cmd
-                    report['first_best_index'] = first_best_index
+                    report['first_best_index'] = stop_info['first_best_index']
+                    report['df'] = df
                 else:
                     report['state'] = False
+                    report['df'] = df
         if self.print_details:
             print(f"    details: {id} state is {report['state']},num of runs is {report['num_run']}")
             print("-"*60+'\n')
         return report
 
     def stop_sweep(self,cmd):
-        # os.system(cmd)
+        cmd = cmd.replace("cancel","stop")
+        debug_print(f"{cmd} excute")
+        os.system(cmd)
         print(f"We will stop the sweep, by {cmd}")
 
     
@@ -337,22 +350,37 @@ class WandbUtils:
             return 
         check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
         return check_result_list
+    
+    def get_df_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
+        sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
+        df_list = self.get_multi_df(sweep_key_list,drop_duplicate=drop_duplicate,drop_na=drop_na,only_finish=only_finish,n_jobs=n_jobs)
+        return sweep_key_list,df_list
 
     def get_best_run(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,save_dir="results/wandb_result",n_jobs=5,force_reget=False,k=5):
         os.makedirs(save_dir,exist_ok=True)        
         best_path = os.path.join(save_dir,f"{dataset_name}_{model_name}_{emb_type}_best.csv")
+        #read cache if not refoce reget
         if os.path.exists(best_path) and not force_reget:
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            check_result_list = self.check_sweep_by_model_dataset_name(dataset_name,model_name,emb_type,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=True,n_jobs=n_jobs)
+            sweep_name_list,raw_df_list = self.get_df_by_model_dataset_name(dataset_name,model_name,emb_type="qid",n_jobs=n_jobs)#get all all
+            df_list = []
+            #crop after best run
+            for df in raw_df_list:
+                if len(df)>=min_run_num:
+                    stop_info = self.get_stop_index(df,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
+                    df = df[:stop_info['stop_index']]#only keep before stop point
+                df_list.append(df)
+            
+            #find the best row
             row_list = []
-            for result in check_result_list:
-                df = result['df']
-                df.to_csv(os.path.join(save_dir,result['sweep_name']+'.csv'),index=False)
+            for df,sweep_name in zip(df_list,sweep_name_list):
+                df.to_csv(os.path.join(save_dir,sweep_name+'.csv'),index=False)
                 df = df.sort_values(metric,ascending=False)
                 row_list.append(df.iloc[0])
             df = pd.DataFrame(row_list)
+
             if len(df)!=k:
                 print(f"The df have {len(df)} rows not equal fold num {k}")
                 raise 
@@ -432,7 +460,7 @@ class WandbUtils:
         for i, row in df.iterrows():
             fold, model_path = row["fold"], row["model_save_path"]
             model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
-            print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
+            print(f"cp -r {model_path} ./best_model_path/{dataset_name}/{model_name}/")
             model_path_fold_first.append(model_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
         if eval_test:
