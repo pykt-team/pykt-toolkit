@@ -482,7 +482,8 @@ def get_one_result_help(dataset, model_name):
 
 if __name__ == "__main__":
     # model_root_dir = "/root/autodl-nas/liuqiongqiong/bakt/pykt-toolkit/examples/best_model_path"
-    model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
+    # model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
+    model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002"
     data_root_dir = '/root/autodl-nas/project/pykt_nips2022/data'
     
 
