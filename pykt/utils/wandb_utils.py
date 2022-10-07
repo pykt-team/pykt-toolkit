@@ -204,6 +204,7 @@ class WandbUtils:
 
     def get_stop_index(self,df,metric="validauc",metric_type="max",min_run_num=200,patience=50):
         finish = False
+        not_improve_num,i,first_best_index = -1,-1,-1
         df[f'{metric}_precsion3'] = df[metric].apply(lambda x:round(x,3))#忽略 1e-3 级别的提升
         for i in range(min_run_num,len(df)):
             best_value = df[:i][f'{metric}_precsion3'].max()#get best value
