@@ -7,6 +7,7 @@ from wandb.apis.public import gql
 import json
 from multiprocessing.pool import ThreadPool # 线程池
 from .utils import debug_print
+import shutil
 
 def get_runs_result(runs):
     result_list = []
@@ -460,8 +461,11 @@ class WandbUtils:
         for i, row in df.iterrows():
             fold, model_path = row["fold"], row["model_save_path"]
             model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
-            print(f"cp -r {model_path} ./best_model_path/{dataset_name}/{model_name}/")
-            model_path_fold_first.append(model_path)
+            tmp_model_path = model_path.split("/")[-2]
+            target_path = f"./best_model_path/{dataset_name}/{model_name}/{tmp_model_path}"
+            shutil.copytree(model_path, target_path)
+            print(f"copy {model_path} to {target_path} done")
+            model_path_fold_first.append(target_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
         if eval_test:
             self.generate_wandb(dataset_name, model_name, emb_type, fpath, ftarget, model_path_fold_first)
