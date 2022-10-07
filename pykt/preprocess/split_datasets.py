@@ -463,14 +463,15 @@ def write_config(dataset_name, dkeyid2idx, effective_keys, configf, dpath, k=5,m
     if flag:
         dconfig["test_question_file"] = "test_question_sequences.csv"
         dconfig["test_question_window_file"] = "test_question_window_sequences.csv"
-    data_config = dict()
+
+    #load old config
     with open(configf) as fin:
-        if fin.read().strip() == "":
-            data_config[dataset_name] = dconfig
-    if len(data_config.keys()) == 0:
-        with open(configf) as fin:
-            data_config = json.load(fin)
-            data_config[dataset_name] = dconfig
+        read_text = fin.read()
+        if read_text.strip() == "":
+            data_config = {dataset_name:dconfig}
+        else:
+            data_config = json.loads(read_text)
+            data_config[dataset_name].update(dconfig)
     with open(configf, "w") as fout:
         data = json.dumps(data_config, ensure_ascii=False, indent=4)
         fout.write(data)

@@ -41,3 +41,16 @@ examples/aaai2023/
 examples/all_wandbs/
 data_old
 examples/nips2022/
+examples/results/wandb_result/
+examples/*.pred
+examples/nips_task34/
+__pycache__/
+log.*
+*.swp
+*.bak
+logs/
+examples/best_model_path
+examples/all_wandbs_pred/
+examples/best_model_path_1002
+examples/pred_wandbs_all_best_models_lqq
+examples/wandb_tmp/

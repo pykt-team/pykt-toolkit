@@ -195,7 +195,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
 
     
     test_df = test_df[df_save_keys]
-    test_df.to_csv(os.path.join(dname, "test.csv"), index=None)
+    test_df.to_csv(os.path.join(dname, "test_quelevel.csv"), index=None)
     test_seqs.to_csv(os.path.join(dname, "test_sequences_quelevel.csv"), index=None)
     test_window_seqs.to_csv(os.path.join(dname, "test_window_sequences_quelevel.csv"), index=None)
 
@@ -207,9 +207,10 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
         "train_valid_original_file_quelevel": "train_valid_quelevel.csv", 
         "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
         "test_file_quelevel": "test_sequences_quelevel.csv",
-        "test_window_file_quelevel": "test_window_sequences_quelevel.csv"
+        "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
+        "test_original_file_quelevel": "test_quelevel.csv"
     }
-
+    
     write_config(dataset_name=dataset_name, dkeyid2idx=dkeyid2idx, effective_keys=effective_keys, 
                 configf=configf, dpath = dname, k=kfold,min_seq_len = min_seq_len, maxlen=maxlen,other_config=other_config)
     

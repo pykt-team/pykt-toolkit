@@ -147,8 +147,7 @@ def early_fusion(curhs, model, model_name):
     elif model_name == "hawkes":
         p = curhs[0].sigmoid()
     elif model_name == "lpkt":
-        y = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / self.d_k
-        p = curhs[0].sigmoid()
+        p = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / model.d_k
     return p
 
 def late_fusion(dcur, curdf, fusion_type=["mean", "vote", "all"]):
@@ -179,11 +178,11 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn","deep_irt", "skvmn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
-        if model_name in hasearly:
+        if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
             curhs[0].append(curdf["hidden"].mean().astype(float))
         elif model_name == "kqn":
             curhs[0].append(curdf["ek"].mean().astype(float))
@@ -244,7 +243,9 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             df["ek"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
             df["es"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
         elif model_name == "lpkt":
+            # print(f"hidden:{hs[0].shape}")
             df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
+            # print(f"e_data:{hs[1].shape}")
             df["e_data"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
 
         df = df[df["select"] != 0]
@@ -270,7 +271,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
                 drest[key] = [dmerge[key][0][rest_start:]]
             elif model_name == "kqn" or model_name == "lpkt":
-                drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]              
+                drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]             
         else:
             drest[key] = dmerge[key][rest_start:] 
     restlen = drest["cr"].shape[0]
@@ -389,8 +390,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = model(cc.long(), cq.long(), ct.long(), cr.long(), True)
                 y, h = y[:, 1:]
             elif model_name == "lpkt":
-                cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
-                y, h, e_data = model(cq.long(), cr.long(), cit.long(), True)
+                cit = torch.cat((dcurori["itseqs"][:,0:1], dcurori["shft_itseqs"]), dim=1)
+                y, h, e_data = model(cq.long(), cr.long(), cit.long(), at_data=None, qtest=True)
                 start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device) # add the first hidden emb
                 h = torch.cat((start_hemb, h), dim=1)
                 # e_data = torch.cat((start_hemb, e_data), dim=1)
@@ -543,9 +544,13 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             questions = [] if "questions" not in row else row["questions"].split(",")
             times = [] if "timestamps" not in row else row["timestamps"].split(",")
             if model_name == "lpkt":
-                shft_times = [0] + times[:-1]
-                it_times = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
-                it_times = [it2idx[str(t)] for t in it]
+                if times != []:
+                    times = [int(x) for x in times]
+                    shft_times = [0] + times[:-1]
+                    it_times = np.maximum(np.minimum((np.array(times) - np.array(shft_times)) // 60, 43200),-1)
+                else:
+                    it_times = np.ones(len(concepts)).astype(int)
+                it_times = [it2idx.get(str(t)) for t in it_times]
 
             qlen, qtrainlen, ctrainlen = get_cur_teststart(is_repeat, train_ratio)
             # print(f"idx: {idx}, qlen: {qlen}, qtrainlen: {qtrainlen}, ctrainlen: {ctrainlen}")
@@ -564,7 +569,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             curqin = cq[0:ctrainlen].unsqueeze(0) if cq.shape[0] > 0 else cq
             curtin = ct[0:ctrainlen].unsqueeze(0) if ct.shape[0] > 0 else ct
             if model_name == "lpkt":
-                curitin = ct[0:ctrainlen].unsqueeze(0) if cit.shape[0] > 0 else cit
+                curitin = cit[0:ctrainlen].unsqueeze(0) if cit.shape[0] > 0 else cit
             dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
             if model_name == "lpkt":
                 dcur["curitin"] = curitin
@@ -594,17 +599,14 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                             rtmp.append(k)
                         else:
                             break
-                    # dfshape = curdforget["rgaps"].shape
-                    # print(f"currin: {currin.shape}, curdforget: {dfshape}, rtmp: {rtmp}")
-                    # print(f"rtmp: {rtmp}")
+
                     end = rtmp[-1]+1
                     uid = row["uid"]
-                    # if use_pred:
-                    # curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(curdforget, dforget, is_repeat, qidx, uid, idx, curqin, curcin, currin, model_name, model, t, cq, cc, cr, end, fout, atkt_pad)
+
                     curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
-                    
+                    dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
                     late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)    
-                    # print("\t".join([str(idx), str(uid), str(k), str(qidx), str(late_mean), str(late_vote), str(late_all)]))    
+   
                     fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")      
                     t = end
                     qidx += 1
@@ -644,6 +646,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
+    for key in dcur:
+        print(f"649 - {key} shape is {dcur[key].shape}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
@@ -665,7 +669,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             start = cinlen - maxlen + 1
         
         cin, rin = cin[:,start:], rin[:,start:]
-        # print(f"start: {start}, cin: {cin.shape}")
+
         if cq.shape[0] > 0:
             qin = qin[:, start:]
         if ct.shape[0] > 0:
@@ -690,12 +694,13 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             for key in dforget:
                 curd = torch.tensor([[dforget[key][k]]]).long().to(device)
                 dcur[key] = torch.cat((din[key][:,1:], curd), axis=1)
-                # print(f"cin: {cin.shape}, dcur key: {dcur[key].shape}")
-            # if idx == 13:
-            #     print(f"input to dktforget ! cin: {cin.shape}, k: {k}")
-            #     for key in dcur:
-            #         print(key, dcur[key].shape, din[key].shape, dcur[key], din[key])
-            y = model(cin.long(), rin.long(), din, dcur)
+            dgaps = dict()
+            for key in din:
+                dgaps[key] = din[key]
+            for key in dcur:
+                dgaps["shft_"+key] = dcur[key]
+            # y = model(cin.long(), rin.long(), din, dcur)
+            y = model(cin.long(), rin.long(), dgaps)
             pred = y[0][-1][cout.item()]
         elif model_name in ["kqn", "sakt"]:
             curc = torch.tensor([[cout.item()]]).to(device)
@@ -781,7 +786,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         nextcin = cc[0:k+1].unsqueeze(0)
         nextrin = torch.cat((nextrin, cpred), axis=1)### change!!
 
-        # print(f"nextqin: {nextqin.shape}")
         # update nextdforget
         if model_name == "dkt_forget":
             for key in nextdforget:
@@ -932,7 +936,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
         if cit.shape[0] > 0:
             finalits = torch.cat(dits, axis=0)
             finalitshfts = torch.cat(ditshfts, axis=0)
-    if model_names != lpkt:
+    if model_name != 'lpkt':
         return qidxs, finalqs, finalcs, finalrs, finalts, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finald, finaldshft  
     else: 
         return qidxs, finalqs, finalcs, finalrs, finalts, finalits, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finalitshfts, finald, finaldshft
@@ -985,7 +989,13 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = model(curc.long(), curr.long())
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:
-            y = model(curc.long(), curr.long(), curd, curdshft)
+            dgaps = dict()
+            for key in curd:
+                dgaps[key] = curd[key]
+            for key in curdshft:
+                dgaps["shft_"+key] = curdshft[key]
+            y = model(curc.long(), curr.long(), dgaps)
+            # y = model(curc.long(), curr.long(), curd, curdshft)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkvmn","deep_irt", "skvmn"]:
             y = model(ccc.long(), ccr.long())
@@ -1012,7 +1022,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name == "lpkt":
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
-            y = model(ccq.long(), ccr.long(), ccit.long())
+            y = model(ccc.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
         elif model_name == "gkt":
             y = model(ccc.long(), ccr.long())

@@ -41,7 +41,9 @@ def main(params):
             data_config["num_rgap"] = config["data_config"]["num_rgap"]
             data_config["num_sgap"] = config["data_config"]["num_sgap"]
             data_config["num_pcount"] = config["data_config"]["num_pcount"]
-
+        elif model_name == "lpkt":
+            data_config["num_at"] = config["data_config"]["num_at"]
+            data_config["num_it"] = config["data_config"]["num_it"]            
     test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
 
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--bz", type=int, default=256)
     parser.add_argument("--save_dir", type=str, default="saved_model")
-    parser.add_argument("--fusion_type", type=str, default="late_fusion")
+    parser.add_argument("--fusion_type", type=str, default="early_fusion,late_fusion")
     parser.add_argument("--use_wandb", type=int, default=1)
 
     args = parser.parse_args()
