@@ -33,4 +33,4 @@ parameters:
     output_mode:
         values: ['OUTPUT_MODEL']
     batch_size:
-        values: [BATCH_SIZE]
+        values: [32]
