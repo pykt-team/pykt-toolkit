@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="saved_model")
 
     # model config
-    parser.add_argument("--model_name", type=str, default="xdkt_v2")
+    parser.add_argument("--model_name", type=str, default="qikt")
     parser.add_argument("--emb_type", type=str, default="iekt")
     parser.add_argument("--dropout", type=float, default=0.4)
     parser.add_argument("--emb_size", type=int, default=300)
