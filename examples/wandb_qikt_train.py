@@ -10,7 +10,7 @@ if __name__ == "__main__":
     # train config
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=3407)
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_epochs", type=int, default=200)
 
     #log config & save config
