@@ -1,17 +1,17 @@
-program: wandb_xdkt_v2_ab_train.py
+program: wandb_qikt_train.py
 method: bayes
 metric:
     goal: maximize
     name: validauc
 parameters:
     model_name:
-        values: ["xdkt_v2"]
+        values: ["qikt"]
     dataset_name:
         values: ["xes"]
     emb_type:
         values: ["iekt"]
     save_dir:
-        values: ["models/xdkt_tiaocan"]
+        values: ["models/dkt_tiaocan"]
     emb_size:
         values: [64, 256]
     learning_rate:
@@ -30,7 +30,7 @@ parameters:
         values: [0,0.5,1,1.5,2]
     loss_c_next_lambda:
         values: [0,0.5,1,1.5,2]
-    ab_mode:
-        values: ['AB_MODE']
+    output_mode:
+        values: ['OUTPUT_MODEL']
     batch_size:
         values: [BATCH_SIZE]

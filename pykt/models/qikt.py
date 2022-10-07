@@ -52,10 +52,10 @@ def get_outputs(self,emb_qc_shift,h,data,add_name="",model_type='question'):
 
     return outputs
 
-class xDKTV2Net(nn.Module):
+class QIKTNet(nn.Module):
     def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
         super().__init__()
-        self.model_name = "xdkt_v2"
+        self.model_name = "qikt"
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
@@ -125,14 +125,14 @@ class xDKTV2Net(nn.Module):
         
         return outputs
 
-class xDKTV2(QueBaseModel):
+class QIKT(QueBaseModel):
     def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1,other_config={},**kwargs):
-        model_name = "xdkt_v2"
+        model_name = "qikt"
        
-        debug_print(f"emb_type is {emb_type}",fuc_name="xDKTV2")
+        debug_print(f"emb_type is {emb_type}",fuc_name="QIKT")
 
         super().__init__(model_name=model_name,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
-        self.model = xDKTV2Net(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
+        self.model = QIKTNet(num_q=num_q,num_c=num_c,emb_size=emb_size,dropout=dropout,emb_type=emb_type,
                                emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,mlp_layer_num=mlp_layer_num,other_config=other_config)
        
         self.model = self.model.to(device)
