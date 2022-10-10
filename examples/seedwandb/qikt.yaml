@@ -11,7 +11,7 @@ parameters:
     emb_type:
         values: ["iekt"]
     save_dir:
-        values: ["models/dkt_tiaocan"]
+        values: ["models/xdkt_tiaocan"]
     emb_size:
         values: [64, 256]
     learning_rate:

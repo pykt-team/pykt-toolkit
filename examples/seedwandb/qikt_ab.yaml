@@ -33,4 +33,4 @@ parameters:
     ab_mode:
         values: ['AB_MODE']
     batch_size:
-        values: [BATCH_SIZE]
+        values: [32]
