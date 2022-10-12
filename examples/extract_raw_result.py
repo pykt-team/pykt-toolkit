@@ -5,6 +5,8 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
 from tqdm import tqdm_notebook
 import argparse
+from pykt.config import que_type_models
+from extract_quelevel_raw_result import get_one_result_help as get_quelevel_one_result_help
 
 cut = True
 
@@ -463,7 +465,7 @@ def run_all():
         break
 
 
-def get_one_result_help(dataset, model_name):
+def get_one_result_help(dataset, model_name,model_root_dir,data_root_dir):
     data_dir = os.path.join(data_root_dir, dataset)
     
     stu_inter_num_dict = get_stu_inter_map(data_dir)
@@ -491,7 +493,10 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="assist2009")
     parser.add_argument("--model_name", type=str, default="akt")
     args = parser.parse_args()
-    get_one_result_help(args.dataset, args.model_name)
+    if args.model_name in que_type_models:
+        get_quelevel_one_result_help(args.dataset, args.model_name,model_root_dir,data_root_dir)#for question level
+    else:
+        get_one_result_help(args.dataset, args.model_name,model_root_dir,data_root_dir)
     wandb.log({"dataset": args.dataset, "model_name": args.model_name})
     # python extract_raw_result.py --dataset {dataset} --model_name {model_name}
     #wandb sweep seedwandb/extract_raw.yaml
