@@ -1,0 +1,9 @@
+program: extract_raw_result.py
+method: grid
+name: extrace_raw
+parameters:
+    model_name:
+      values: ["iekt"]
+    dataset: 
+      values: ['assist2015', 'assist2009', 'algebra2005',
+                    'bridge2algebra2006', 'statics2011', 'poj', 'nips_task34']
