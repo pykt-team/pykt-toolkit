@@ -128,9 +128,15 @@ def evaluate(model, test_loader, model_name, save_path=""):
     return auc, acc
 
 def early_fusion(curhs, model, model_name):
-    if model_name in ["dkvmn","deep_irt", "skvmn"]:
+    if model_name in ["dkvmn","skvmn"]:
         p = model.p_layer(model.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
+        p = p.squeeze(-1)
+    elif model_name in ["deep_irt"]:
+        p = model.p_layer(curhs[0])
+        stu_ability = model.ability_layer(curhs[0])#equ 12
+        que_diff = model.diff_layer(curhs[1])#equ 13
+        p = torch.sigmoid(3.0*stu_ability-que_diff)#equ 14
         p = p.squeeze(-1)
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         output = model.out(curhs[0]).squeeze(-1)
@@ -182,7 +188,7 @@ def effective_fusion(df, model, model_name, fusion_type):
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
-        if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
+        if model_name in hasearly and model_name not in ["kqn","lpkt","deep_irt"]:
             curhs[0].append(curdf["hidden"].mean().astype(float))
         elif model_name == "kqn":
             curhs[0].append(curdf["ek"].mean().astype(float))
@@ -190,6 +196,9 @@ def effective_fusion(df, model, model_name, fusion_type):
         elif model_name == "lpkt":
             curhs[0].append(curdf["h"].mean().astype(float))
             curhs[1].append(curdf["e_data"].mean().astype(float))
+        elif model_name == "deep_irt":
+            curhs[0].append(curdf["h"].mean().astype(float))
+            curhs[1].append(curdf["k"].mean().astype(float))
         else:
             # print(f"model: {model_name} has no early fusion res!")
             pass
@@ -237,7 +246,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
         # print(f"qid: {len(curqidxs)}, select: {len(cursm)}, response: {len(rs[bz].cpu().tolist())}, preds: {len(curps)}")
         df = pd.DataFrame({"qidx": curqidxs, "rest": currests, "row": currows, "select": cursm, 
                 "questions": cq[bz].cpu().tolist(), "concepts": cc[bz].cpu().tolist(), "response": rs[bz].cpu().tolist(), "preds": curps})
-        if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
+        if model_name in hasearly and model_name not in ["kqn","lpkt","deep_irt"]:
             df["hidden"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
         elif model_name == "kqn":
             df["ek"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
@@ -247,7 +256,9 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
             df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
             # print(f"e_data:{hs[1].shape}")
             df["e_data"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
-
+        elif model_name == "deep_irt":
+            df["h"] = [np.array(a) for a in hs[0][bz].cpu().tolist()]
+            df["k"] = [np.array(a) for a in hs[1][bz].cpu().tolist()]
         df = df[df["select"] != 0]
         alldfs.append(df)
     
@@ -268,9 +279,9 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     for key in dmerge.keys():
         if key == "hs":
             drest[key] = []
-            if model_name in hasearly and model_name != "kqn" and model_name != "lpkt":
+            if model_name in hasearly and model_name not in ["kqn","lpkt","deep_irt"]:
                 drest[key] = [dmerge[key][0][rest_start:]]
-            elif model_name == "kqn" or model_name == "lpkt":
+            elif model_name in ["kqn","lpkt","deep_irt"]:
                 drest[key] = [dmerge[key][0][rest_start:], dmerge[key][1][rest_start:]]             
         else:
             drest[key] = dmerge[key][rest_start:] 
@@ -354,9 +365,13 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             dcur = dict()
-            if model_name in ["dkvmn","deep_irt", "skvmn"]:
+            if model_name in ["dkvmn","skvmn"]:
                 y, h = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
+            elif model_name in ["deep_irt"]:
+                y, h, k = model(cc.long(), cr.long(), True)
+                y = y[:,1:]
+                
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
@@ -409,6 +424,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 hs = [ek, es]
             elif model_name == "lpkt":
                 hs = [h, e_data]
+            elif model_name == "deep_irt":
+                hs = [h,k]
             elif model_name in hasearly:
                 hs = [h]
             dcur["hs"], dcur["sm"], dcur["cq"], dcur["cc"], dcur["cr"], dcur["y"], dcur["qidxs"], dcur["rests"], dcur["orirow"] = hs, sm, cq, cc, cr, y, qidxs, rests, orirow
@@ -425,6 +442,10 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                             dmerge[key][0] = torch.cat((dhistory[key][0], dcur[key][0]), dim=0)
                             dmerge[key][1] = torch.cat((dhistory[key][1], dcur[key][1]), dim=0)
                         elif model_name == "lpkt":
+                            dmerge[key] = [[], []]
+                            dmerge[key][0] = torch.cat((dhistory[key][0], dcur[key][0]), dim=0)
+                            dmerge[key][1] = torch.cat((dhistory[key][1], dcur[key][1]), dim=0)
+                        elif model_name == "deep_irt":
                             dmerge[key] = [[], []]
                             dmerge[key][0] = torch.cat((dhistory[key][0], dcur[key][0]), dim=0)
                             dmerge[key][1] = torch.cat((dhistory[key][1], dcur[key][1]), dim=0)
