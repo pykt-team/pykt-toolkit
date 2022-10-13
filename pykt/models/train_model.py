@@ -116,7 +116,7 @@ def model_forward(model, data, epoch):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget", "cfdkt"]:
+    if model_name in ["dkt_forget", "cfdkt", "bakt"]:
         dcur, dgaps = data
     else:
         dcur = data
@@ -153,7 +153,7 @@ def model_forward(model, data, epoch):
         # ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
         preloss.append(reg_loss)
     elif model_name in ["bakt"]:
-        y, y2, y3 = model(dcur, train=True)
+        y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["catkt"]: # predcurc
         y, features, y2, y3 = model(dcur, train=True)

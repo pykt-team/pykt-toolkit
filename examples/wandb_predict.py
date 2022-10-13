@@ -38,7 +38,7 @@ def main(params):
         curconfig = copy.deepcopy(json.load(fin))
         data_config = curconfig[dataset_name]
         data_config["dataset_name"] = dataset_name
-        if model_name in ["dkt_forget", "cfdkt"]:
+        if model_name in ["dkt_forget", "cfdkt", "bakt"]:
             data_config["num_rgap"] = config["data_config"]["num_rgap"]
             data_config["num_sgap"] = config["data_config"]["num_sgap"]
             data_config["num_pcount"] = config["data_config"]["num_pcount"]
@@ -58,11 +58,11 @@ def main(params):
     if params["save"] == "True":
         return
 
-    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
+    # test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
     save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
     testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
     print(f"testauc: {testauc}, testacc: {testacc}")
-    assert False
+    # assert False
 
     window_testauc, window_testacc = -1, -1
     '''

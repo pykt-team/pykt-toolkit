@@ -19,7 +19,8 @@ class Dim(IntEnum):
     feature = 2
 
 class BAKT(nn.Module):
-    def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
+    def __init__(self, n_question, n_pid, num_rgap, num_sgap, num_pcount, 
+            d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
             kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
@@ -68,6 +69,14 @@ class BAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
+
+        if self.emb_type.find("time") != -1:
+            self.c_weight = nn.Linear(d_model, d_model)
+            self.t_weight = nn.Linear(d_model, d_model)
+            self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
+                                       dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
+                                       kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = loss1
@@ -246,10 +255,10 @@ class BAKT(nn.Module):
         # y = torch.sigmoid(self.out_layer(h))
         return y3
 
-    def forward(self, dcur, qtest=False, train=False):
+    def forward(self, dcur, dgaps, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
-        sm = dcur["smasks"]
+        # sm = dcur["smasks"]
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
@@ -277,6 +286,19 @@ class BAKT(nn.Module):
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
+        if emb_type.find("time") != -1:
+            rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
+            rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
+
+            r_gaps = torch.cat((rg[:, 0:1], rgshft), dim=1)
+            s_gaps = torch.cat((sg[:, 0:1], sgshft), dim=1)
+            pcounts = torch.cat((p[:, 0:1], pshft), dim=1)
+
+            temb = self.time_emb(r_gaps, s_gaps, pcounts)
+            # time attention
+            # t_out = self.model2(temb, self.qa_embed(target)+temb)
+            t_out = self.model2(temb, qa_embed_data) # 计算时间信息和基本信息的attention？
+
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
@@ -288,6 +310,18 @@ class BAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
+        elif emb_type.find("time") != -1:
+            d_output = self.model(q_embed_data, qa_embed_data)
+
+            w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_out)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
+            d_output = w * d_output + (1 - w) * t_out # 每一维加权平均后的综合信息
+            q_embed_data = q_embed_data + temb # 原始的题目信息和时间信息
+
+            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+            output = self.out(concat_q).squeeze(-1)
+            m = nn.Sigmoid()
+            preds = m(output)
+
         elif emb_type.endswith("predcurc"): # predict current question' current concept
             # predict concept
             qemb = self.question_emb(pid_data)
@@ -546,3 +580,25 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
+class timeGap(nn.Module):
+    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
+        super().__init__()
+        self.rgap_eye = torch.eye(num_rgap)
+        self.sgap_eye = torch.eye(num_sgap)
+        self.pcount_eye = torch.eye(num_pcount)
+
+        input_size = num_rgap + num_sgap + num_pcount
+
+        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
+
+    def forward(self, rgap, sgap, pcount):
+        rgap = self.rgap_eye[rgap].to(device)
+        sgap = self.sgap_eye[sgap].to(device)
+        pcount = self.pcount_eye[pcount].to(device)
+
+        tg = torch.cat((rgap, sgap, pcount), -1)
+        tg_emb = self.time_emb(tg)
+
+        return tg_emb
+
