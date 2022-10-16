@@ -19,12 +19,16 @@ def generate_time2idx(data_config):
             for at in start_time:
                 if str(at) not in at2idx:
                     at2idx[str(at)] = len(at2idx)     
-        timestamps = [int(t) for t in row["timestamps"].split(",")]
-        shft_timestamps = [0] + timestamps[:-1]
-        it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
-        for t in it:
-            if str(t) not in it2idx:
-                it2idx[str(t)] = len(it2idx)
+        if "timestamps" in row:  
+            timestamps = [int(t) for t in row["timestamps"].split(",")]
+            shft_timestamps = [0] + timestamps[:-1]
+            it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
+            for t in it:
+                if str(t) not in it2idx:
+                    it2idx[str(t)] = len(it2idx)
+        else:
+            # no timestamps
+            it2idx["1"] = len(it2idx)
     at2idx["-1"] = len(at2idx)
     it2idx["-1"] = len(it2idx)
     return at2idx, it2idx

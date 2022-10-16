@@ -2,6 +2,11 @@ import os, sys
 import json
 
 WANDB_API_KEY = os.getenv("WANDB_API_KEY")
+with open("../configs/wandb.json") as fin:
+    wandb_config = json.load(fin)
+    if WANDB_API_KEY == None:
+        WANDB_API_KEY = wandb_config["api_key"]
+# print(WANDB_API_KEY)
 
 logf = sys.argv[1]
 outf = open(sys.argv[2], "w")

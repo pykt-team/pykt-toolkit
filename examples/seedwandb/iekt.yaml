@@ -2,7 +2,7 @@ program: wandb_iekt_train.py
 method: bayes
 metric:
     goal: maximize
-    name: testauc
+    name: validauc
 parameters:
     model_name:
         values: ["iekt"]
@@ -11,9 +11,9 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["iekt_tiaocan"]
+        values: ["models/iekt_tiaocan"]
     emb_size:
-        values: [32,64]
+        values: [64, 256]
     lamb:
         values: [30,40,50]
     n_layer:
@@ -23,12 +23,12 @@ parameters:
     acq_levels:
         values: [10,20,30]
     gamma:
-        values: [0.2,0.4,0.6,0.8,0.93]
+        values: [0.2,0.4,0.6,0.8]
     dropout:
-        values: [0,0.4,0.5,0.6]
+        values: [0.05,0.1,0.3,0.5]
     learning_rate:
-        values: [1e-2,1e-3,1e-4]
+        values: [1e-3, 1e-4, 1e-5]
     seed:
-        values: [42, 224, 3407]
+        values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]

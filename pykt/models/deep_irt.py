@@ -26,8 +26,7 @@ class DeepIRT(Module):
         self.v_emb_layer = Embedding(self.num_c * 2, self.dim_s)
 
         self.f_layer = Linear(self.dim_s * 2, self.dim_s)
-        self.dropout_layer1 = Dropout(dropout)
-        self.dropout_layer2 = Dropout(dropout)
+        self.dropout_layer = Dropout(dropout)
         self.p_layer = Linear(self.dim_s, 1)
 
         self.diff_layer = nn.Sequential(Linear(self.dim_s,1),nn.Tanh())
@@ -76,12 +75,13 @@ class DeepIRT(Module):
             )
         )
         
-        stu_ability = self.ability_layer(self.dropout_layer1(f))#equ 12
-        que_diff = self.diff_layer(self.dropout_layer2(k))#equ 13
+        stu_ability = self.ability_layer(self.dropout_layer(f))#equ 12
+        que_diff = self.diff_layer(self.dropout_layer(k))#equ 13
 
         p = torch.sigmoid(3.0*stu_ability-que_diff)#equ 14
         p = p.squeeze(-1)
         if not qtest:
             return p
         else:
-            return p, f
+            print(f"f shape is {f.shape},k shape is {k.shape}")
+            return p, f, k

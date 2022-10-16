@@ -92,11 +92,7 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
-        [pred_next,preds_all], reg_loss = model(cc.long(), cr.long(), cq.long())
-        y_next = pred_next[:,1:]
-        y_all = (preds_all[:,1:] * one_hot(cshft.long(), model.num_c)).sum(-1)
-        y = (y_next+y_all)/2
-        ys.append(y)
+        ys.append(y[:,1:])
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
@@ -163,7 +159,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
-        if auc > max_auc:
+        if auc > max_auc+1e-3:
             if save_model:
                 torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+"_model.ckpt"))
             max_auc = auc
@@ -177,13 +173,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 if test_window_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
                     window_testauc, window_testacc = evaluate(model, test_window_loader, model.model_name, save_test_path)
-            # window_testauc, window_testacc = -1, -1
-            validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
-            # trainauc, trainacc = model.evaluate(train_loader, emb_type)
-            testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
-            max_auc = round(max_auc, 4)
-        print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
-        print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+            validauc, validacc = auc, acc
+        print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
+        print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
+
 
         if i - best_epoch >= 10:
             break

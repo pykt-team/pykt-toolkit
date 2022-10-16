@@ -282,19 +282,16 @@ class QueBaseModel(nn.Module):
             eval_result = self.evaluate(valid_dataset,batch_size=valid_batch_size)
             auc, acc = eval_result['auc'],eval_result['acc']
             print(f"eval_result is {eval_result}")
-            if auc > max_auc:
+            if auc > max_auc+1e-3:
                 if save_model:
                     self._save_model()
                 max_auc = auc
                 best_epoch = i
                 testauc, testacc = -1, -1
                 window_testauc, window_testacc = -1, -1
-
-                validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_dataset, emb_type)
-                testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
-                max_auc = round(max_auc, 4)
-            print(f"Epoch: {i},validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, train loss: {loss_mean:.4f}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
-            print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+                validauc, validacc = auc, acc
+            print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
+            print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
 
             if i - best_epoch >= patient:
                 break

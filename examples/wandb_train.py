@@ -41,10 +41,10 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt", "lpkt"]:
+        if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
-        # if model_name in ["skvmn"]:
-        #     train_config["batch_size"] = 32 
+        if model_name in ["qdkt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
+            train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
@@ -72,8 +72,8 @@ def main(params):
     print(f"params: {params}, params_str: {params_str}")
     if params['add_uuid'] == 1 and params["use_wandb"] == 1:
         import uuid
-        if not model_name in ['saint','saint++']:
-            params_str = params_str+f"_{ str(uuid.uuid4())}"
+        # if not model_name in ['saint','saint++']:
+        params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
         os.makedirs(ckpt_path)
@@ -131,12 +131,9 @@ def main(params):
         if test_window_loader != None:
             save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
             window_testauc, window_testacc = evaluate(best_model, test_window_loader, model_name)#, save_test_path)
-        # window_testauc, window_testacc = -1, -1
-        # trainauc, trainacc = self.evaluate(train_loader, emb_type)
-        testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
 
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
-    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(testauc) + "\t" + str(testacc) + "\t" + str(window_testauc) + "\t" + str(window_testacc) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
+    print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(round(testauc, 4)) + "\t" + str(round(testacc, 4)) + "\t" + str(round(window_testauc, 4)) + "\t" + str(round(window_testacc, 4)) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
     model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
     print(f"end:{datetime.datetime.now()}")
     
