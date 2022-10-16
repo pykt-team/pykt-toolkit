@@ -17,10 +17,10 @@ def read_data_from_csv(read_file, write_file, dq2c):
     stares = []
 
     df = pd.read_csv(read_file)
-    # df["exercise"] = df["exercise"].apply(replace_text)
     df["topic"] = df["exercise"].apply(lambda q: "NANA" if q not in dq2c else dq2c[q])
     df["exercise"] = df["exercise"].apply(replace_text)
     df["topic"] = df["topic"].apply(replace_text)
+    df = df[df["topic"] != "NANA"]
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
@@ -28,12 +28,12 @@ def read_data_from_csv(read_file, write_file, dq2c):
     df["index"] = range(df.shape[0])
     print(f"original recores shape: {df.shape}")
 
-    usedf = df[['index', 'user_id', 'exercise', 'time_done', 'time_taken_attempts', 'correct', 'count_attempts', 'topic']]
-    usedf = usedf.dropna(subset=['user_id', 'exercise', 'time_done', 'correct'])
-    usedf = usedf[usedf["topic"] != "NANA"]
+    usedf = df[["index", "user_id", "exercise", "time_done", "time_taken_attempts", "correct", "count_attempts", "topic"]]
+    usedf = usedf.dropna(subset=["user_id", "exercise", "time_done", "correct"])
     usedf = usedf[usedf["correct"].isin([False, True])]
     usedf["time_taken_attempts"] = (usedf["time_taken_attempts"].fillna(-100)).astype(str) # only hint! False correct
     usedf.loc[:, "time_taken_attempts"] = usedf["time_taken_attempts"].astype(str).apply(lambda x: int(x.split("&")[0])*1000).astype(str)
+    
     usedf.loc[:, "time_done"] = usedf["time_done"].astype(int)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(usedf, KEYS, stares)
