@@ -16,13 +16,13 @@ First, you need to install pyKT.
 
 1、Clone pyKT project
 ```shell
-git clone https://github.com/pykt-team/pykt-toolkit/tree/dev
+git clone https://github.com/pykt-team/pykt-toolkit/tree/main
 ```
 
-2、Checkout out to the dev branch
+2、Checkout out to the main branch
 ```shell
 cd pykt-toolkit
-git checkout dev
+git checkout main
 ```
 
 3、Create python environment
@@ -55,7 +55,10 @@ Now, let us start running models.
 
 ### DKT
 1、Train one model.
+
+
 ```shell
+#in `examples` directory.
 python wandb_dkt_train.py --use_wandb=0 --dataset_name=peiyou
 ```
 
@@ -73,6 +76,7 @@ The trained model will save to the directory `save_dir`, which is printed in the
 2、Predict on the test dataset
 
 ```shell
+#in `examples` directory.
 python wandb_eval.py --use_wandb=0 --train_ratio=0.5 --test_filename=pykt_test.csv --save_dir="{save_dir}"
 ```
 - use_wandb: 0 will send the result to wandb, 1 not send
@@ -94,7 +98,8 @@ After predicting, the output file is `{save_dir}/qid_test_ratio0.5_False_predict
 3、Generate submission file
 
 ```
-cd examples/competitions/aaai2023_competition
+#in `examples/competitions/aaai2023_competition`
+cd competitions/aaai2023_competition
 python concert_pykt_to_submit.py --input_path {save_dir}/qid_test_ratio0.5_False_predictions.txt
 ```
 
@@ -103,7 +108,7 @@ python concert_pykt_to_submit.py --input_path {save_dir}/qid_test_ratio0.5_False
 For examples:
 
 ```
-cd examples/competitions/aaai2023_competition
+cd competitions/aaai2023_competition
 python concert_pykt_to_submit.py --input_path /share/tabchen/tal_project/pykt-toolkit/examples/saved_model/peiyou_dkt_qid_saved_model_42_0_0.2_200_0.001_0_1/qid_test_ratio0.5_False_predictions.txt
 ```
 
@@ -115,7 +120,7 @@ Similar to **DKT**, you only need to change `wandb_dkt_train.py` to `wandb_akt_t
 ### How to improve
 
 - You can try other models, e.g. `dkvmn`、`sakt`、`gkt`. The supported models are listed [here](https://pykt-toolkit.readthedocs.io/en/latest/models.html).
-- Try different hyperparameters. See `wandb_{model_name}_train.py` to see how to pass hyperparameters. And [here](https://github.com/pykt-team/pykt-toolkit/tree/dev/examples/seedwandb) are hyperparameters used in the paper: pyKT: A Python Library to Benchmark Deep Learning based Knowledge Tracing Models.
+- Try different hyperparameters. See `wandb_{model_name}_train.py` to see how to pass hyperparameters. And [here](https://github.com/pykt-team/pykt-toolkit/tree/main/examples/seedwandb) are hyperparameters used in the paper: pyKT: A Python Library to Benchmark Deep Learning based Knowledge Tracing Models.
 - Modify(add) models in pyKT, you can read  [add your models](https://pykt-toolkit.readthedocs.io/en/latest/contribute.html#add-your-models) to learn how to add new models to pyKT.
 - ……
 
