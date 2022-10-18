@@ -633,9 +633,13 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                     qidx += 1
             idx += 1
 
-        dfinal = cal_predres(dcres, dqres)
-        for key in dfinal:
-            fout.write(key + "\t" + str(dfinal[key]) + "\n")
+        try: 
+            dfinal = cal_predres(dcres, dqres)
+            for key in dfinal:
+                fout.write(key + "\t" + str(dfinal[key]) + "\n")
+        except:
+            print(f"can't output auc and accuracy!")
+            dfinal = dict()
     return dfinal
 
 def get_cur_teststart(is_repeat, train_ratio):
