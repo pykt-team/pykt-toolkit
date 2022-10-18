@@ -46,7 +46,7 @@ pip install -e .
 We provide three baselines, Majority model, DKT, and AKT. We suggest reading the Majority model first. 
 
 ### Majority model
-![Sample Majority Model.ipynb](Sample Majority Model.ipynb) contains a simple baseline. You can learn how to load datasets and generate the submission file. 
+The [sample_majority.ipynb](sample_majority.ipynb) contains a simple baseline. You can learn how to load datasets and generate the submission file. 
 
 ### Run pyKT
 Before you run pyKT, you need to copy the downloaded files to pyKT workspace, `data/peiyou`.
