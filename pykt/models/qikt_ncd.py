@@ -173,14 +173,14 @@ class QIKTNCD(QueBaseModel):
 
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
-        loss_lambda_list  = [self.model.other_config.get(x,0) for x in self.loss_lambda_name_list]
+        def get_loss_lambda(x):
+            return self.model.other_config.get(f'loss_{x}',0)*self.model.other_config.get(f'output_{x}',0)
+
+        loss_lambda_list  = [get_loss_lambda(x) for x in self.loss_lambda_name_list]
         # print(f"loss_lambda_list is {loss_lambda_list}")    
         # over all
         loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
 
-        # def get_loss_lambda(x):
-            # return self.model.other_config.get(f'loss_{x}',0)#*self.model.other_config.get(f'output_{x}',0)
-            
         total_loss = loss_kt
         loss_print_str = f"loss_kt is {loss_kt:.3f}"
 
