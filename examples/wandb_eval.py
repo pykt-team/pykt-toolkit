@@ -48,7 +48,7 @@ def main(params):
         save_test_path = os.path.join(save_dir, model.emb_type+"_test_ratio"+str(ratio)+"_"+str(use_pred)+"_predictions.txt")
     # model, testf, model_name, save_path="", use_pred=False, train_ratio=0.2
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
-    testf = os.path.join(data_config["dpath"], "test.csv")
+    testf = os.path.join(data_config["dpath"], params["test_filename"])
     if model_name in que_type_models:
         dfinal = model.evaluate_multi_ahead(data_config,batch_size=32,ob_portions=ratio,accumulative=use_pred)
     else:
@@ -62,6 +62,7 @@ def main(params):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_dir", type=str, default="saved_model")
+    parser.add_argument("--test_filename", type=str, default="test.csv")
     parser.add_argument("--use_pred", type=int, default=0)
     parser.add_argument("--train_ratio", type=float, default=0.9)
     parser.add_argument("--atkt_pad", type=int, default=0)
