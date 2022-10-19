@@ -624,8 +624,8 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                     end = rtmp[-1]+1
                     uid = row["uid"]
 
-                    curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
-                    dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
+                    curqin, curcin, currin, curtin, curitin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
+                    dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin, "curitin": curitin}
                     late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)    
    
                     fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")      
@@ -780,6 +780,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         elif model_name == "lpkt":
             if itout != None:
                 curit = torch.tensor([[itout.item()]]).to(device)
+                # print(f"itin: {itin.shape}")
+                # print(f"curit: {curit.shape}")
                 itin = torch.cat((itin, curit), axis=1)
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
@@ -810,6 +812,9 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         nextqin = cq[0:k+1].unsqueeze(0) if cq.shape[0] > 0 else qin
         nextcin = cc[0:k+1].unsqueeze(0)
         nextrin = torch.cat((nextrin, cpred), axis=1)### change!!
+        if model_name == "lpkt":
+            nexttin = ct[0:k+1].unsqueeze(0) if ct.shape[0] > 0 else tin
+            nextitin = cit[0:k+1].unsqueeze(0) if cit.shape[0] > 0 else itin
 
         # update nextdforget
         if model_name == "dkt_forget":
@@ -827,7 +832,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         # print("\t".join([str(idx), str(uid), str(k), str(qidx), str(is_repeat[t:end]), str(len(clist)), str(clist), str(rlist), str(cout.item()), str(true.item()), str(pred.item()), str(predl)]))
         fout.write("\t".join([str(idx), str(uid), str(k), str(qidx), str(is_repeat[t:end]), str(len(clist)), str(clist), str(rlist), str(cout.item()), str(true.item()), str(pred.item()), str(predl)]) + "\n")
     # nextcin, nextrin = nextcin.unsqueeze(0), nextrin.unsqueeze(0)
-    return nextqin, nextcin, nextrin, nextdforget, ctrues, cpreds
+    return nextqin, nextcin, nextrin, nexttin, nextitin, nextdforget, ctrues, cpreds
 
 def save_each_question_res(dcres, dqres, ctrues, cpreds):
     # save res
