@@ -366,7 +366,7 @@ class WandbUtils:
             df = pd.read_csv(best_path)
             print(f"Load from {best_path}")
         else:
-            sweep_name_list,raw_df_list = self.get_df_by_model_dataset_name(dataset_name,model_name,emb_type,n_jobs=n_jobs)#get all all
+            sweep_name_list,raw_df_list = self.get_df_by_model_dataset_name(dataset_name,model_name,emb_type=emb_type,n_jobs=n_jobs)#get all all
             df_list = []
             #crop after best run
             for df in raw_df_list:
