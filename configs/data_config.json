@@ -341,5 +341,26 @@
         "test_file_quelevel": "test_sequences_quelevel.csv",
         "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
         "test_original_file_quelevel": "test_quelevel.csv"
+    },
+    "peiyou": {
+        "dpath": "../data/peiyou",
+        "num_q": 7652,
+        "num_c": 865,
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
+        "max_concepts": 6,
+        "min_seq_len": 3,
+        "maxlen": 200,
+        "emb_path": "",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ]
     }
 }
