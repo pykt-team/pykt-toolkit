@@ -333,7 +333,7 @@ class WandbUtils:
         for i, key in enumerate(sweep_key_list):
             info = results[i]
             info.update({'sweep_pattern':sweep_pattern,"key":key,
-                    'agent_name': f"pykt-team/{self.project_name}/{self.sweep_dict[key]}"})
+                    'agent_name': f"{self.user}/{self.project_name}/{self.sweep_dict[key]}"})
             info_list.append(info)
         if return_df:
             return pd.DataFrame(info_list)
