@@ -18,7 +18,7 @@ def main(params):
         config = json.load(fin)
         model_config = copy.deepcopy(config["model_config"])
 
-        for remove_item in ['use_wandb','learning_rate','add_uuid']:
+        for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
             if remove_item in model_config:
                 del model_config[remove_item]
 
