@@ -24,7 +24,7 @@ def main(params):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
                 for _type in [["iekt"]]:
-                    for ab_mode in ['a+b+c+irt','a+b+c','a+c+irt','a+b+irt','a+irt','b+irt']:
+                    for ab_mode in args.ab_types.split(','):
                         for fold in folds.split(","):
                             _type = [str(k) for k in _type]
                             fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") +"_"+ab_mode+ "_" + str(fold) + ".yaml"
@@ -61,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_name", type=str, default="kt_toolkits")
     parser.add_argument("--dataset_names", type=str, default="assist2015")
     parser.add_argument("--model_names", type=str, default="dkt")
+    parser.add_argument("--ab_types", type=str, default="a+b+c+irt,a+b+c,a+c+irt,a+b+irt,a+irt,b+irt")
     parser.add_argument("--folds", type=str, default="0,1,2,3,4")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--save_dir_suffix", type=str, default="")
