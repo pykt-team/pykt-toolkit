@@ -50,7 +50,7 @@ def main(params):
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
     testf = os.path.join(data_config["dpath"], params["test_filename"])
     if model_name in que_type_models:
-        dfinal = model.evaluate_multi_ahead(data_config,batch_size=32,ob_portions=ratio,accumulative=use_pred)
+        dfinal = model.evaluate_multi_ahead(data_config,batch_size=16,ob_portions=ratio,accumulative=use_pred)
     else:
         dfinal = evaluate_splitpred_question(model, data_config, testf, model_name, save_test_path, use_pred, ratio, atkt_pad)
     for key in dfinal:
