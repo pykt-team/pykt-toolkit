@@ -674,8 +674,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
-    for key in dcur:
-        print(f"649 - {key} shape is {dcur[key].shape}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
