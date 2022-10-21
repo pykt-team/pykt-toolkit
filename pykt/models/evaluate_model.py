@@ -402,8 +402,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = model(cc.long(), cr.long())
             elif model_name == "hawkes":
                 ct = torch.cat((dcurori["tseqs"][:,0:1], dcurori["shft_tseqs"]), dim=1)
-                y = model(cc.long(), cq.long(), ct.long(), cr.long(), True)
-                y, h = y[:, 1:]
+                y, h = model(cc.long(), cq.long(), ct.long(), cr.long(), True)
+                y = y[:, 1:]
             elif model_name == "lpkt":
                 cit = torch.cat((dcurori["itseqs"][:,0:1], dcurori["shft_itseqs"]), dim=1)
                 y, h, e_data = model(cq.long(), cr.long(), cit.long(), at_data=None, qtest=True)
