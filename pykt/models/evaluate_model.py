@@ -832,7 +832,10 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         # print("\t".join([str(idx), str(uid), str(k), str(qidx), str(is_repeat[t:end]), str(len(clist)), str(clist), str(rlist), str(cout.item()), str(true.item()), str(pred.item()), str(predl)]))
         fout.write("\t".join([str(idx), str(uid), str(k), str(qidx), str(is_repeat[t:end]), str(len(clist)), str(clist), str(rlist), str(cout.item()), str(true.item()), str(pred.item()), str(predl)]) + "\n")
     # nextcin, nextrin = nextcin.unsqueeze(0), nextrin.unsqueeze(0)
-    return nextqin, nextcin, nextrin, nexttin, nextitin, nextdforget, ctrues, cpreds
+    if model_name == "lpkt":
+        return nextqin, nextcin, nextrin, nexttin, nextitin, nextdforget, ctrues, cpreds
+    else:
+        return nextqin, nextcin, nextrin, nextdforget, ctrues, cpreds
 
 def save_each_question_res(dcres, dqres, ctrues, cpreds):
     # save res
