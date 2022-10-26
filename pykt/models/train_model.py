@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbation_rshft=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "bakt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -122,6 +122,9 @@ def model_forward(model, data):
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
+    elif model_name in ["bakt"]:               
+        y = model(cc.long(), cr.long(), cq.long())
+        ys.append(y[:, 1:])
     elif model_name in ["akt_perturbation"]:               
         y, perturbation_y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])

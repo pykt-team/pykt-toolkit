@@ -51,10 +51,10 @@ class DeepBKT(nn.Module):
             self.augmentation = False
             self.bayesian = True
             self.forgetting = False
-        # elif self.emb_type == "bayesian_v2":
-        #     self.augmentation = False
-        #     self.bayesian = True
-        #     self.forgetting = False
+        elif self.emb_type == "bayesian_v2":
+            self.augmentation = False
+            self.bayesian = True
+            self.forgetting = False
         # elif self.emb_type == "bayesian_limited":
         #     self.augmentation = False
         #     self.bayesian = True
@@ -112,12 +112,18 @@ class DeepBKT(nn.Module):
             self.Sigmoid = nn.Sigmoid()
             if self.bayesian:
                 self.mastery = nn.Embedding(self.n_question + 1, embed_l)
+                self.bayesian_linear1 = nn.Linear(embed_l, 2 * embed_l)
+                self.bayesian_linear2 = nn.Linear(embed_l, 2 * embed_l)
+                self.tanh = nn.Tanh()
+                self.sigmoid = nn.Sigmoid()
+                self.bayesian_linear = nn.Linear(2 * embed_l, embed_l)
 
         if self.forgetting:
             self.dF = dict()
             self.dr2w = dict()
             self.dr = dict()
             self.avgf = 0
+            
 
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
@@ -177,6 +183,24 @@ class DeepBKT(nn.Module):
                 sum += self.dr2w[c] / self.dr[c]
         self.avgf = sum / len(self.dr)
         print(f"dF: {self.dF}, avgf: {self.avgf}")
+
+    # def calfseqs(self, cs):
+    #     css, fss = [], []
+    #     for i in range(cs.shape[0]): # batch
+    #         curfs = []
+    #         dlast = dict()
+    #         for j in range(cs.shape[1]): # seqlen
+    #             curc = cs[i][j].detach().cpu().item()
+    #             if curc not in dlast:
+    #                 curf = 1
+    #             else:
+    #                 curf = (1-self.dF.get(curc, self.avgf))
+    #             curfs.append([curf])
+    #             dlast[curc] = j
+    #         # print(f"curfs: {curfs}")
+    #         fss.append(curfs)
+    #         # assert False
+    #     return torch.tensor(fss).float().to(device)
 
     def calfseqs(self, cs, rs):
         fss = []
@@ -276,7 +300,7 @@ class DeepBKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         if self.forgetting:
-            sLeft = self.calfseqs(q_data, target) #当前kc的遗忘率
+            sLeft = self.calfseqs(q_data,target) #当前kc的遗忘率
             # print(f"sLeft: {sLeft}")
             d_output = self.model(final_q_embed_data, final_qa_embed_data, sLeft)
         else:
@@ -350,7 +374,28 @@ class DeepBKT(nn.Module):
         #     output = output * (1 - kc_slipping) + (d_mastery - output) * kc_guess
         #     # output = self.bayesian_linear(output)
         #     # print(f"output: {output.shape}")
-        if self.bayesian and not self.augmentation:
+        if self.bayesian and not self.augmentation and emb_type == "bayesian_v2":
+            # print(f"using bayesian_v2")
+            # kc_slipping = self.Sigmoid(self.slipping(q_data))
+            # # kc_slipping = torch.squeeze(m(kc_slipping))
+            # kc_guess = self.Sigmoid(self.guess(q_data))
+            # # kc_guess = torch.squeeze(m(kc_guess))
+            output_1 = self.bayesian_linear1(output)
+            output_1 = self.tanh(output_1)
+            ouput_gain = self.bayesian_linear2(output)
+            ouput_gain = self.sigmoid(ouput_gain)
+            output = ouput_gain * ((output_1 + 1) / 2)
+            output = self.bayesian_linear(output)
+            kc_slipping = self.slipping(q_data)
+            kc_slipping = self.Sigmoid(kc_slipping)
+            kc_guess = self.guess(q_data)
+            kc_guess = self.Sigmoid(kc_guess)
+            d_mastery = self.mastery(q_data)
+            d_mastery = self.Sigmoid(d_mastery)
+            output = output * (1 - kc_slipping) + (d_mastery - output) * kc_guess
+            # output = self.bayesian_linear(output)
+            # print(f"output: {output.shape}")
+        elif self.bayesian and not self.augmentation:
             # print(f"using bayesian")
             # kc_slipping = self.Sigmoid(self.slipping(q_data))
             # # kc_slipping = torch.squeeze(m(kc_slipping))

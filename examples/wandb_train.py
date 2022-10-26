@@ -38,7 +38,7 @@ def addF2AKT(model, train_loader, valid_loader, test_loader):
     for data in train_loader:
         cs, rs, sms = prepare(data, cs, rs, sms)
     
-    # cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
+    cs, rs, sms = torch.tensor([]).to(device), torch.tensor([]).to(device), torch.tensor([]).to(device)
     # model.calSkillF(cs.long(), rs.long(), sms.long(), istrain=True)
     for data in valid_loader:
         cs, rs, sms = prepare(data, cs, rs, sms)
@@ -68,8 +68,8 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
             train_config["batch_size"] = 64 ## because of OOM
-        elif model_name in ["akt_perturbation", "deepbkt"]:
-            train_config["batch_size"] = 64 ## because of OOM
+        elif model_name in ["akt_perturbation", "deepbkt", "bakt"]:
+            train_config["batch_size"] = 256 ## because of OOM
         elif model_name in ["gkt", "aktforget"]:
             train_config["batch_size"] = 16
         model_config = copy.deepcopy(params)
@@ -81,7 +81,7 @@ def main(params):
     with open("../configs/data_config.json") as fin:
         data_config = json.load(fin)
     if 'maxlen' in data_config[dataset_name]:#prefer to use the maxlen in data config
-        train_config["seq_len"] = data_config[dataset_name]
+        train_config["seq_len"] = data_config[dataset_name]['maxlen']
     seq_len = train_config["seq_len"]
 
     print("Start init data")
@@ -108,7 +108,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint", "sakt"]:
+    if model_name in ["saint", "sakt", "bakt"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")

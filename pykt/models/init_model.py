@@ -21,6 +21,7 @@ from .akt_vector import AKTVec
 from .akt_forget import AKTF
 from .aktforget import AKTForget
 from .deepbkt import DeepBKT
+from .bakt3 import BAKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -37,6 +38,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = SAINT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt_forget":
         model = DKTForget(data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
+    elif model_name == "bakt":
+        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "deepbkt":
         qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
         if os.path.exists(qmatrix_path):
