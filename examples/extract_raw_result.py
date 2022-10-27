@@ -418,7 +418,7 @@ def get_one_result(root_save_dir, stu_inter_num_dict, data_dict, cut, skip=False
         # 开始跑
         report_list = []
         for fold_name in os.listdir(root_save_dir):
-            if "report" in fold_name or fold_name[0] == '.' or '_bak' in fold_name:
+            if "report" in fold_name or fold_name[0] == '.' or '_bak' in fold_name or "nohup.out" in fold_name:
                 continue
             save_dir = os.path.join(root_save_dir, fold_name)
             report = {"save_dir": save_dir, "data_dir": data_dir, "cut": cut}
