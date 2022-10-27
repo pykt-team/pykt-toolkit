@@ -174,6 +174,7 @@ class QIKTNCD(QueBaseModel):
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
         def get_loss_lambda(x):
+            x = x.replace("loss_","")
             return self.model.other_config.get(f'loss_{x}',0)*self.model.other_config.get(f'output_{x}',0)
 
         loss_lambda_list  = [get_loss_lambda(x) for x in self.loss_lambda_name_list]
