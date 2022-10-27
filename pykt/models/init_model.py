@@ -20,7 +20,8 @@ from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
 from .qikt import QIKT
-from .qikt_ncd_v2 import QIKTNCD
+from .qikt_ncd import QIKTNCD
+from .qikt_ncd_v2 import QIKTNCDV2
 from .qdkt import QDKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -92,6 +93,9 @@ def init_model(model_name, model_config, data_config, emb_type):
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
     elif model_name == "qikt_ncd":
         model = QIKTNCD(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
+    elif model_name == "qikt_ncd_v2":
+        model = QIKTNCDV2(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
     else:
         print("The wrong model name was used...")
