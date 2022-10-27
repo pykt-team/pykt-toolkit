@@ -20,7 +20,7 @@ from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
 from .qikt import QIKT
-from .qikt_ncd import QIKTNCD
+from .qikt_ncd_v2 import QIKTNCD
 from .qdkt import QDKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
