@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="saved_model")
 
     # model config
-    parser.add_argument("--model_name", type=str, default="qikt_ncd")
+    parser.add_argument("--model_name", type=str, default="qikt_ncd_v2")
     parser.add_argument("--emb_type", type=str, default="iekt")
     parser.add_argument("--dropout", type=float, default=0.4)
     parser.add_argument("--emb_size", type=int, default=300)
@@ -76,5 +76,5 @@ if __name__ == "__main__":
 
 
 '''
-python -u wandb_qikt_ncd_train.py --ab_mode a+b+c+ncd --seed 3407 --loss_q_all_lambda 1 --loss_c_all_lambda 1 --loss_c_next_lambda 1 --loss_ncd_lambda 1 --mlp_layer_num 1
+python -u wandb_qikt_ncd_v2_train.py --ab_mode a+b+c+irt --seed 3407 --loss_q_all_lambda 1 --loss_c_all_lambda 1 --loss_c_next_lambda 1 --mlp_layer_num 1
 '''

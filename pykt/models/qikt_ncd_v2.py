@@ -42,33 +42,38 @@ def get_outputs(self,emb_qc_shift,h,data,add_name="",model_type='question'):
     if model_type == 'question':
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
         y_question_next = torch.sigmoid(self.out_question_next(h_next))
+
+        # question next
+        emb_question_next,out_question_next = self.out_question_next(h_next,return_raw_x=True)
+        y_question_next = torch.sigmoid(out_question_next)
+        outputs["y_question_next"+add_name] = y_question_next.squeeze(-1)
+        outputs["emb_question_next"] = emb_question_next
+
+        # question all
         emb_question_all,out_question_all = self.out_question_all(h,return_raw_x=True)
         y_question_all = torch.sigmoid(out_question_all)
-        outputs["y_question_next"+add_name] = y_question_next.squeeze(-1)
         outputs["y_question_all"+add_name] = (y_question_all * F.one_hot(data['qshft'].long(), self.num_q)).sum(-1)
         outputs["emb_question_all"] = emb_question_all
         
     else: 
         h_next = torch.cat([emb_qc_shift,h],axis=-1)
-        # next
+        # concept next
         emb_concept_next,out_concept_next = self.out_concept_next(h_next,return_raw_x=True)
         y_concept_next = torch.sigmoid(out_concept_next)
+        outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
+        outputs["emb_concept_next"] = emb_concept_next
 
-        #all predict
+        # concept all
         emb_concept_all,out_concept_all = self.out_concept_all(h,return_raw_x=True)
         y_concept_all = torch.sigmoid(out_concept_all)
-
-        # add results to outputs
-        outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
         outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(y_concept_all,data['cshft'])
-        outputs["emb_concept_next"] = emb_concept_next
         outputs["emb_concept_all"] = emb_concept_all
     return outputs
 
 class QIKTNCDNet(nn.Module):
     def __init__(self, num_q,num_c,emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',mlp_layer_num=1,other_config={}):
         super().__init__()
-        self.model_name = "qikt_ncd"
+        self.model_name = "qikt_ncd_v2"
         self.num_q = num_q
         self.num_c = num_c
         self.emb_size = emb_size
@@ -153,7 +158,7 @@ class QIKTNCDNet(nn.Module):
 
 class QIKTNCD(QueBaseModel):
     def __init__(self, num_q,num_c, emb_size, dropout=0.1, emb_type='qaid', emb_path="", pretrain_dim=768,device='cpu',seed=0,mlp_layer_num=1,other_config={},**kwargs):
-        model_name = "qikt_ncd"
+        model_name = "qikt_ncd_v2"
        
         debug_print(f"emb_type is {emb_type}",fuc_name="QIKTNCD")
 
@@ -174,20 +179,23 @@ class QIKTNCD(QueBaseModel):
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
         def get_loss_lambda(x):
+            x = x.replace("loss_","")
             return self.model.other_config.get(f'loss_{x}',0)*self.model.other_config.get(f'output_{x}',0)
-
         loss_lambda_list  = [get_loss_lambda(x) for x in self.loss_lambda_name_list]
         # print(f"loss_lambda_list is {loss_lambda_list}")    
         # over all
         loss_kt = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
+        # print(f"outputs['y'] is {outputs['y']}")
 
         total_loss = loss_kt
         loss_print_str = f"loss_kt is {loss_kt:.3f}"
 
         for loss_lambda,output_name in zip(loss_lambda_list,self.output_name_list):
+            # print(f"start {output_name}")
             if loss_lambda==0:
                 continue
             loss_item = self.get_loss(outputs[output_name],data_new['rshft'],data_new['sm'])
+            # print(f"outputs {output_name} is {outputs[output_name]},loss is {loss_item}")
             total_loss += loss_item * loss_lambda
 
             loss_print_str+=f",{output_name} loss is {loss_item:.3f}"
@@ -251,16 +259,17 @@ class QIKTNCD(QueBaseModel):
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
         outputs = self.model(data_new['cq'].long(),data_new['cc'],data_new['cr'].long(),data=data_new)
-        
         output_lambda_list  = [self.model.other_config.get(x,0) for x in self.output_lambda_name_list]
         # print(f"output_lambda_list is {output_lambda_list}")    
-
         if self.model.output_mode=="an_irt":
             def sigmoid_inverse(x,epsilon=1e-8):
                 return torch.log(x/(1-x+epsilon)+epsilon)
-            y = 0 
-            for output_lambda,output_name in zip(output_lambda_list,self.output_name_list):
-                y+=sigmoid_inverse(outputs[output_name])*output_lambda
+          
+            output_c_all_lambda = self.model.other_config.get('output_c_all_lambda',0)
+            output_c_next_lambda = self.model.other_config.get('output_c_next_lambda',0)
+            output_q_all_lambda = self.model.other_config.get('output_q_all_lambda',0)
+            y = torch.mean(outputs['emb_question_all']*output_q_all_lambda + outputs['emb_concept_all']*output_c_all_lambda,axis=-1) + sigmoid_inverse(outputs['y_concept_next'])*output_c_next_lambda
+
             y = torch.sigmoid(y)
         else:
             # output weight
