@@ -19,6 +19,7 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
+from .iekt_ab import IEKTAB
 from .qikt import QIKT
 from .qikt_ncd import QIKTNCD
 from .qikt_ncd_v2 import QIKTNCD as QIKTNCDV2
@@ -84,6 +85,9 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = model.to(device)
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+    elif model_name == "iekt_ab":
+        model = IEKTAB(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],

@@ -1,1 +1,1 @@
-que_type_models = ["iekt","xdkt_v2","xdkt_v3","xdkt_v2_ab","qdkt","qikt_ncd","qikt_ncd_v2","qikt"]
+que_type_models = ["iekt","iekt_ab","xdkt_v2","xdkt_v3","xdkt_v2_ab","qdkt","qikt_ncd","qikt_ncd_v2","qikt"]

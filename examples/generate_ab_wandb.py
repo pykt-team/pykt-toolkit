@@ -23,7 +23,7 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["iekt"]]:
+                for _type in [["qid"]]:
                     for ab_mode in args.ab_types.split(','):
                         for fold in folds.split(","):
                             _type = [str(k) for k in _type]
