@@ -13,7 +13,7 @@ parameters:
     save_dir:
         values: ["models/iekt_tiaocan"]
     emb_size:
-        values: [64, 256]
+        values: [64, 256,512]
     lamb:
         values: [30,40,50]
     n_layer:
