@@ -349,7 +349,7 @@ class SKVMN(Module):
         return identity_idx 
 
 
-    def forward(self, q, r):
+    def forward(self, q, r, qtest=False):
         emb_type = self.emb_type
         bs = q.shape[0]              
         self.seqlen = q.shape[1]
@@ -485,7 +485,10 @@ class SKVMN(Module):
         # # print(f"sigmoid:{datetime.datetime.now()}")
         p = p.squeeze(-1)
         # # print(f"p:{datetime.datetime.now()}")
-        return p
+        if not qtest:
+            return p
+        else:
+            return p, hidden_state
 
         #时间优化
         # print(f"copy_ft_begin:{datetime.datetime.now()}")
