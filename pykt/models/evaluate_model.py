@@ -627,7 +627,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                         curqin, curcin, currin, curtin, curitin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
                         dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin, "curitin": curitin}
                     else:
-                        curqin, curcin, currin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
+                        curqin, curcin, currin, curtin, curdforget, ctrues, cpreds = predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, idx, model_name, model, t, end, fout, atkt_pad)
                         dcur = {"curqin": curqin, "curcin": curcin, "currin": currin, "curtin": curtin}
                     late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)    
    
@@ -674,8 +674,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
-    for key in dcur:
-        print(f"649 - {key} shape is {dcur[key].shape}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
@@ -801,11 +799,14 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             if tout != None:
                 curt = torch.tensor([[tout.item()]]).to(device)
                 tin = torch.cat((tin, curt), axis=1)
+            else:
+                tin = torch.tensor([[]]).to(device)
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
                 qin = torch.cat((qin, curq), axis=1)
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
+            #print(f"cin: {cin.shape}, qin: {qin.shape}, tin: {tin.shape}, rin: {rin.shape}")
             y = model(cin.long(), qin.long(), tin.long(), rin.long())
             pred = y[0][-1]
         
@@ -813,6 +814,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         cpred = torch.tensor([[predl]]).to(device)
 
         nextqin = cq[0:k+1].unsqueeze(0) if cq.shape[0] > 0 else qin
+        nexttin = ct[0:k+1].unsqueeze(0) if ct.shape[0] > 0 else tin
         nextcin = cc[0:k+1].unsqueeze(0)
         nextrin = torch.cat((nextrin, cpred), axis=1)### change!!
         if model_name == "lpkt":
@@ -838,7 +840,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     if model_name == "lpkt":
         return nextqin, nextcin, nextrin, nexttin, nextitin, nextdforget, ctrues, cpreds
     else:
-        return nextqin, nextcin, nextrin, nextdforget, ctrues, cpreds
+        return nextqin, nextcin, nextrin, nexttin, nextdforget, ctrues, cpreds
 
 def save_each_question_res(dcres, dqres, ctrues, cpreds):
     # save res
