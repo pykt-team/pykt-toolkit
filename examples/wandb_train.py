@@ -66,9 +66,9 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget"]:
+        if model_name in ["dkvmn", "skvmn", "sakt", "saint", "akt", "atkt", "lpkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        elif model_name in ["akt_perturbation", "deepbkt", "bakt"]:
+        elif model_name in ["akt_perturbation", "deepbkt"]:
             train_config["batch_size"] = 256 ## because of OOM
         elif model_name in ["gkt", "aktforget"]:
             train_config["batch_size"] = 16

@@ -86,8 +86,9 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:                                
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
-            elif model_name in ["bakt"]:                                
-                y = model(cc.long(), cr.long(), cq.long())
+            elif model_name in ["bakt"]:
+                ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)                                
+                y = model(cc.long(), cr.long(), cq.long(), ct.long())
                 y = y[:,1:]
             elif model_name in ["deepbkt"]:
                 if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:

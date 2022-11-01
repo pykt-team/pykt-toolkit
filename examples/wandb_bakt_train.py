@@ -77,6 +77,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_attn_heads", type=int, default=4)
     parser.add_argument("--n_blocks", type=int, default=2)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
+    parser.add_argument("--time_log", type=int, default=5)
+    parser.add_argument("--ratio", type=int, default=0.5)
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)

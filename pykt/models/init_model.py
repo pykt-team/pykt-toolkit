@@ -40,6 +40,13 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTForget(data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
     elif model_name == "bakt":
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = model.double()
+        # print("===before init weights"+"@"*100)
+        # model.printparams()
+        model.apply(model.init_weights)
+        # print("===after init weights")
+        # model.printparams()
+        model = model.to(device)
     elif model_name == "deepbkt":
         qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
         if os.path.exists(qmatrix_path):

@@ -1,7 +1,7 @@
 import os, sys
 import torch
 import torch.nn as nn
-from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss
+from torch.nn.functional import one_hot, binary_cross_entropy
 import numpy as np
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
@@ -9,39 +9,16 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbation_rshft=[]):
+
+
+def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "bakt"]:
+    if model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "bakt"]:
+
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
-    elif model_name in ["deepbkt"]:
-        if model.emb_type.find("augmentation") != -1:
-            y = torch.masked_select(ys[0], sm)
-            augmentation_y = torch.masked_select(perturbation_ys[0], sm)
-            # print(f"augmentation_y: {augmentation_y.shape}")
-            t = torch.masked_select(rshft, sm)
-            augmentation_t = torch.masked_select(perturbation_rshft, sm).detach()
-            # print(f"augmentation_t: {augmentation_t.shape}")
-            # if model.emb_type == "augmentation_bayesian_v2":
-            #     pred_loss = binary_cross_entropy(y.double(), t.double())
-            # else:
-            pred_loss = binary_cross_entropy(y.double(), t.double()) + binary_cross_entropy(augmentation_y.double(), augmentation_t.double())
-            perturbation_loss = mse_loss(y, augmentation_y)
-            loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss  
-        else:
-            y = torch.masked_select(ys[0], sm)
-            t = torch.masked_select(rshft, sm)
-            loss = binary_cross_entropy(y.double(), t.double())
-    elif model_name in ["akt_perturbation"]:
-        # print(f"calculate perturbation loss")
-        y = torch.masked_select(ys[0], sm)
-        perturbation_y = torch.masked_select(perturbation_ys[0], sm)
-        t = torch.masked_select(rshft, sm)
-        pred_loss = binary_cross_entropy(y.double(), t.double())
-        perturbation_loss = mse_loss(y, perturbation_y)
-        loss = (1 - model.lambda_r) * pred_loss + model.lambda_r * perturbation_loss
     elif model_name == "dkt+":
         y_curr = torch.masked_select(ys[1], sm)
         y_next = torch.masked_select(ys[0], sm)
@@ -56,7 +33,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], perturbation_ys=[], perturbati
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget", "akt_perturbation"]:
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -81,13 +58,15 @@ def model_forward(model, data):
     qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
     m, sm = dcur["masks"], dcur["smasks"]
 
-    ys, preloss, perturbation_ys, perturbation_rshft = [], [], [], []
+    ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-
+    if model_name in ["lpkt"]:
+        # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
+        cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
     if model_name in ["dkt"]:
         y = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -101,7 +80,7 @@ def model_forward(model, data):
         y = model(c.long(), r.long(), dgaps)
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y)
-    elif model_name in ["dkvmn", "skvmn"]:
+    elif model_name in ["dkvmn","deep_irt", "skvmn"]:
         y = model(cc.long(), cr.long())
         ys.append(y[:,1:])
     elif model_name in ["kqn", "sakt"]:
@@ -110,26 +89,14 @@ def model_forward(model, data):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name in ["deepbkt"]:
-        if model.emb_type.find("augmentation") != -1 or model.emb_type.find("all") != -1:
-            y, perturbation_y, perturbation_rshft = model(cc.long(), cr.long(), cq.long())
-            perturbation_ys.append(perturbation_y[:,1:])  
-            perturbation_rshft = perturbation_rshft[:,1:]
-        else:   
-            y = model(cc.long(), cr.long(), cq.long())
-        ys.append(y[:,1:])
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_forget", "aktforget"]:               
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
-    elif model_name in ["bakt"]:               
-        y = model(cc.long(), cr.long(), cq.long())
-        ys.append(y[:, 1:])
-    elif model_name in ["akt_perturbation"]:               
-        y, perturbation_y, reg_loss = model(cc.long(), cr.long(), cq.long())
+    elif model_name in ["bakt"]:  
+        ct = torch.cat((t[:,0:1], tshft), dim=1)        
+        y = model(cc.long(), cr.long(), cq.long(), ct.long())
         ys.append(y[:,1:])
-        perturbation_ys.append(perturbation_y[:,1:])
-        preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
         y, features = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -142,16 +109,14 @@ def model_forward(model, data):
         # second loss
         pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
         adv_loss = cal_loss(model, [pred_res], r, rshft, sm)
-
         loss = loss + model.beta * adv_loss
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
         ys.append(y)  
     # cal loss
     elif model_name == "lpkt":
-        cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
-        cit = torch.cat((d["it_seqs"][:,0:1], dshft["it_seqs"]), dim=1)
-        y = model(cq.long(), cr.long(), cat.long(), cit.long())
+        # y = model(cq.long(), cr.long(), cat, cit.long())
+        y = model(cq.long(), cr.long(), cit.long())
         ys.append(y[:, 1:])  
     elif model_name == "hawkes":
         # ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
@@ -159,10 +124,11 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name == "iekt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
-    if model_name not in ["atkt", "atktfix","iekt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss, perturbation_ys, perturbation_rshft)
+    
+    if model_name not in ["atkt", "atktfix"]:
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
@@ -175,10 +141,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name=='iekt':
-                model.model.train()
-            else:
-                model.train()
+            # if model.model_name in que_type_models:
+            #     model.model.train()
+            # else:
+            model.train()
             loss = model_forward(model, data)
             opt.zero_grad()
             loss.backward()#compute gradients 
@@ -191,11 +157,12 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.model_name=='lpkt':
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
+        
         auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
-        if auc > max_auc:
+        if auc > max_auc+1e-3:
             if save_model:
                 torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+"_model.ckpt"))
             max_auc = auc
@@ -209,13 +176,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 if test_window_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
                     window_testauc, window_testacc = evaluate(model, test_window_loader, model.model_name, save_test_path)
-            # window_testauc, window_testacc = -1, -1
-            validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
-            # trainauc, trainacc = model.evaluate(train_loader, emb_type)
-            testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
-            max_auc = round(max_auc, 4)
-        print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
-        print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+            validauc, validacc = auc, acc
+        print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
+        print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
+
 
         if i - best_epoch >= 10:
             break
