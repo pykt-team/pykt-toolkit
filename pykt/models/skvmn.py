@@ -344,7 +344,10 @@ class SKVMN(Module):
             pre_idx = _indices[identity_indices[0],identity_indices[1]] #找到t-lamda
             idx = torch.cat([identity_indices[:-1],pre_idx], dim=-1)
             identity_idx.append(idx)
-        identity_idx = torch.stack(identity_idx, dim=0)
+        if len(identity_idx) > 0:
+            identity_idx = torch.stack(identity_idx, dim=0)
+        else:
+            identity_idx = torch.tensor([]).to(device)
 
         return identity_idx 
 
