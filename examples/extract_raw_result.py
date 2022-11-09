@@ -1,4 +1,5 @@
 import os
+import json
 from pickle import NONE
 import pandas as pd
 from sklearn.metrics import roc_auc_score, accuracy_score
@@ -132,8 +133,10 @@ def load_all_raw_df(data_dir):
 # concept
 
 def add_concepts(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
+    config = json.load(open(os.path.join(save_dir,"config.json")))
+    emb_type = config['params']['emb_type']
     # 非window
-    qid_test = parse_raw_file(os.path.join(save_dir, "qid_test_predictions.txt"))
+    qid_test = parse_raw_file(os.path.join(save_dir, f"{emb_type}_test_predictions.txt"))
     df_qid_test = data_dict['df_qid_test']
     # split
     df_qid_long, df_qid_short = paser_raw_data(
@@ -156,7 +159,10 @@ def add_concepts(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict)
 
 
 def add_concept_win(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
-    qid_test_win = parse_raw_file(os.path.join(save_dir, "qid_test_window_predictions.txt"))
+    config = json.load(open(os.path.join(save_dir,"config.json")))
+    emb_type = config['params']['emb_type']
+
+    qid_test_win = parse_raw_file(os.path.join(save_dir, f"{emb_type}_test_window_predictions.txt"))
     df_qid_test_win = data_dict['df_qid_test_win']
     df_qid_win_long, df_qid_win_short = paser_raw_data(qid_test_win, df_qid_test_win, stu_inter_num_dict)
 
@@ -179,11 +185,14 @@ def add_concept_win(save_dir, data_dir, report, stu_inter_num_dict, cut, data_di
     return df_qid_win,df_qid_win_long,df_qid_win_short
 
 def concept_update_l2(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
+    config = json.load(open(os.path.join(save_dir,"config.json")))
+    emb_type = config['params']['emb_type']
+
     # 非window
-    qid_test = parse_raw_file(os.path.join(save_dir, "qid_test_predictions.txt"))
+    qid_test = parse_raw_file(os.path.join(save_dir, f"{emb_type}_test_predictions.txt"))
     df_qid_test = data_dict['df_qid_test']
     # window
-    qid_test_win = parse_raw_file(os.path.join(save_dir, "qid_test_window_predictions.txt"))
+    qid_test_win = parse_raw_file(os.path.join(save_dir, f"{emb_type}_test_window_predictions.txt"))
     df_qid_test_win = data_dict['df_qid_test_win']
     # 获取原始概率
     df_result = paser_raw_data_core(qid_test, df_qid_test,stu_inter_num_dict)
@@ -348,14 +357,18 @@ def que_update_l2(que_test, que_win_test, report,save_dir):
 
 
 def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
+    config = json.load(open(os.path.join(save_dir,"config.json")))
+    emb_type = config['params']['emb_type']
+
+
     que_test = pd.read_csv(os.path.join(
-        save_dir, "qid_test_question_predictions.txt"), sep='\t')
+        save_dir, f"{emb_type}_test_question_predictions.txt"), sep='\t')
     que_test = update_question_df(que_test)
 
     df_que_test = data_dict['df_que_test']
 
     que_win_test = pd.read_csv(os.path.join(
-        save_dir, "qid_test_question_window_predictions.txt"), sep='\t')
+        save_dir, f"{emb_type}_test_question_window_predictions.txt"), sep='\t')
     que_win_test = update_question_df(que_win_test)
 
     df_que_win_test = data_dict['df_que_win_test']
@@ -405,7 +418,7 @@ def get_one_result(root_save_dir, stu_inter_num_dict, data_dict, cut, skip=False
         # 开始跑
         report_list = []
         for fold_name in os.listdir(root_save_dir):
-            if "report" in fold_name or fold_name[0] == '.' or '_bak' in fold_name:
+            if "report" in fold_name or fold_name[0] == '.' or '_bak' in fold_name or "nohup.out" in fold_name:
                 continue
             save_dir = os.path.join(root_save_dir, fold_name)
             report = {"save_dir": save_dir, "data_dir": data_dir, "cut": cut}
@@ -484,6 +497,7 @@ if __name__ == "__main__":
     # model_root_dir = "/root/autodl-nas/liuqiongqiong/bakt/pykt-toolkit/examples/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
     model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002"
+    # model_root_dir = "/root/autodl-nas/project/pykt_qikt/examples/best_model_path"
     data_root_dir = '/root/autodl-nas/project/pykt_nips2022/data'
     
 
