@@ -557,6 +557,14 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             dforget = dict() if model_name != "dkt_forget" else get_info_dkt_forget(row, data_config)
 
             concepts, responses = row["concepts"].split(","), row["responses"].split(",")
+            ###
+            # for AAAI competation
+            rs = []
+            for item in responses:
+                newr = item if item != "-1" else "0" # default -1 to 0
+                rs.append(newr)
+            responses = rs
+            ###
             curl = len(responses)
 
             # print("="*20)
