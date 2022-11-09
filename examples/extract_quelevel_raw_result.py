@@ -1,6 +1,7 @@
 import os
 from pickle import NONE
 import pandas as pd
+import json
 from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
 from tqdm import tqdm_notebook
@@ -150,11 +151,14 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
 
 
 def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
-    que_test_path = os.path.join(save_dir, "qid_test_predictions.txt")
+    config = json.load(open(os.path.join(save_dir,"config.json")))
+    emb_type = config['params']['emb_type']
+
+    que_test_path = os.path.join(save_dir, f"{emb_type}_test_predictions.txt")
     que_test = get_question_df(que_test_path,raw_df=data_dict['df_que_test'],stu_inter_num_dict=stu_inter_num_dict)    
 
     #window
-    que_win_test_path = os.path.join(save_dir, "qid_test_window_predictions.txt")
+    que_win_test_path = os.path.join(save_dir, f"{emb_type}_test_window_predictions.txt")
     que_win_test = get_question_df(que_win_test_path,raw_df=data_dict['df_que_win_test'],stu_inter_num_dict=stu_inter_num_dict) 
 
     save_df(que_test,'que_test',save_dir)
