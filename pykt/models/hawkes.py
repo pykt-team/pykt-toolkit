@@ -22,6 +22,8 @@ class HawkesKT(nn.Module):
         self.skill_base = torch.nn.Embedding(self.skill_num, 1)
 
         self.alpha_inter_embeddings = torch.nn.Embedding(self.skill_num * 2, self.emb_size)
+        # print(f"weight: {self.alpha_inter_embeddings.weight}")
+        # np.save('alpha_inter_embeddings.npz', self.alpha_inter_embeddings.weight.detach().numpy())
         self.alpha_skill_embeddings = torch.nn.Embedding(self.skill_num, self.emb_size)
         self.beta_inter_embeddings = torch.nn.Embedding(self.skill_num * 2, self.emb_size)
         self.beta_skill_embeddings = torch.nn.Embedding(self.skill_num, self.emb_size)
@@ -67,11 +69,17 @@ class HawkesKT(nn.Module):
         # print(f"inters: {inters}")
 
         alpha_src_emb = self.alpha_inter_embeddings(inters)  # [bs, seq_len, emb]
+        # print(f"alpha_src_emb:{alpha_src_emb}")
         alpha_target_emb = self.alpha_skill_embeddings(skills)
+        # print(f"alpha_target_emb:{alpha_target_emb}")
         alphas = torch.matmul(alpha_src_emb, alpha_target_emb.transpose(-2, -1))  # [bs, seq_len, seq_len]
+        # print(f"alphas:{alphas}")
         beta_src_emb = self.beta_inter_embeddings(inters)  # [bs, seq_len, emb]
+        # print(f"beta_src_emb:{beta_src_emb}")
         beta_target_emb = self.beta_skill_embeddings(skills)
+        # print(f"beta_target_emb:{beta_target_emb}")
         betas = torch.matmul(beta_src_emb, beta_target_emb.transpose(-2, -1))  # [bs, seq_len, seq_len]
+        # print(f"betas:{betas}")
         betas = torch.clamp(betas + 1, min=0, max=10)
         # source_idx = inters.unsqueeze(-1).repeat(1, 1, labels.shape[1]).long()
         # target_idx = skills.unsqueeze(1).repeat(1, labels.shape[1], 1).long()
@@ -102,6 +110,7 @@ class HawkesKT(nn.Module):
         skill_bias = self.skill_base(skills).squeeze(dim=-1)
         # print(f"problem_bias: {problem_bias}, skill_bias: {skill_bias}, sum_t: {sum_t}")
         prediction = (problem_bias + skill_bias + sum_t).sigmoid()
+        # print(f"prediction:{prediction}")
 
         # Return predictions and labels from the second position in the sequence
         # out_dict = {'prediction': prediction[:, 1:], 'label': labels[:, 1:].double()}
