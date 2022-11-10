@@ -9,7 +9,47 @@ import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-# def save_cur_predict_result(dres, q, r, d, t, thr, phr, que, qh, m, sm, p):
+# def save_cur_predict_result(dres, q, r, d, t, que, qh, m, sm, p):
+# # def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
+#     # dres, q, r, qshft, rshft, m, sm, y
+#     results = []
+#     for i in range(0, t.shape[0]):
+#         cps = torch.masked_select(p[i], sm[i]).detach().cpu()
+#         cts = torch.masked_select(t[i], sm[i]).detach().cpu()
+    
+#         cqs = torch.masked_select(q[i], m[i]).detach().cpu()
+#         crs = torch.masked_select(r[i], m[i]).detach().cpu()
+
+#         cds = torch.masked_select(d[i], sm[i]).detach().cpu()
+
+#         qs, rs, ts, ps, ds = [], [], [], [], []
+#         for cq, cr in zip(cqs.int(), crs.int()):
+#             qs.append(cq.item())
+#             rs.append(cr.item())
+#         for ct, cp, cd in zip(cts.int(), cps, cds.int()):
+#             ts.append(ct.item())
+#             ps.append(cp.item())
+#             ds.append(cd.item())
+#         try:
+#             auc = metrics.roc_auc_score(
+#                 y_true=np.array(ts), y_score=np.array(ps)
+#             )
+            
+#         except Exception as e:
+#             # print(e)
+#             auc = -1
+#         # cthr = torch.masked_select(thr[i], sm[i]).detach().cpu().tolist()
+#         # cphr = torch.masked_select(phr[i], sm[i]).detach().cpu().tolist()
+#         flag = sm[i]==1
+#         sque = que[i][flag].detach().cpu().tolist()
+#         sqh = qh[i][flag].detach().cpu().tolist()
+
+#         prelabels = [1 if p >= 0.5 else 0 for p in ps]
+#         acc = metrics.accuracy_score(ts, prelabels)
+#         dres[len(dres)] = [qs, rs, ds, ts, ps, prelabels, auc, acc, sque, sqh]#, cthr, cphr, sque, sqh]
+#         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc, sque, sqh]))#, cthr, cphr, sque, sqh]))
+#     return "\n".join(results)
+
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     # dres, q, r, qshft, rshft, m, sm, y
     results = []
@@ -127,7 +167,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
-                y = model(dcur)
+                y, rpreds, qh = model(dcur)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cfdkt"]:
                 y = model(dcur, dgaps)
@@ -184,6 +224,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
+                # result = save_cur_predict_result(dres, c, r, cshft, rshft, q, qh, m, sm, y)
                 result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
                 fout.write(result+"\n")
 

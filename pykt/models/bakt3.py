@@ -310,6 +310,7 @@ class BAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
+        elif
         elif emb_type.find("time") != -1:
             d_output = self.model(q_embed_data, qa_embed_data)
 

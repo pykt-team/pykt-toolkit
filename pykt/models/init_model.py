@@ -127,14 +127,18 @@ def init_model(model_name, model_config, data_config, emb_type):
     return model
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
-    # infs = model_name.split("_")
+    infs = model_name.split("_")
     save = False
-    # if len(infs) == 2:
-    #     model_name, save = infs[0], True
+    if len(infs) == 2:
+        model_name, save = infs[0], True
     print(f"in load model! model name: {model_name}, save: {save}")
     model = init_model(model_name, model_config, data_config, emb_type)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
-    # if model_name == "cdkt" and save:
-    #     save_qcemb(model, data_config["emb_save"], ckpt_path)
+    if model_name == "cdkt" and save:
+        save_qcemb(model, data_config["emb_save"], ckpt_path)
+    '''
+    from torchstat import stat
+    stat(model)#, (3, 500, 500))
+    '''
     return model
