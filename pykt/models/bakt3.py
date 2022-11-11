@@ -18,6 +18,40 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
+class timeGap2(nn.Module):
+    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
+        super().__init__()
+        self.num_rgap, self.num_sgap, self.num_pcount = num_rgap, num_sgap, num_pcount
+        if num_rgap != 0:
+            self.rgap_eye = torch.eye(num_rgap)
+        if num_sgap != 0:
+            self.sgap_eye = torch.eye(num_sgap)
+        if num_pcount != 0:
+            self.pcount_eye = torch.eye(num_pcount)
+
+        input_size = num_rgap + num_sgap + num_pcount
+        
+        print(f"self.num_rgap: {self.num_rgap}, self.num_sgap: {self.num_sgap}, self.num_pcount: {self.num_pcount}, input_size: {input_size}")
+
+        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
+
+    def forward(self, rgap, sgap, pcount):
+        infs = []
+        if self.num_rgap != 0:
+            rgap = self.rgap_eye[rgap].to(device)
+            infs.append(rgap)
+        if self.num_sgap != 0:
+            sgap = self.sgap_eye[sgap].to(device)
+            infs.append(sgap)
+        if self.num_pcount != 0:
+            pcount = self.pcount_eye[pcount].to(device)
+            infs.append(pcount)
+
+        tg = torch.cat(infs, -1)
+        tg_emb = self.time_emb(tg)
+
+        return tg_emb
+
 class BAKT(nn.Module):
     def __init__(self, n_question, n_pid, num_rgap, num_sgap, num_pcount, 
             d_model, n_blocks, dropout, d_ff=256, 
@@ -33,6 +67,7 @@ class BAKT(nn.Module):
             kq_same: if key query same, kq_same=1, else = 0
         """
         self.model_name = "bakt"
+        print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -69,6 +104,31 @@ class BAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
+        if emb_type.endswith("hasw") != -1:
+            self.c_weight = nn.Linear(d_model, d_model)
+        
+        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
+            self.c_weight = nn.Linear(d_model, d_model)
+            self.t_weight = nn.Linear(d_model, d_model)
+        
+        if emb_type.endswith("onlyrgap"):
+            self.time_emb = timeGap2(num_rgap, 0, 0, d_model)
+        if emb_type.endswith("onlysgap"):
+            self.time_emb = timeGap2(0, num_sgap, 0, d_model)
+        if emb_type.endswith("onlypcount"):
+            self.time_emb = timeGap2(0, 0, num_pcount, d_model)
+            
+        if emb_type.endswith("rsgap"):
+            self.time_emb = timeGap2(num_rgap, num_sgap, 0, d_model)
+        if emb_type.endswith("rpgap"):
+            self.time_emb = timeGap2(num_rgap, 0, num_pcount, d_model)
+        if emb_type.endswith("spgap"):
+            self.time_emb = timeGap2(0, num_sgap, num_pcount, d_model)
+            
+        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
+                                    dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
+                                    kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
         if self.emb_type.find("time") != -1:
             self.c_weight = nn.Linear(d_model, d_model)
@@ -286,7 +346,7 @@ class BAKT(nn.Module):
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                         (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
 
-        if emb_type.find("time") != -1:
+        if emb_type.find("time") != -1 or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
             rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
             rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
 
@@ -310,8 +370,18 @@ class BAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        elif
-        elif emb_type.find("time") != -1:
+        elif emb_type.endswith("hasw"):
+            d_output = self.model(q_embed_data, qa_embed_data)
+            
+            w = torch.sigmoid(self.c_weight(d_output))
+            d_output = w * d_output
+            
+            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+            output = self.out(concat_q).squeeze(-1)
+            m = nn.Sigmoid()
+            preds = m(output)
+        # elif emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]
+        elif emb_type.find("time") != -1 or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
             d_output = self.model(q_embed_data, qa_embed_data)
 
             w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_out)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
