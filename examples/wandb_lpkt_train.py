@@ -3,7 +3,7 @@ from wandb_train import main
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", type=str, default="assist2015")
+    parser.add_argument("--dataset_name", type=str, default="assist2009")
     parser.add_argument("--model_name", type=str, default="lpkt")
     parser.add_argument("--emb_type", type=str, default="qid")
     parser.add_argument("--save_dir", type=str, default="saved_model")
@@ -13,9 +13,9 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", type=float, default=3e-3)
     # model params
     parser.add_argument("--dropout", type=float, default=0.2)
-    parser.add_argument("--d_a", type=int, default=50)
-    parser.add_argument("--d_e", type=int, default=128)
-    parser.add_argument("--d_k", type=int, default=128)
+    parser.add_argument("--d_a", type=int, default=64)
+    parser.add_argument("--d_e", type=int, default=64)
+    parser.add_argument("--d_k", type=int, default=64)
     parser.add_argument("--gamma", type=float, default=0.03)
 
     parser.add_argument("--use_wandb", type=int, default=1)

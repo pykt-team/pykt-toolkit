@@ -23,12 +23,12 @@ def init_test_datasets(data_config, model_name, batch_size):
             test_question_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     elif model_name in ["lpkt"]:
+        print(f"model_name in lpkt")
         at2idx, it2idx = generate_time2idx(data_config)
-        test_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), at2idx, it2idx, data_config["input_type"], {-1})
-        test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), at2idx, it2idx, data_config["input_type"], {-1})
-        if "test_question_file" in data_config:
-            test_question_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), at2idx, it2idx, data_config["input_type"], {-1}, True)
-            test_question_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), at2idx, it2idx, data_config["input_type"], {-1}, True)
+        test_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {-1})
+        test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {-1})
+        test_question_dataset = None
+        test_question_window_dataset= None
     elif model_name in que_type_models:
         test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
                         input_type=data_config["input_type"], folds=[-1], 
@@ -81,8 +81,8 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         # json_str_2 = json.dumps(it2idx)
         # with open('it2idx.json', 'w') as json_file2:
         #     json_file2.write(json_str_2)
-        curvalid = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), at2idx, it2idx, data_config["input_type"], {i})
-        curtrain = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), at2idx, it2idx, data_config["input_type"], all_folds - {i})
+        curvalid = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {i})
+        curtrain = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], all_folds - {i})
     elif model_name in que_type_models:
         curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                         input_type=data_config["input_type"], folds={i}, 
