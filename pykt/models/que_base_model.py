@@ -352,12 +352,12 @@ class QueBaseModel(nn.Module):
         return start_index,seq_len
 
    
-    def _evaluate_multi_ahead_accumulative(self,data_config,batch_size=1,ob_portions=0.5,acc_threshold=0.5):
+    def _evaluate_multi_ahead_accumulative(self,data_config,batch_size=1,ob_portions=0.5,acc_threshold=0.5,max_len=200):
        
         testf = os.path.join(data_config["dpath"], "test.csv")
         df = pd.read_csv(testf)
         print("total sequence length is {}".format(len(df)))
-        max_len = data_config["maxlen"]
+        # max_len = data_config["maxlen"]
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
@@ -379,7 +379,7 @@ class QueBaseModel(nn.Module):
                 # print(f"cr is {cr} shape is {cr.shape}")
                 # print(f"cq is {cq} shape is {cq.shape}")
                 data = [cq,cc,cr]
-                print(f"cq.shape is {cq.shape}")
+                # print(f"cq.shape is {cq.shape}")
                 cq,cc,cr = [x.to(self.device) for x in data]#full sequence,[1,n]
                 q,c,r = [x[:,:-1].to(self.device) for x in data]#[0,n-1]
                 qshft,cshft,rshft = [x[:,1:].to(self.device) for x in data]#[1,n]
@@ -459,7 +459,7 @@ class QueBaseModel(nn.Module):
 
         return auc,acc
 
-    def evaluate_multi_ahead(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5,accumulative=False):
+    def evaluate_multi_ahead(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5,accumulative=False,max_len=200):
         """Predictions in the multi-step ahead prediction scenario
 
         Args:
@@ -476,7 +476,7 @@ class QueBaseModel(nn.Module):
         with torch.no_grad():
             if accumulative:
                 print("predict use accumulative")
-                auc,acc = self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+                auc,acc = self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold,max_len=max_len)
             else:
                 print("predict use no accumulative")
                 auc,acc = self._evaluate_multi_ahead_help(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
