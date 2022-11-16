@@ -96,7 +96,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)
                 cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
                 y = model(cq.long(), cr.long(), cit.long())
-                y = y[:,1:]  
+                y = y[:,1:]
             elif model_name == "hawkes":
                 ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
@@ -112,6 +112,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 fout.write(result+"\n")
 
             y = torch.masked_select(y, sm).detach().cpu()
+            # print(f"pred_results:{y}")  
             t = torch.masked_select(rshft, sm).detach().cpu()
 
             y_trues.append(t.numpy())
@@ -122,6 +123,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
 
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
+        print(f"prelabels: {prelabels}")
         acc = metrics.accuracy_score(ts, prelabels)
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
@@ -595,6 +597,8 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                 dtotal["cit"] = cit
             # print(f"cc: {cc[0:ctrainlen]}")
             curcin, currin = cc[0:ctrainlen].unsqueeze(0), cr[0:ctrainlen].unsqueeze(0)
+            # print(f"cin6: {curcin}")
+            # print(f"rin6: {currin}")
             curqin = cq[0:ctrainlen].unsqueeze(0) if cq.shape[0] > 0 else cq
             curtin = ct[0:ctrainlen].unsqueeze(0) if ct.shape[0] > 0 else ct
             if model_name == "lpkt":
@@ -682,6 +686,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
+    # print(f"cin8:{curcin}")
+    # print(f"rin8:{currin}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
@@ -693,6 +699,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     ctrues, cpreds = [], []
     for k in range(t, end):
         qin, cin, rin, tin = curqin, curcin, currin, curtin
+        # print(f"cin9:{cin}")
+        # print(f"rin9:{rin}")
         if model_name == "lpkt":
             itin = curitin
         # 输入长度大于200时，截断
@@ -703,6 +711,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             start = cinlen - maxlen + 1
         
         cin, rin = cin[:,start:], rin[:,start:]
+        # print(f"cin10:{cin}")
+        # print(f"rin10:{rin}")
 
         if cq.shape[0] > 0:
             qin = qin[:, start:]
@@ -789,12 +799,14 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         elif model_name == "lpkt":
             if itout != None:
                 curit = torch.tensor([[itout.item()]]).to(device)
-                # print(f"itin: {itin.shape}")
-                # print(f"curit: {curit.shape}")
                 itin = torch.cat((itin, curit), axis=1)
-            curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
-            cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
-            y = model(cin.long(), rin.long(), itin.long())
+            curq, curr = torch.tensor([[qout.item()]]).to(device), torch.tensor([[1]]).to(device)
+            # curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[true.item()]]).to(device)
+            qin, rin = torch.cat((qin, curq), axis=1), torch.cat((rin, curr), axis=1)
+            y = model(qin.long(), rin.long(), itin.long())
+            # print(f"pred: {y}")
+            # label = [1 if x >= 0.5 else 0 for x in y[0]]
+            # print(f"pred_labels: {label}")
             pred = y[0][-1]
         elif model_name == "gkt":
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
@@ -1068,7 +1080,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name == "lpkt":
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
-            y = model(ccc.long(), ccr.long(), ccit.long())
+            y = model(ccq.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
         elif model_name == "gkt":
             y = model(ccc.long(), ccr.long())

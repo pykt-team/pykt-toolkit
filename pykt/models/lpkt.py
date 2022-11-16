@@ -17,6 +17,7 @@ class LPKT(nn.Module):
         q_matrix[q_matrix==0] = gamma
         self.q_matrix = q_matrix
         self.n_question = n_question
+        print(f"n_question:{self.n_question}")
         self.emb_type = emb_type
         self.use_time = use_time
 
@@ -89,10 +90,10 @@ class LPKT(nn.Module):
             q_e = self.q_matrix[e].view(batch_size, 1, -1).to(device)
             if self.use_time:
                 it = it_embed_data[:, t]
-
                 # Learning Module
                 if h_tilde_pre is None:
-                    h_tilde_pre = q_e.bmm(h_pre).view(batch_size, self.d_k)
+                    c_pre = torch.unsqueeze(torch.sum(torch.squeeze(q_e,dim=1), 1),-1)
+                    h_tilde_pre = q_e.bmm(h_pre).view(batch_size, self.d_k)/c_pre
                 learning = all_learning[:, t]
                 learning_gain = self.linear_2(torch.cat((learning_pre, it, learning, h_tilde_pre), 1))
                 learning_gain = self.tanh(learning_gain)
@@ -100,7 +101,8 @@ class LPKT(nn.Module):
             else:
                 # Learning Module
                 if h_tilde_pre is None:
-                    h_tilde_pre = q_e.bmm(h_pre).view(batch_size, self.d_k)
+                    c_pre = torch.unsqueeze(torch.sum(torch.squeeze(q_e,dim=1), 1),-1)
+                    h_tilde_pre = q_e.bmm(h_pre).view(batch_size, self.d_k)/c_pre
                 learning = all_learning[:, t]
                 learning_gain = self.linear_6(torch.cat((learning_pre, learning, h_tilde_pre), 1))
                 learning_gain = self.tanh(learning_gain)
@@ -128,7 +130,8 @@ class LPKT(nn.Module):
             h = LG_tilde + gamma_f * h_pre
 
             # Predicting Module
-            h_tilde = self.q_matrix[e_data[:, t + 1]].view(batch_size, 1, -1).bmm(h).view(batch_size, self.d_k)
+            c_tilde = torch.unsqueeze(torch.sum(torch.squeeze(self.q_matrix[e_data[:, t + 1]].view(batch_size, 1, -1),dim=1), 1),-1)
+            h_tilde = self.q_matrix[e_data[:, t + 1]].view(batch_size, 1, -1).bmm(h).view(batch_size, self.d_k)/c_tilde
             # print(f"h_tilde: {h_tilde.shape}")
             y = self.sig(self.linear_5(torch.cat((e_embed_data[:, t + 1], h_tilde), 1))).sum(1) / self.d_k
             pred[:, t + 1] = y
