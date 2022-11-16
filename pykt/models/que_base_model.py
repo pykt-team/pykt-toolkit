@@ -357,7 +357,7 @@ class QueBaseModel(nn.Module):
         testf = os.path.join(data_config["dpath"], "test.csv")
         df = pd.read_csv(testf)
         print("total sequence length is {}".format(len(df)))
-
+        max_len = data_config["maxlen"]
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
@@ -372,13 +372,14 @@ class QueBaseModel(nn.Module):
                 cur_r = torch.tensor(seq_y_pred_hist).unsqueeze(0).to(self.device)
                 # print(f"cur_q is {cur_q} shape is {cur_q.shape}")
                 # print(f"cur_r is {cur_r} shape is {cur_r.shape}")
-                cq = torch.cat([hist_q,cur_q],axis=1)
-                cc = torch.cat([hist_c,cur_c],axis=1)
-                cr = torch.cat([hist_r,cur_r],axis=1)
+                cq = torch.cat([hist_q,cur_q],axis=1)[:,-max_len:]
+                cc = torch.cat([hist_c,cur_c],axis=1)[:,-max_len:]
+                cr = torch.cat([hist_r,cur_r],axis=1)[:,-max_len:]
                 # print(f"cc_full is {cc_full}")
                 # print(f"cr is {cr} shape is {cr.shape}")
                 # print(f"cq is {cq} shape is {cq.shape}")
                 data = [cq,cc,cr]
+                print(f"cq.shape is {cq.shape}")
                 cq,cc,cr = [x.to(self.device) for x in data]#full sequence,[1,n]
                 q,c,r = [x[:,:-1].to(self.device) for x in data]#[0,n-1]
                 qshft,cshft,rshft = [x[:,1:].to(self.device) for x in data]#[1,n]
@@ -412,7 +413,7 @@ class QueBaseModel(nn.Module):
         """
         testf = os.path.join(data_config["dpath"], "test.csv")
         df = pd.read_csv(testf)
-        print("total sequence length is {}".format(len(df)))
+        print("total sequence length is {}".format(len(df))) 
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
