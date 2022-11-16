@@ -56,3 +56,6 @@ examples/all_wandbs_pred/
 examples/best_model_path_1002
 examples/pred_wandbs_all_best_models_lqq
 examples/wandb_tmp/
+data/peiyou/*
+examples/qikt_improve/*
+examples/iekt_ab/*
