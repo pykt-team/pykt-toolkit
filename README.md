@@ -71,5 +71,4 @@ We now have a [paper](https://arxiv.org/abs/2206.11460?context=cs.CY) you can ci
   booktitle={Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
   year={2022}
 }
-Save to Dropbox's Sidebar Button
 ```
