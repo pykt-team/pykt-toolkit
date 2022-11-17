@@ -72,8 +72,3 @@ We now have a [paper](https://arxiv.org/abs/2206.11460?context=cs.CY) you can ci
   year={2022}
 }
 ```
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=pykt-team/pykt-toolkit&type=Date)](https://star-history.com/#pykt-team/pykt-toolkit&Date)
-
