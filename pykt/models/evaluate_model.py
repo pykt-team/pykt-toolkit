@@ -123,7 +123,6 @@ def evaluate(model, test_loader, model_name, save_path=""):
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
 
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
-        print(f"prelabels: {prelabels}")
         acc = metrics.accuracy_score(ts, prelabels)
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
