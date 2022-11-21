@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # process raw data
     if args.dataset_name=="peiyou":
         dname2paths["peiyou"] = args.file_path
-    print(f"fpath: {args.file_path}")
+        print(f"fpath: {args.file_path}")
     dname, writef = process_raw_data(args.dataset_name, dname2paths)
     print("-"*50)
     # split

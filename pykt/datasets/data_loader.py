@@ -5,7 +5,10 @@ import os, sys
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from torch.cuda import FloatTensor, LongTensor
+if torch.cuda.is_available():
+    from torch.cuda import FloatTensor, LongTensor
+else:
+    from torch import FloatTensor, LongTensor
 import numpy as np
 
 class KTDataset(Dataset):
