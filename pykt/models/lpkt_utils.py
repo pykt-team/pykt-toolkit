@@ -80,7 +80,7 @@ def _parser_row(row,data_config,ob_portions=0.5):
         shft_times = [0] + times[:-1]
         it_times = np.maximum(np.minimum((np.array(times) - np.array(shft_times)) // 60, 43200),-1)
     else:
-        it_times = np.ones(len(concepts)).astype(int)
+        it_times = np.ones(len(questions)).astype(int)
     
     at2idx, it2idx = generate_time2idx(data_config)
     it_times = [it2idx.get(str(t)) for t in it_times]
