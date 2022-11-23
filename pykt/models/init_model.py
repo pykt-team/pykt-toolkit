@@ -24,6 +24,7 @@ from .qikt import QIKT
 from .qikt_ncd import QIKTNCD
 from .qikt_ncd_v2 import QIKTNCD as QIKTNCDV2
 from .qdkt import QDKT
+from .qikt import QIKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
