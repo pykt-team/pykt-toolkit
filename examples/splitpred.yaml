@@ -1,0 +1,46 @@
+method: grid
+metric:
+  goal: maximize
+  name: late_mean
+name: split_pred_dkt-dkt+-dkt_forget-kqn
+parameters:
+  atkt_pad:
+    values:
+    - 1
+  save_dir:
+    values:
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt/dkt_tiaocan_peiyou_3407_0_0.3_256_0.001_1_1_fc4e29ff-a399-4b50-aa36-7adfd8f77b54_0
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt/dkt_tiaocan_peiyou_42_1_0.5_256_0.001_1_1_7c1ec060-865e-4973-a4ee-5a2d9471b9c2_1
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt/dkt_tiaocan_peiyou_42_2_0.3_256_0.001_1_1_aa538e99-367f-4936-b071-aff907e4e1f2_2
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt/dkt_tiaocan_peiyou_3407_3_0.5_256_0.001_1_1_6853f558-8f51-4276-a273-ce155024716e_3
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt/dkt_tiaocan_peiyou_3407_4_0.5_256_0.001_1_1_1436f40c-3917-4b08-9e87-607fbfa97d16_4
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt+/dkt_plus_tiaocan_peiyou_42_0_0.5_256_0.001_0.0_0.01_0.0_1_1_262f0c65-bb88-4b07-a442-1f8de45f87e2_0
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt+/dkt_plus_tiaocan_peiyou_3407_1_0.5_256_0.001_0.0_0.01_0.0_1_1_7e5b6076-747d-40c9-a787-0d86675397d9_1
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt+/dkt_plus_tiaocan_peiyou_42_2_0.5_256_0.001_0.0_0.0_0.3_1_1_75f57770-4870-4566-90d1-5b6a70927023_2
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt+/dkt_plus_tiaocan_peiyou_42_3_0.5_256_0.001_0.0_0.03_0.3_1_1_10288615-046b-4f36-8299-b4dcca6a9d23_3
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt+/dkt_plus_tiaocan_peiyou_42_4_0.5_256_0.001_0.0_0.0_0.3_1_1_8574b9cb-eca7-4dfc-9590-e1e01df92ae0_4
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt_forget/dktforget_tiaocan_peiyou_42_0_0.3_256_0.001_1_1_a1758013-cb6b-420e-a628-60300777f9bc_0
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt_forget/dktforget_tiaocan_peiyou_42_1_0.5_256_0.001_1_1_7fb31f86-887a-4c3d-b0c8-204635cccc51_1
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt_forget/dktforget_tiaocan_peiyou_42_2_0.5_256_0.001_1_1_d06865c9-b926-4bd4-ae64-513e5c5b8a7d_2
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt_forget/dktforget_tiaocan_peiyou_42_3_0.3_256_0.001_1_1_28c0a467-c812-40b3-9149-eb6a3ed4e7c1_3
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/dkt_forget/dktforget_tiaocan_peiyou_42_4_0.3_256_0.001_1_1_0eb5d2c1-2a4f-4df2-a0a4-0082fa471c33_4
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/kqn/kqn_tiaocan_peiyou_3407_0_0.1_256_64_256_1_0.001_1_1_dd7489e0-4cc5-4784-801e-4affa31885be_0
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/kqn/kqn_tiaocan_peiyou_42_1_0.1_256_256_64_1_0.001_1_1_3f3e1d07-a782-487b-bdae-9acd0ab4bde8_1
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/kqn/kqn_tiaocan_peiyou_3407_2_0.1_256_64_256_1_0.001_1_1_73c2eebc-501e-44c5-b21a-326d2c79af7a_2
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/kqn/kqn_tiaocan_peiyou_42_3_0.1_256_64_256_1_0.001_1_1_559ac663-b1bb-4920-8d8d-4ecc5888f881_3
+    - /root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002/peiyou/kqn/kqn_tiaocan_peiyou_42_4_0.05_256_64_256_1_0.001_1_1_742f74a3-e349-47a9-a8fb-f6719e1513e9_4
+  train_ratio:
+    values:
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.6
+    - 0.7
+    - 0.8
+    - 0.9
+  use_pred:
+    values:
+    - 0
+    - 1
+program: wandb_eval.py

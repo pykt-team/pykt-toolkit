@@ -1,0 +1,140 @@
+Namespace(atkt_pad=0, save_dir='saved_model/assist2009_iekt_qid_saved_model_0.001_42_0_0_64_40_1_10_10_0.93_1_1_d15ad38a-9b46-4d28-8f19-4e9e36a89319', test_filename='test.csv', train_ratio=0.9, use_pred=0, use_wandb=1)
+wandb: Currently logged in as: tabchen. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.19
+wandb: Run data is saved locally in /data/tabchen/tal_project/pykt-toolkit/examples/wandb/run-20221116_085754-1fjavncs
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run polished-waterfall-235
+wandb: ⭐️ View project at https://wandb.ai/tabchen/pykt-toolkit-examples
+wandb: 🚀 View run at https://wandb.ai/tabchen/pykt-toolkit-examples/runs/1fjavncs
+Start predicting model: iekt, embtype: qid, save_dir: saved_model/assist2009_iekt_qid_saved_model_0.001_42_0_0_64_40_1_10_10_0.93_1_1_d15ad38a-9b46-4d28-8f19-4e9e36a89319, dataset_name: assist2009
+model_config: {'dropout': 0, 'emb_size': 64, 'lamb': 40, 'n_layer': 1, 'cog_levels': 10, 'acq_levels': 10, 'gamma': 0.93}
+data_config: {'dpath': '../data/assist2009', 'num_q': 17737, 'num_c': 123, 'input_type': ['questions', 'concepts'], 'max_concepts': 4, 'min_seq_len': 3, 'maxlen': 200, 'emb_path': '', 'train_valid_original_file': 'train_valid.csv', 'train_valid_file': 'train_valid_sequences.csv', 'folds': [0, 1, 2, 3, 4], 'test_original_file': 'test.csv', 'test_file': 'test_sequences.csv', 'test_window_file': 'test_window_sequences.csv', 'test_question_file': 'test_question_sequences.csv', 'test_question_window_file': 'test_question_window_sequences.csv', 'train_valid_original_file_quelevel': 'train_valid_quelevel.csv', 'train_valid_file_quelevel': 'train_valid_sequences_quelevel.csv', 'test_file_quelevel': 'test_sequences_quelevel.csv', 'test_window_file_quelevel': 'test_window_sequences_quelevel.csv', 'test_original_file_quelevel': 'test_quelevel.csv'}
+emb_type is qc_merge
+Start predict use_pred: False, ratio: 0.9...
+predict use no accumulative
+total sequence length is 770
+predict step 0
+predict step 10
+predict step 20
+predict step 30
+predict step 40
+predict step 50
+predict step 60
+predict step 70
+predict step 80
+predict step 90
+predict step 100
+predict step 110
+predict step 120
+predict step 130
+predict step 140
+predict step 150
+predict step 160
+predict step 170
+predict step 180
+predict step 190
+predict step 200
+predict step 210
+predict step 220
+predict step 230
+predict step 240
+predict step 250
+predict step 260
+predict step 270
+predict step 280
+predict step 290
+predict step 300
+predict step 310
+predict step 320
+predict step 330
+predict step 340
+predict step 350
+predict step 360
+predict step 370
+predict step 380
+predict step 390
+predict step 400
+predict step 410
+predict step 420
+predict step 430
+predict step 440
+predict step 450
+predict step 460
+predict step 470
+predict step 480
+predict step 490
+predict step 500
+predict step 510
+predict step 520
+predict step 530
+predict step 540
+predict step 550
+predict step 560
+predict step 570
+predict step 580
+predict step 590
+predict step 600
+predict step 610
+predict step 620
+predict step 630
+predict step 640
+predict step 650
+predict step 660
+predict step 670
+predict step 680
+predict step 690
+predict step 700
+predict step 710
+predict step 720
+predict step 730
+predict step 740
+predict step 750
+predict step 760
+num of y_pred_list is 6626
+num of y_true_list is 6626
+auc 0.6651706517073118
+acc 0.6696347721098702
+wandb: Waiting for W&B process to finish... (success).
+wandb: - 0.001 MB of 0.001 MB uploaded (0.000 MB deduped)wandb: \ 0.001 MB of 0.001 MB uploaded (0.000 MB deduped)wandb: | 0.001 MB of 0.001 MB uploaded (0.000 MB deduped)wandb: / 0.001 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: - 0.001 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: \ 0.001 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: | 0.001 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: / 0.001 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: - 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: \ 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: | 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: / 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: - 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: \ 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: | 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb: / 0.010 MB of 0.010 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb:           acc ▁
+wandb:    acq_levels ▁
+wandb:      add_uuid ▁
+wandb:           auc ▁
+wandb:    cog_levels ▁
+wandb:       dropout ▁
+wandb:      emb_size ▁
+wandb:          fold ▁
+wandb:         gamma ▁
+wandb:          lamb ▁
+wandb: learning_rate ▁
+wandb:       n_layer ▁
+wandb:          seed ▁
+wandb:     use_wandb ▁
+wandb: 
+wandb: Run summary:
+wandb:           acc 0.66963
+wandb:    acq_levels 10
+wandb:      add_uuid 1
+wandb:           auc 0.66517
+wandb:    cog_levels 10
+wandb:  dataset_name assist2009
+wandb:       dropout 0
+wandb:      emb_size 64
+wandb:      emb_type qid
+wandb:          fold 0
+wandb:         gamma 0.93
+wandb:          lamb 40
+wandb: learning_rate 0.001
+wandb:    model_name iekt
+wandb:       n_layer 1
+wandb:      save_dir saved_model
+wandb:          seed 42
+wandb:     use_wandb 1
+wandb: 
+wandb: Synced polished-waterfall-235: https://wandb.ai/tabchen/pykt-toolkit-examples/runs/1fjavncs
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221116_085754-1fjavncs/logs
