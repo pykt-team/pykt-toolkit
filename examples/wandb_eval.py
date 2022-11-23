@@ -6,7 +6,7 @@ from pykt.config import que_type_models
 import torch
 torch.set_num_threads(2)
 
-from pykt.models import evaluate_splitpred_question,load_model
+from pykt.models import evaluate_splitpred_question, load_model, lpkt_evaluate_multi_ahead
 
 def main(params):
     if params['use_wandb'] ==1:
@@ -51,6 +51,8 @@ def main(params):
     testf = os.path.join(data_config["dpath"], params["test_filename"])
     if model_name in que_type_models:
         dfinal = model.evaluate_multi_ahead(data_config,batch_size=16,ob_portions=ratio,accumulative=use_pred)
+    elif model_name in ["lpkt"]:
+        dfinal = lpkt_evaluate_multi_ahead(model, data_config,batch_size=64,ob_portions=ratio,accumulative=use_pred)
     else:
         dfinal = evaluate_splitpred_question(model, data_config, testf, model_name, save_test_path, use_pred, ratio, atkt_pad)
     for key in dfinal:

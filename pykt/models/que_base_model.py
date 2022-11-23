@@ -355,7 +355,7 @@ class QueBaseModel(nn.Module):
    
     def _evaluate_multi_ahead_accumulative(self,data_config,batch_size=1,ob_portions=0.5,acc_threshold=0.5,max_len=200):
        
-        testf = os.path.join(data_config["dpath"], "test.csv")
+        testf = os.path.join(data_config["dpath"], "test_quelevel.csv")
         df = pd.read_csv(testf)
         print("total sequence length is {}".format(len(df)))
         # max_len = data_config["maxlen"]
@@ -412,7 +412,7 @@ class QueBaseModel(nn.Module):
         Returns:
             dataset: new dataset for multi-ahead prediction
         """
-        testf = os.path.join(data_config["dpath"], "test.csv")
+        testf = os.path.join(data_config["dpath"], "test_quelevel.csv")
         df = pd.read_csv(testf)
         print("total sequence length is {}".format(len(df))) 
         y_pred_list = []

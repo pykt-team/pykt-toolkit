@@ -97,6 +97,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
                 y = model(cq.long(), cr.long(), cit.long())
                 y = y[:,1:]
+                c,cshft = q,qshft#question level 
             elif model_name == "hawkes":
                 ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
