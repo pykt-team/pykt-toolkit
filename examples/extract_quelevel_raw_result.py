@@ -107,6 +107,7 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
     que_short = que_test[que_test['inter_num'] <= 200].reset_index()
     que_long = que_test[que_test['inter_num'] > 200].reset_index()
 
+    
     que_win_short = que_win_test[que_win_test['inter_num']
                                  <= 200].reset_index()
     que_win_long = que_win_test[que_win_test['inter_num'] > 200].reset_index()
@@ -119,29 +120,33 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
             print(f"skip {y_pred_col}")
             continue
         # long
-        report_long = get_metrics(que_long, y_true_col="y_true",
-                                  y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
-        report.update(report_long)
+        if len(que_long)!=0:
+            report_long = get_metrics(que_long, y_true_col="y_true",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
+            report.update(report_long)
 
-        # short
-        report_short = get_metrics(que_short, y_true_col="y_true",
-                                   y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
-        report.update(report_short)
+        if len(que_short)!=0:
+            # short
+            report_short = get_metrics(que_short, y_true_col="y_true",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
+            report.update(report_short)
 
         # long + short
         report_col = get_metrics(que_test, y_true_col="y_true",
                                  y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}',save_dir=save_dir)
         report.update(report_col)
-
-        # win long
-        report_win_long = get_metrics(que_win_long, y_true_col="y_true",
-                                      y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
-        report.update(report_win_long)
-
-        # win short
-        report_win_short = get_metrics(que_win_short, y_true_col="y_true",
-                                       y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
-        report.update(report_win_short)
+        
+        if len(que_win_long)!=0:
+            # win long
+            report_win_long = get_metrics(que_win_long, y_true_col="y_true",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
+            report.update(report_win_long)
+            
+        if len(que_win_short)!=0:
+            # win short
+            report_win_short = get_metrics(que_win_short, y_true_col="y_true",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
+            report.update(report_win_short)
         
         # win long + win short
         report_win = get_metrics(que_win_test, y_true_col="y_true",

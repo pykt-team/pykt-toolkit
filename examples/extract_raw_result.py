@@ -287,14 +287,16 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
             print(f"skip {y_pred_col}")
             continue
         # long
-        report_long = get_metrics(que_long, y_true_col="late_trues",
-                                  y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
-        report.update(report_long)
+        if len(que_long)!=0:
+            report_long = get_metrics(que_long, y_true_col="late_trues",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
+            report.update(report_long)
 
         # short
-        report_short = get_metrics(que_short, y_true_col="late_trues",
-                                   y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
-        report.update(report_short)
+        if len(que_short)!=0:
+            report_short = get_metrics(que_short, y_true_col="late_trues",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
+            report.update(report_short)
 
         # long + short
         report_col = get_metrics(que_test, y_true_col="late_trues",
@@ -302,14 +304,16 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
         report.update(report_col)
 
         # win long
-        report_win_long = get_metrics(que_win_long, y_true_col="late_trues",
-                                      y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
-        report.update(report_win_long)
+        if len(que_win_long)!=0:
+            report_win_long = get_metrics(que_win_long, y_true_col="late_trues",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
+            report.update(report_win_long)
 
         # win short
-        report_win_short = get_metrics(que_win_short, y_true_col="late_trues",
-                                       y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
-        report.update(report_win_short)
+        if len(que_win_short)!=0:
+            report_win_short = get_metrics(que_win_short, y_true_col="late_trues",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
+            report.update(report_win_short)
         
         # win long + win short
         report_win = get_metrics(que_win_test, y_true_col="late_trues",
@@ -496,7 +500,7 @@ def get_one_result_help(dataset, model_name,model_root_dir,data_root_dir):
 if __name__ == "__main__":
     # model_root_dir = "/root/autodl-nas/liuqiongqiong/bakt/pykt-toolkit/examples/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
-    model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002"
+    model_root_dir = "/root/autodl-nas/project/full_result_pykt/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_qikt/examples/best_model_path"
     data_root_dir = '/root/autodl-nas/project/pykt_nips2022/data'
     
