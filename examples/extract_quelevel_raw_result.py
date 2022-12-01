@@ -173,7 +173,7 @@ def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, dat
         print("Start 基于题目的长短序列")
         que_update_ls_report(que_test, que_win_test, report,save_dir=save_dir)  # short long 结果
     except:
-        print("Fail 基于题目的长短序列")
+        print(f"Fail 基于题目的长短序列,details is {traceback.format_exc()}")
 
     return que_test,que_win_test
 
