@@ -59,3 +59,5 @@ prediction.csv
 data/peiyou
 examples/iekt_ab/
 examples/qikt_improve/
+examples/*.txt
+examples/nips2022-peiyou/
