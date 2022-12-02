@@ -281,18 +281,26 @@ def update_question_df(df):
 
 def que_update_ls_report(que_test, que_win_test, report,save_dir):
     # split
-    que_short = que_test[que_test['inter_num'] <= 200].reset_index()
-    que_long = que_test[que_test['inter_num'] > 200].reset_index()
-
-    que_win_short = que_win_test[que_win_test['inter_num']
-                                 <= 200].reset_index()
-    que_win_long = que_win_test[que_win_test['inter_num'] > 200].reset_index()
+    if len(que_test)!=0:
+        que_short = que_test[que_test['inter_num'] <= 200].reset_index()
+        que_long = que_test[que_test['inter_num'] > 200].reset_index()
+    else:
+        que_short = pd.DataFrame()
+        que_long = pd.DataFrame()
+   
+    if len(que_win_test)!=0:
+        que_win_short = que_win_test[que_win_test['inter_num']
+                                    <= 200].reset_index()
+        que_win_long = que_win_test[que_win_test['inter_num'] > 200].reset_index()
+    else:
+        que_win_short = pd.DataFrame()
+        que_win_long = pd.DataFrame()
 
     
     # update
     for y_pred_col in ['concept_preds', 'late_mean', 'late_vote', 'late_all', 'early_preds']:
         print(f"que_update_ls_report start {y_pred_col}")
-        if y_pred_col not in que_test.columns:
+        if len(que_test)!=0 and y_pred_col not in que_test.columns:
             print(f"skip {y_pred_col}")
             continue
         # long
@@ -372,38 +380,43 @@ def que_update_l2(que_test, que_win_test, report,save_dir):
 def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
     config = json.load(open(os.path.join(save_dir,"config.json")))
     emb_type = config['params']['emb_type']
-
-
-    que_test = pd.read_csv(os.path.join(
-        save_dir, f"{emb_type}_test_question_predictions.txt"), sep='\t')
-    que_test = update_question_df(que_test)
-
+    
     df_que_test = data_dict['df_que_test']
-
-    que_win_test = pd.read_csv(os.path.join(
-        save_dir, f"{emb_type}_test_question_window_predictions.txt"), sep='\t')
-    que_win_test = update_question_df(que_win_test)
-
-    df_que_win_test = data_dict['df_que_win_test']
-
     # 映射学生
     orirow_2_uid = {}
     for _, row in df_que_test.iterrows():
         orirow_2_uid[int(row['orirow'].split(',')[0])] = row['uid']
+   
+    try:
+        que_test = pd.read_csv(os.path.join(
+            save_dir, f"{emb_type}_test_question_predictions.txt"), sep='\t')
+        que_test = update_question_df(que_test)
+        # map
+        que_test['uid'] = que_test['orirow'].map(orirow_2_uid)
+        que_test['inter_num'] = que_test['uid'].map(stu_inter_num_dict)
+        save_df(que_test,'que_test',save_dir)
+    except:
+        que_test = pd.DataFrame()
 
-    # map
-    que_test['uid'] = que_test['orirow'].map(orirow_2_uid)
-    que_test['inter_num'] = que_test['uid'].map(stu_inter_num_dict)
+   
+    try:
+        que_win_test = pd.read_csv(os.path.join(
+            save_dir, f"{emb_type}_test_question_window_predictions.txt"), sep='\t')
+        que_win_test = update_question_df(que_win_test)
+        df_que_win_test = data_dict['df_que_win_test']
 
-    que_win_test['uid'] = que_win_test['orirow'].map(orirow_2_uid)
-    que_win_test['inter_num'] = que_win_test['uid'].map(stu_inter_num_dict)
+        que_win_test['uid'] = que_win_test['orirow'].map(orirow_2_uid)
+        que_win_test['inter_num'] = que_win_test['uid'].map(stu_inter_num_dict)
+        save_df(que_win_test,'que_win_test',save_dir)
+    except:
+        que_win_test = pd.DataFrame()
 
     # print("Start 基于题目的长短序列")
     try:
         print("Start 基于题目的长短序列")
         que_update_ls_report(que_test, que_win_test, report,save_dir=save_dir)  # short long 结果
     except:
-         print("Fail 基于题目的长短序列")
+        print("Fail 基于题目的长短序列")
 
     # print("Start 基于题目的>200部分")
     
@@ -411,10 +424,9 @@ def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, dat
         print("Start 基于题目的>200部分")
         que_update_l2(que_test, que_win_test, report,save_dir=save_dir)  # 大于200部分的结果
     except:
-         print("Start 基于题目的>200部分")
+        print("Start 基于题目的>200部分")
          
-    save_df(que_test,'que_test',save_dir)
-    save_df(que_win_test,'que_win_test',save_dir)
+   
     que_test = None
     return que_test,que_win_test
 
