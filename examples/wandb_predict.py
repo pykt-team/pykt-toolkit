@@ -65,11 +65,9 @@ def main(params):
     # assert False
 
     window_testauc, window_testacc = -1, -1
-    '''
     save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
     window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
     print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
-    '''
 
     # question_testauc, question_testacc = -1, -1
     # question_window_testauc, question_window_testacc = -1, -1
