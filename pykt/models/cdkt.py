@@ -122,7 +122,7 @@ class CDKT(Module):
         h = self.dropout_layer(h)
         y = self.out_layer(h)
         y = torch.sigmoid(y)
-        return y, y2, y3#, rpreds, qh
+        return y, y2, y3, rpreds, qh
 
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
@@ -162,10 +162,10 @@ class CDKT(Module):
             y = self.out_layer(h)
             y = torch.sigmoid(y)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
-            y, y2, y3 = self.predcurc(dcur, q, c, r, xemb, train)
+            y, y2, y3, rpreds, qh = self.predcurc(dcur, q, c, r, xemb, train)
 
         if train:
             return y, y2, y3
         else:
-            return y#, rpreds, qh
+            return y, rpreds, qh
   

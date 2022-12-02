@@ -9,7 +9,47 @@ import pandas as pd
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-# def save_cur_predict_result(dres, q, r, d, t, thr, phr, que, qh, m, sm, p):
+# def save_cur_predict_result(dres, q, r, d, t, que, qh, m, sm, p):
+# # def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
+#     # dres, q, r, qshft, rshft, m, sm, y
+#     results = []
+#     for i in range(0, t.shape[0]):
+#         cps = torch.masked_select(p[i], sm[i]).detach().cpu()
+#         cts = torch.masked_select(t[i], sm[i]).detach().cpu()
+    
+#         cqs = torch.masked_select(q[i], m[i]).detach().cpu()
+#         crs = torch.masked_select(r[i], m[i]).detach().cpu()
+
+#         cds = torch.masked_select(d[i], sm[i]).detach().cpu()
+
+#         qs, rs, ts, ps, ds = [], [], [], [], []
+#         for cq, cr in zip(cqs.int(), crs.int()):
+#             qs.append(cq.item())
+#             rs.append(cr.item())
+#         for ct, cp, cd in zip(cts.int(), cps, cds.int()):
+#             ts.append(ct.item())
+#             ps.append(cp.item())
+#             ds.append(cd.item())
+#         try:
+#             auc = metrics.roc_auc_score(
+#                 y_true=np.array(ts), y_score=np.array(ps)
+#             )
+            
+#         except Exception as e:
+#             # print(e)
+#             auc = -1
+#         # cthr = torch.masked_select(thr[i], sm[i]).detach().cpu().tolist()
+#         # cphr = torch.masked_select(phr[i], sm[i]).detach().cpu().tolist()
+#         flag = sm[i]==1
+#         sque = que[i][flag].detach().cpu().tolist()
+#         sqh = qh[i][flag].detach().cpu().tolist()
+
+#         prelabels = [1 if p >= 0.5 else 0 for p in ps]
+#         acc = metrics.accuracy_score(ts, prelabels)
+#         dres[len(dres)] = [qs, rs, ds, ts, ps, prelabels, auc, acc, sque, sqh]#, cthr, cphr, sque, sqh]
+#         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc, sque, sqh]))#, cthr, cphr, sque, sqh]))
+#     return "\n".join(results)
+
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     # dres, q, r, qshft, rshft, m, sm, y
     results = []
@@ -110,7 +150,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            if model_name in ["dkt_forget", "cfdkt"]:
+            if model_name in ["dkt_forget", "cfdkt", "bakt"]:
                 dcur, dgaps = data
             else:
                 dcur = data
@@ -128,11 +168,14 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
+                '''
                 y = model(dcur) 
                 import pickle
                 with open(f"{test_mini_index}_result.pkl",'wb') as f:
                     data = {"y":y,"cshft":cshft,"num_c":model.num_c,"rshft":rshft,"qshft":qshft,"sm":sm}
                     pickle.dump(data,f)
+                '''
+                y, rpreds, qh = model(dcur)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cfdkt"]:
                 y = model(dcur, dgaps)
@@ -144,7 +187,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(dcur)
                 y = y[:,1:]
             elif model_name in ["bakt"]:
-                y = model(dcur)
+                y = model(dcur, dgaps)
                 y = y[:,1:]
             elif model_name in ["catkt"]:
                 y, _ = model(dcur)
@@ -189,6 +232,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
+                # result = save_cur_predict_result(dres, c, r, cshft, rshft, q, qh, m, sm, y)
                 result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
                 fout.write(result+"\n")
 
@@ -417,7 +461,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         y_trues, y_scores = [], []
         lenc = 0
         for data in test_loader:
-            if model_name in ["dkt_forget", "cfdkt"]:
+            if model_name in ["dkt_forget", "cfdkt", "bakt"]:
                 dcurori, dgaps, dqtest = data
             else:
                 dcurori, dqtest = data
@@ -447,7 +491,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = model(dcurori, dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["bakt"]:
-                y, h = model(dcurori, qtest=True, train=False)
+                y, h = model(dcurori, dgaps, qtest=True, train=False)
                 y = y[:,1:]
                 # start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
                 # print(start_hemb.shape, h.shape)
@@ -641,7 +685,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             #     sys.exit()
             model.eval()
 
-            dforget = dict() if model_name != "dkt_forget" else get_info_dkt_forget(row, data_config)
+            dforget = dict() if model_name not in ["dkt_forget", "bakt"] else get_info_dkt_forget(row, data_config)
 
             concepts, responses = row["concepts"].split(","), row["responses"].split(",")
             curl = len(responses)
@@ -754,8 +798,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
     """use the predict result as next question input
     """
     curqin, curcin, currin, curtin = dcur["curqin"], dcur["curcin"], dcur["currin"], dcur["curtin"]
-    for key in dcur:
-        print(f"649 - {key} shape is {dcur[key].shape}")
+    # for key in dcur:
+    #     print(f"649 - {key} shape is {dcur[key].shape}")
     cq, cc, cr, ct = dtotal["cq"], dtotal["cc"], dtotal["cr"], dtotal["ct"]
     if model_name == "lpkt":
         curitin = dcur["curitin"]
@@ -811,7 +855,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             y = model(cin.long(), rin.long())
             # print(y)
             pred = y[0][-1][cout.item()]
-        elif model_name == "dkt_forget":
+        if model_name in ["dkt_forget", "bakt"]:
             din = dict()
             for key in curdforget:
                 din[key] = curdforget[key][:,start:]
@@ -824,6 +868,19 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
                 dgaps[key] = din[key]
             for key in dcur:
                 dgaps["shft_"+key] = dcur[key]
+
+        if model_name in ["cdkt"]: ## need change!
+            # create input
+            dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin}
+            y = model(dcurinfos)
+            pred = y[0][-1][cout.item()]
+        if model_name == "lpkt":
+            itout = None if cit.shape[0] == 0 else cit.long()[k]
+        if model_name in ["dkt", "dkt+"]:
+            y = model(cin.long(), rin.long())
+            # print(y)
+            pred = y[0][-1][cout.item()]
+        elif model_name == "dkt_forget":
             # y = model(cin.long(), rin.long(), din, dcur)
             y = model(cin.long(), rin.long(), dgaps)
             pred = y[0][-1][cout.item()]
@@ -877,6 +934,16 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
 
             y, reg_loss = model(cin.long(), rin.long(), qin.long())
             pred = y[0][-1]
+        elif model_name in ["bakt"]:
+           if qout != None:
+               curq = torch.tensor([[qout.item()]]).to(device)
+               qinshft = torch.cat((qin[:,1:], curq), axis=1)
+           curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
+           cinshft, rinshft = torch.cat((cin[:,1:], curc), axis=1), torch.cat((rin[:,1:], curr), axis=1)
+           dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin, "shft_qseqs": qinshft, "shft_cseqs": cinshft, "shft_rseqs": rinshft}
+           
+           y = model(dcurinfos, dgaps)
+           pred = y[0][-1]
         elif model_name == "lpkt":
             if itout != None:
                 curit = torch.tensor([[itout.item()]]).to(device)
@@ -912,7 +979,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
         nextrin = torch.cat((nextrin, cpred), axis=1)### change!!
 
         # update nextdforget
-        if model_name == "dkt_forget":
+        if model_name in ["dkt_forget", "bakt"]:
             for key in nextdforget:
                 curd = torch.tensor([[dforget[key][k]]]).long().to(device)
                 nextdforget[key] = torch.cat((nextdforget[key], curd), axis=1)
@@ -1029,7 +1096,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
                 ditshfts.append(curit)
 
         d, dshft = dict(), dict()
-        if model_name == "dkt_forget":
+        if model_name in ["dkt_forget", "bakt"]:
             for key in curdforget:
                 d[key] = curdforget[key][:,start:]
                 dds.setdefault(key, [])
@@ -1098,7 +1165,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             curt = finalts[bidx: bidx+bz]
             curtshft = finaltshfts[bidx: bidx+bz]
         curd, curdshft = dict(), dict()
-        if model_name == "dkt_forget":
+        if model_name in ["dkt_forget", "bakt"]:
             for key in finald:
                 curd[key] = finald[key][bidx: bidx+bz]
                 curdshft[key] = finaldshft[key][bidx: bidx+bz]
@@ -1110,6 +1177,12 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
         ccr = torch.cat((curr[:,0:1], currshft), dim=1)
         cct = torch.cat((curt[:,0:1], curtshft), dim=1)
+        if model_name in ["dkt_forget", "bakt"]:
+            dgaps = dict()
+            for key in curd:
+                dgaps[key] = curd[key]
+            for key in curdshft:
+                dgaps["shft_"+key] = curdshft[key]
         if model_name in ["cdkt"]:
             # y = model(curc.long(), curr.long(), curq.long())
             # y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
@@ -1121,11 +1194,6 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = model(curc.long(), curr.long())
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:
-            dgaps = dict()
-            for key in curd:
-                dgaps[key] = curd[key]
-            for key in curdshft:
-                dgaps["shft_"+key] = curdshft[key]
             y = model(curc.long(), curr.long(), dgaps)
             # y = model(curc.long(), curr.long(), curd, curdshft)
             y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
@@ -1156,6 +1224,13 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
             y = model(ccc.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
+        elif model_name in ["bakt"]:
+            dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
+                       "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
+            # print(f"finald: {finald.keys()}")
+            # print(f"dgaps: {dgaps.keys()}")
+            y = model(dcurinfos, dgaps)
+            y = y[:,1:]
         elif model_name == "gkt":
             y = model(ccc.long(), ccr.long())
             # print(f"y: {y}")

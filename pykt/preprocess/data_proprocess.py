@@ -36,7 +36,8 @@ def process_raw_data(dataset_name,dname2paths):
         dq2c = load_q2c(readf.replace("junyi_ProblemLog_original.csv","junyi_Exercise_table.csv"))
         read_data_from_csv(readf, writef, dq2c)
     elif dataset_name == "peiyou":
-        dq2c = load_q2c(readf.replace("grade3_students_b_200.csv","map_questions.json"))
+        fname = readf.split("/")[-1]
+        dq2c = load_q2c(readf.replace(fname,"questions.json"))
         read_data_from_csv(readf, writef, dq2c)
     elif dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)
