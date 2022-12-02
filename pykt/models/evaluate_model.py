@@ -106,6 +106,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
         y_trues = []
         y_scores = []
         dres = dict()
+        test_mini_index = 0
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -127,7 +128,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["cdkt"]:
-                y = model(dcur)
+                y = model(dcur) 
+                import pickle
+                with open(f"{test_mini_index}_result.pkl",'wb') as f:
+                    data = {"y":y,"cshft":cshft,"num_c":model.num_c,"rshft":rshft,"qshft":qshft,"sm":sm}
+                    pickle.dump(data,f)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["cfdkt"]:
                 y = model(dcur, dgaps)
@@ -192,6 +197,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
 
             y_trues.append(t.numpy())
             y_scores.append(y.numpy())
+            test_mini_index+=1
         ts = np.concatenate(y_trues, axis=0)
         ps = np.concatenate(y_scores, axis=0)
         print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
@@ -787,6 +793,18 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin}
             y = model(dcurinfos)
             pred = y[0][-1][cout.item()]
+        elif model_name in ["bakt"]:
+            if qout != None:
+                curq = torch.tensor([[qout.item()]]).to(device)
+                qinshft = torch.cat((qin[:,1:], curq), axis=1)
+            curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
+            cinshft, rinshft = torch.cat((cin[:,1:], curc), axis=1), torch.cat((rin[:,1:], curr), axis=1)
+
+            dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin, "shft_qseqs": qinshft, "shft_cseqs": cinshft, "shft_rseqs": rinshft}
+            
+            y = model(dcurinfos)
+            pred = y[0][-1]
+
         if model_name == "lpkt":
             itout = None if cit.shape[0] == 0 else cit.long()[k]
         if model_name in ["dkt", "dkt+"]:
@@ -1145,6 +1163,11 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         elif model_name == "hawkes":
             y = model(ccc.long(), ccq.long(), cct.long(), ccr.long())
             pred = y[0][-1]
+        elif model_name in ["bakt"]:
+            dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
+                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
+            y = model(dcurinfos)
+            y = y[:,1:]
         if model_name in ["atkt", "atktfix"] and atkt_pad == True:
             # print(f"use idx: {oricurclen-1}")
             pred = y[:, oricurclen-1].tolist()
