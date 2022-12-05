@@ -38,7 +38,10 @@ def main(params):
         #                     data = data.replace("[\"dkt\"]", "[\"" + m + "\"]")
                             data = data.replace("xes", dataset_name)
                             data = data.replace("tiaocan", "tiaocan_"+dataset_name+save_dir_suffix)
-                            data = data.replace("[\"qid\"]", str(_type))
+                            if "[\"qid" in data and "[\"qid\"]" not in data: 
+                                pass
+                            else:
+                                data = data.replace("[\"qid\"]", str(_type))
                             data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
                             data = data.replace('BATCH_SIZE',str(params["batch_size"]))
                             fout.write("name: " + fname.split(".")[0] + "\n")

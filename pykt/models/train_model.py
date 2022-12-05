@@ -1,7 +1,7 @@
 import os, sys
 import torch
 import torch.nn as nn
-from torch.nn.functional import one_hot, binary_cross_entropy
+from torch.nn.functional import one_hot, binary_cross_entropy, cross_entropy
 import numpy as np
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
@@ -15,7 +15,23 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    if model_name in ["cdkt", "bakt"]:
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        # print(f"loss1: {y.shape}")
+        loss1 = binary_cross_entropy(y.double(), t.double())
+
+        if model.emb_type.find("predcurc") != -1:
+            if model.emb_type.find("his") != -1:
+                loss = model.l1*loss1+model.l2*ys[1]+model.l3*ys[2]
+            else:
+                loss = model.l1*loss1+model.l2*ys[1]
+        elif model.emb_type.find("predhis") != -1:
+            loss = model.l1*loss1+model.l2*ys[1]
+        else:
+            loss = loss1
+
+    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -51,7 +67,7 @@ def model_forward(model, data):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget"]:
+    if model_name in ["dkt_forget", "bakt"]:
         dcur, dgaps = data
     else:
         dcur = data
@@ -65,7 +81,17 @@ def model_forward(model, data):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-    if model_name in ["lpkt"]:
+    if model_name in ["cdkt"]:
+        # is_repeat = dcur["is_repeat"]
+        y, y2, y3 = model(dcur, train=True)
+        if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
+            y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
+        ys = [y, y2, y3] # first: yshft
+    elif model_name in ["bakt"]:
+        y, y2, y3 = model(dcur, dgaps, train=True)
+        ys = [y[:,1:], y2, y3]
+    elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
     if model_name in ["dkt"]:

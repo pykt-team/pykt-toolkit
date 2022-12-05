@@ -29,7 +29,7 @@ def main(params):
                 del model_config[remove_item]    
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
-        if model_name in ["saint", "sakt"]:
+        if model_name in ["saint", "sakt", "cdkt"]:
             train_config = config["train_config"]
             seq_len = train_config["seq_len"]
             model_config["seq_len"] = seq_len   
@@ -37,7 +37,8 @@ def main(params):
     with open("../configs/data_config.json") as fin:
         curconfig = copy.deepcopy(json.load(fin))
         data_config = curconfig[dataset_name]
-        if model_name == "dkt_forget":
+        data_config["dataset_name"] = dataset_name
+        if model_name in ["dkt_forget", "bakt"]:
             data_config["num_rgap"] = config["data_config"]["num_rgap"]
             data_config["num_sgap"] = config["data_config"]["num_sgap"]
             data_config["num_pcount"] = config["data_config"]["num_pcount"]

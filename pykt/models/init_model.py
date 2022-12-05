@@ -19,6 +19,8 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
+from .cdkt import CDKT
+from .bakt import BAKT
 from .qdkt import QDKT
 from .qikt import QIKT
 
@@ -89,6 +91,10 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "qikt":
         model = QIKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
+    elif model_name == "cdkt":
+        model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "bakt":
+        model = BAKT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None
