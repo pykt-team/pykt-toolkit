@@ -1,4 +1,4 @@
-program: ./wandb_bakt_train.py
+program: ./wandb_bakt_time_train.py
 method: bayes
 metric:
     goal: maximize
