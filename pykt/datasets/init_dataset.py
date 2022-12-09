@@ -16,7 +16,7 @@ from pykt.config import que_type_models
 def init_test_datasets(data_config, model_name, batch_size):
     print(f"model_name is {model_name}")
     test_question_loader, test_question_window_loader = None, None
-    if model_name in ["dkt_forget", "bakt"]:
+    if model_name in ["dkt_forget", "bakt_time"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
                                         data_config["input_type"], {-1})
@@ -73,7 +73,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
 def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
-    if model_name in ["dkt_forget", "bakt"]:
+    if model_name in ["dkt_forget", "bakt_time"]:
         max_rgap, max_sgap, max_pcount = 0, 0, 0
         curvalid = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
@@ -106,7 +106,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
     try:
-        if model_name in ["dkt_forget", "bakt"]:
+        if model_name in ["dkt_forget", "bakt_time"]:
             test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
             # test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
             #                                 data_config["input_type"], {-1})
@@ -124,7 +124,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
     except:
         pass
     
-    if model_name in ["dkt_forget", "bakt"]:
+    if model_name in ["dkt_forget", "bakt_time"]:
         data_config["num_rgap"] = max_rgap + 1
         data_config["num_sgap"] = max_sgap + 1
         data_config["num_pcount"] = max_pcount + 1
