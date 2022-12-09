@@ -18,8 +18,42 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-class BAKT(nn.Module):
-    def __init__(self, n_question, n_pid, 
+class timeGap2(nn.Module):
+    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
+        super().__init__()
+        self.num_rgap, self.num_sgap, self.num_pcount = num_rgap, num_sgap, num_pcount
+        if num_rgap != 0:
+            self.rgap_eye = torch.eye(num_rgap)
+        if num_sgap != 0:
+            self.sgap_eye = torch.eye(num_sgap)
+        if num_pcount != 0:
+            self.pcount_eye = torch.eye(num_pcount)
+
+        input_size = num_rgap + num_sgap + num_pcount
+        
+        print(f"self.num_rgap: {self.num_rgap}, self.num_sgap: {self.num_sgap}, self.num_pcount: {self.num_pcount}, input_size: {input_size}")
+
+        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
+
+    def forward(self, rgap, sgap, pcount):
+        infs = []
+        if self.num_rgap != 0:
+            rgap = self.rgap_eye[rgap].to(device)
+            infs.append(rgap)
+        if self.num_sgap != 0:
+            sgap = self.sgap_eye[sgap].to(device)
+            infs.append(sgap)
+        if self.num_pcount != 0:
+            pcount = self.pcount_eye[pcount].to(device)
+            infs.append(pcount)
+
+        tg = torch.cat(infs, -1)
+        tg_emb = self.time_emb(tg)
+
+        return tg_emb
+
+class BAKTTime(nn.Module):
+    def __init__(self, n_question, n_pid, num_rgap, num_sgap, num_pcount, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
             kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
@@ -32,7 +66,7 @@ class BAKT(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "bakt"
+        self.model_name = "bakt_time"
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
@@ -44,11 +78,7 @@ class BAKT(nn.Module):
         self.emb_type = emb_type
         embed_l = d_model
         if self.n_pid > 0:
-            if emb_type.find("scalar") != -1:
-                # print(f"question_difficulty is scalar")
-                self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
-            else:
-                self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
+            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
             self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
         
@@ -70,38 +100,39 @@ class BAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
+        if emb_type.endswith("hasw") != -1:
+            self.c_weight = nn.Linear(d_model, d_model)
         
-        if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
-            self.l1 = loss1
-            self.l2 = loss2
-            self.l3 = loss3
-            num_layers = num_layers
-            self.emb_size, self.hidden_size = d_model, d_model
-            self.num_q, self.num_c = n_pid, n_question
+        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
+            self.c_weight = nn.Linear(d_model, d_model)
+            self.t_weight = nn.Linear(d_model, d_model)
+        
+        if emb_type.endswith("onlyrgap"):
+            self.time_emb = timeGap2(num_rgap, 0, 0, d_model)
+        if emb_type.endswith("onlysgap"):
+            self.time_emb = timeGap2(0, num_sgap, 0, d_model)
+        if emb_type.endswith("onlypcount"):
+            self.time_emb = timeGap2(0, 0, num_pcount, d_model)
             
-            if self.num_q > 0:
-                self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
-            if self.emb_type.find("trans") != -1:
-                self.nhead = nheads
-                # d_model = self.hidden_size# * 2
-                encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
-                encoder_norm = LayerNorm(d_model)
-                self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
-            elif self.emb_type.find("lstm") != -1:    
-                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
-            # self.qdrop = Dropout(dropout)
-            self.qclasifier = Linear(self.hidden_size, self.num_c)
-            if self.emb_type.find("cemb") != -1:
-                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
-            self.closs = CrossEntropyLoss()
-            # 加一个预测历史准确率的任务
-            if self.emb_type.find("his") != -1:
-                self.start = start
-                self.hisclasifier = nn.Sequential(
-                    # nn.Linear(self.hidden_size*2, self.hidden_size), nn.ELU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size//2, 1))
-                self.hisloss = nn.MSELoss()
+        if emb_type.endswith("rsgap"):
+            self.time_emb = timeGap2(num_rgap, num_sgap, 0, d_model)
+        if emb_type.endswith("rpgap"):
+            self.time_emb = timeGap2(num_rgap, 0, num_pcount, d_model)
+        if emb_type.endswith("spgap"):
+            self.time_emb = timeGap2(0, num_sgap, num_pcount, d_model)
+            
+        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
+                                    dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
+                                    kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
+
+        if self.emb_type == "qid":
+            self.c_weight = nn.Linear(d_model, d_model)
+            self.t_weight = nn.Linear(d_model, d_model)
+            self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
+                                       dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
+                                       kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
         self.reset()
 
@@ -126,129 +157,7 @@ class BAKT(nn.Module):
         pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
         return pad_attn_mask.repeat(self.nhead, 1, 1)
 
-    def predcurc(self, qemb, cemb, xemb, dcur, train):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        chistory = xemb
-        if self.num_q > 0:
-            catemb = qemb + chistory
-        else:
-            catemb = chistory
-        if self.separate_qa:
-            catemb += cemb
-        # if self.emb_type.find("cemb") != -1: akt本身就加了cemb
-        #     catemb += cemb
-
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        if train:
-            start = 0
-            cpreds = self.qclasifier(qh[:,start:,:])
-            flag = sm[:,start:]==1
-            y2 = self.closs(cpreds[flag], c[:,start:][flag])
-
-        xemb = xemb + qh# + cemb
-        if self.separate_qa:
-            xemb = xemb + cemb
-        if self.emb_type.find("qemb") != -1:
-            xemb = xemb+qemb
-        
-        return y2, xemb
-
-    def predcurc2(self, qemb, cemb, xemb, dcur, train):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        chistory = cemb
-        if self.num_q > 0:
-            catemb = qemb + chistory
-        else:
-            catemb = chistory
-
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        if train:
-            start = 0
-            cpreds = self.qclasifier(qh[:,start:,:])
-            flag = sm[:,start:]==1
-            y2 = self.closs(cpreds[flag], c[:,start:][flag])
-
-        # xemb = xemb+qh
-        # if self.separate_qa:
-        #     xemb = xemb+cemb
-        cemb = cemb + qh
-        xemb = xemb+qh
-        if self.emb_type.find("qemb") != -1:
-            cemb = cemb+qemb
-            xemb = xemb+qemb
-        
-        return y2, cemb, xemb
-
-    def changecemb(self, qemb, cemb):
-        catemb = cemb
-        if self.emb_type.find("qemb") != -1:
-            catemb += qemb
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        
-        cemb = cemb + qh
-        if self.emb_type.find("qemb") != -1:
-            cemb = cemb+qemb
-        
-        return cemb
-
-    def afterpredcurc(self, h, dcur):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        
-        start = 1
-        cpreds = self.qclasifier(h[:,start:,:])
-        flag = sm[:,start:]==1
-        y2 = self.closs(cpreds[flag], c[:,start:][flag])
-        
-        return y2
-
-    def predhis(self, h, dcur):
-        sm = dcur["smasks"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-
-        # predict history correctness rates
-        
-        start = self.start
-        rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
-        rsm = sm[:,start:]
-        rflag = rsm==1
-        # rtrues = torch.cat([dcur["historycorrs"][:,0:1], dcur["shft_historycorrs"]], dim=-1)[:,start:]
-        padr = torch.zeros(h.shape[0], 1).to(device)
-        rtrues = torch.cat([padr, dcur["historycorrs"]], dim=-1)[:,start:]
-        # rtrues = dcur["historycorrs"][:,start:]
-        # rtrues = dcur["totalcorrs"][:,start:]
-        # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
-        y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
-
-        # h = self.dropout_layer(h)
-        # y = torch.sigmoid(self.out_layer(h))
-        return y3
-
-    def forward(self, dcur, qtest=False, train=False):
+    def forward(self, dcur, dgaps, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
@@ -260,59 +169,49 @@ class BAKT(nn.Module):
         # Batch First
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
-        if self.n_pid > 0 and emb_type.find("norasch") == -1: # have problem id
-            if emb_type.find("aktrasch") == -1:
-                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-                q_embed_data = q_embed_data + pid_embed_data * \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+        if self.n_pid > 0: # have problem id
+            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
+            q_embed_data = q_embed_data + pid_embed_data * \
+                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
-            else:
-                q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-                q_embed_data = q_embed_data + pid_embed_data * \
-                    q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+        if emb_type == "qid" or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
+            rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
+            rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
 
-                qa_embed_diff_data = self.qa_embed_diff(
-                    target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
-                qa_embed_data = qa_embed_data + pid_embed_data * \
-                        (qa_embed_diff_data+q_embed_diff_data)  # + uq *(h_rt+d_ct) # （q-response emb diff + question emb diff）
+            r_gaps = torch.cat((rg[:, 0:1], rgshft), dim=1)
+            s_gaps = torch.cat((sg[:, 0:1], sgshft), dim=1)
+            pcounts = torch.cat((p[:, 0:1], pshft), dim=1)
+
+            temb = self.time_emb(r_gaps, s_gaps, pcounts)
+            # time attention
+            # t_out = self.model2(temb, self.qa_embed(target)+temb)
+            t_out = self.model2(temb, qa_embed_data) # 计算时间信息和基本信息的attention？
 
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
+        
+        # elif emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]
+        if emb_type == "qid" or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
             d_output = self.model(q_embed_data, qa_embed_data)
+
+            w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_out)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
+            d_output = w * d_output + (1 - w) * t_out # 每一维加权平均后的综合信息
+            q_embed_data = q_embed_data + temb # 原始的题目信息和时间信息
 
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type.endswith("predcurc"): # predict current question' current concept
-            # predict concept
-            qemb = self.question_emb(pid_data)
-
-            # predcurc(self, qemb, cemb, xemb, dcur, train):
-            cemb = q_embed_data
-            if emb_type.find("noxemb") != -1:
-                y2, q_embed_data, qa_embed_data = self.predcurc2(qemb, cemb, qa_embed_data, dcur, train)
-            else:
-                y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
-            
-            # q_embed_data = self.changecemb(qemb, cemb)
-
-            # predict response
+        elif emb_type.endswith("hasw"):
             d_output = self.model(q_embed_data, qa_embed_data)
-            # if emb_type.find("after") != -1:
-            #     curh = self.model(q_embed_data+qemb, qa_embed_data+qemb)
-            #     y2 = self.afterpredcurc(curh, dcur)
-            if emb_type.find("his") != -1:
-                y3 = self.predhis(d_output, dcur)
-
+            
+            w = torch.sigmoid(self.c_weight(d_output))
+            d_output = w * d_output
+            
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            # if emb_type.find("his") != -1:
-            #     y3 = self.predhis(concat_q, dcur)
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
@@ -338,7 +237,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'bakt'}:
+        if model_type in {'bakt_time'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)

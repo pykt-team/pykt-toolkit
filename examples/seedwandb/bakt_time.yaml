@@ -1,15 +1,15 @@
-program: ./wandb_bakt_train.py
+program: ./wandb_bakt_time_train.py
 method: bayes
 metric:
     goal: maximize
     name: validauc
 parameters:
     model_name:
-        values: ["bakt"]
+        values: ["bakt_time"]
     dataset_name:
         values: ["xes"]
     emb_type:
-        values: ["qidtime"]
+        values: ["qid"]
     save_dir:
         values: ["models/bakt_time_tiaocan"]
     d_model:
