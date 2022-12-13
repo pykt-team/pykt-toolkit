@@ -105,7 +105,7 @@ class AKT(nn.Module):
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
-        d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)
+        d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data)#kc,kc+response,question
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
@@ -176,10 +176,16 @@ class TransformerLayer(nn.Module):
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
         """
+        if emb_type in ['qid_selfattn_learning','qid_ma_learning']:
+            self.pos_model = LearnablePositionalEmbedding(d_model=d_model)
+        elif emb_type in ['qid_selfattn_fixed','qid_ma_fixed']:
+            self.pos_model = CosinePositionalEmbedding(d_model=d_model)
+        else:
+            self.pos_model = None
         kq_same = kq_same == 1
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type)
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,pos_model=self.pos_model)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -192,6 +198,7 @@ class TransformerLayer(nn.Module):
 
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
+        
 
     def forward(self, mask, query, key, values, apply_pos=True, pdiff=None):
         """
@@ -231,13 +238,14 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid"):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
         """
         self.d_model = d_model
         self.emb_type = emb_type
+        self.pos_model = pos_model
         if emb_type.endswith("avgpool"):
             # pooling
             #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
@@ -280,7 +288,12 @@ class MultiHeadAttention(nn.Module):
             constant_(self.out_proj.bias, 0.)
 
     def forward(self, q, k, v, mask, zero_pad, pdiff=None):
-
+        if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_ma_learning','qid_ma_fixed']:
+            pos_emb = self.pos_model(q)
+            q = q + pos_emb
+            k = k + pos_emb
+            v = v + pos_emb
+            
         bs = q.size(0)
 
         if self.emb_type.endswith("avgpool"):
@@ -313,7 +326,7 @@ class MultiHeadAttention(nn.Module):
             if self.emb_type.find("pdiff") == -1:
                 pdiff = None
             scores = attention(q, k, v, self.d_k,
-                            mask, self.dropout, zero_pad, gammas, pdiff)
+                            mask, self.dropout, zero_pad, gammas, pdiff,emb_type=self.emb_type,pos_model=self.pos_model)
 
             # concatenate heads and put through final linear layer
             concat = scores.transpose(1, 2).contiguous()\
@@ -331,45 +344,47 @@ class MultiHeadAttention(nn.Module):
         return scores
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
+def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None,emb_type="qid",pos_model=None):
     """
     This is called by Multi-head atention object to find the values.
     """
     # d_k: 每一个头的dim
+
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
+    
+    if emb_type in ['qid','qid_ma_learning','qid_ma_fixed']:
+        x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
+        x2 = x1.transpose(0, 1).contiguous()
 
-    x1 = torch.arange(seqlen).expand(seqlen, -1).to(device)
-    x2 = x1.transpose(0, 1).contiguous()
-
-    with torch.no_grad():
-        scores_ = scores.masked_fill(mask == 0, -1e32)
-        scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
-        scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
-        distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
-        disttotal_scores = torch.sum(
-            scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
-        # print(f"distotal_scores: {disttotal_scores}")
-        position_effect = torch.abs(
-            x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
-        # bs, 8, sl, sl positive distance
-        dist_scores = torch.clamp(
-            (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
-        dist_scores = dist_scores.sqrt().detach()
-    m = nn.Softplus()
-    gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
-    # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
-    if pdiff == None:
-        total_effect = torch.clamp(torch.clamp(
-            (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-    else:
-        diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
-        diff = diff.sigmoid().exp()
-        total_effect = torch.clamp(torch.clamp(
-            (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
-    scores = scores * total_effect
-
+        with torch.no_grad():
+            scores_ = scores.masked_fill(mask == 0, -1e32)
+            scores_ = F.softmax(scores_, dim=-1)  # BS,8,seqlen,seqlen
+            scores_ = scores_ * mask.float().to(device) # 结果和上一步一样
+            distcum_scores = torch.cumsum(scores_, dim=-1)  # bs, 8, sl, sl
+            disttotal_scores = torch.sum(
+                scores_, dim=-1, keepdim=True)  # bs, 8, sl, 1 全1
+            # print(f"distotal_scores: {disttotal_scores}")
+            position_effect = torch.abs(
+                x1-x2)[None, None, :, :].type(torch.FloatTensor).to(device)  # 1, 1, seqlen, seqlen 位置差值
+            # bs, 8, sl, sl positive distance
+            dist_scores = torch.clamp(
+                (disttotal_scores-distcum_scores)*position_effect, min=0.) # score <0 时，设置为0
+            dist_scores = dist_scores.sqrt().detach()
+        m = nn.Softplus()
+        gamma = -1. * m(gamma).unsqueeze(0)  # 1,8,1,1 一个头一个gamma参数， 对应论文里的theta
+        # Now after do exp(gamma*distance) and then clamp to 1e-5 to 1e5
+        if pdiff == None:
+            total_effect = torch.clamp(torch.clamp(
+                (dist_scores*gamma).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        else:
+            diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
+            diff = diff.sigmoid().exp()
+            total_effect = torch.clamp(torch.clamp(
+                (dist_scores*gamma*diff).exp(), min=1e-5), max=1e5) # 对应论文公式1中的新增部分
+        scores = scores * total_effect
+    
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
     # print(f"before zero pad scores: {scores.shape}")
