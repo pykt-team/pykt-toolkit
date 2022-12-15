@@ -133,13 +133,13 @@ class Architecture(nn.Module):
         if model_type in {'akt'}:
             self.blocks_1 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
-                for _ in range(n_blocks)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
+                for block_index in range(n_blocks)
             ])
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
-                for _ in range(n_blocks*2)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
+                for block_index in range(n_blocks*2)
             ])
 
     def forward(self, q_embed_data, qa_embed_data, pid_embed_data):
@@ -171,7 +171,7 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same, emb_type):
+                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
@@ -180,13 +180,16 @@ class TransformerLayer(nn.Module):
             self.pos_model = LearnablePositionalEmbedding(d_model=d_model)
         elif emb_type in ['qid_selfattn_fixed','qid_ma_fixed']:
             self.pos_model = CosinePositionalEmbedding(d_model=d_model)
+        elif emb_type in ['qid_selfattn_fixed_add_block']:
+            self.pos_model = CosinePositionalEmbeddingWithBlock(d_model=d_model)
         else:
             self.pos_model = None
         kq_same = kq_same == 1
         # Multi-Head Attention Block
+       
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,pos_model=self.pos_model)
-
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,pos_model=self.pos_model,block_index=block_index)
+    
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(dropout)
@@ -238,7 +241,7 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None,block_index=0):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
@@ -246,6 +249,7 @@ class MultiHeadAttention(nn.Module):
         self.d_model = d_model
         self.emb_type = emb_type
         self.pos_model = pos_model
+        self.block_index = block_index
         if emb_type.endswith("avgpool"):
             # pooling
             #self.pool =  nn.AvgPool2d(pool_size, stride=1, padding=pool_size//2, count_include_pad=False, )
@@ -288,8 +292,13 @@ class MultiHeadAttention(nn.Module):
             constant_(self.out_proj.bias, 0.)
 
     def forward(self, q, k, v, mask, zero_pad, pdiff=None):
-        if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_ma_learning','qid_ma_fixed']:
-            pos_emb = self.pos_model(q)
+        if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_ma_learning','qid_ma_fixed','qid_selfattn_fixed_add_block']:
+            if self.emb_type in ['qid_selfattn_fixed_add_block']:
+                pos_emb = self.pos_model(q,self.block_index)
+                # print(f"pos_emb shape is {pos_emb.shape}")
+            else:
+                pos_emb = self.pos_model(q)
+                # print(f"pos_emb shape is {pos_emb.shape}")
             q = q + pos_emb
             k = k + pos_emb
             v = v + pos_emb
@@ -427,3 +436,21 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
+class CosinePositionalEmbeddingWithBlock(nn.Module):
+    def __init__(self, d_model, max_len=512,max_block=8):
+        super().__init__()
+        # Compute the positional encodings once in log space.
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+                                -(math.log(10000.0) / d_model))
+        self.weight_list = []
+        pe = 0.1 * torch.randn(max_block,max_len, d_model)
+        for position_block in range(max_block):
+            position = torch.arange(0, max_len).unsqueeze(1).float()
+            pe[position_block,:, 0::2] = torch.sin(position * div_term) + torch.sin(position_block * div_term)
+            pe[position_block,:, 1::2] = torch.cos(position * div_term) + torch.sin(position_block * div_term)
+        pe = pe.unsqueeze(1)
+        self.weight = nn.Parameter(pe, requires_grad=False)
+            
+    def forward(self, x,block=0):
+        return self.weight[block,:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
