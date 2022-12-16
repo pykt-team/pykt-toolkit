@@ -8,6 +8,7 @@ import json
 from multiprocessing.pool import ThreadPool # 线程池
 from .utils import debug_print
 import shutil
+import traceback
 
 def get_runs_result(runs):
     result_list = []
@@ -284,8 +285,12 @@ class WandbUtils:
 
         def check_help(sweep_name, input_type='sweep_name',
                     metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df):
-            check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
-                                                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            try:
+                check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
+                                                        metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            except:
+                print(f"Check fail for {sweep_name},detiils are {traceback.format_exc()}")
+                check_result = {"State":False,"stop_cmd":""}
             return check_result
         p = ThreadPool(n_jobs)
         check_result_list = p.map(check_help, sweep_key_list)
