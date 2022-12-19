@@ -71,9 +71,11 @@ def main(params):
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
+        if model_name in ["bakt", "bakt_time"]:
+            train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
-        if model_name in ["qdkt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
+        if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
@@ -95,7 +97,7 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -116,18 +118,13 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt","csakt","cdkt","cfdkt","cakt","bakt"]:
+    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
-    if model_name in ["cdkt", "akt"] and emb_type.find("forget")!=-1:
-        print(f"start addF2AKT to model: {model_name}!")
-        addF2AKT(model, train_loader, valid_loader, test_loader)
-    # print(f"emb_type: {emb_type}, idx: {emb_type.find('sforget')}")
-    # assert False
-    
+    print(f"model is {model}")
     if model_name == "hawkes":
         weight_p, bias_p = [], []
         for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):
@@ -153,20 +150,12 @@ def main(params):
     
     debug_print(text = "train model",fuc_name="main")
     
-    testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader, test_window_loader, save_model)
+    testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model)
     
     if save_model:
         best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
         net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
         best_model.load_state_dict(net)
-        # evaluate test
-        
-        if test_loader != None:
-            save_test_path = os.path.join(ckpt_path, emb_type+"_test_predictions.txt")
-            testauc, testacc = evaluate(best_model, test_loader, model_name)#, save_test_path)
-        if test_window_loader != None:
-            save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
-            window_testauc, window_testacc = evaluate(best_model, test_window_loader, model_name)#, save_test_path)
 
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
     print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(round(testauc, 4)) + "\t" + str(round(testacc, 4)) + "\t" + str(round(window_testauc, 4)) + "\t" + str(round(window_testacc, 4)) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
@@ -174,5 +163,5 @@ def main(params):
     print(f"end:{datetime.datetime.now()}")
     
     if params['use_wandb']==1:
-        wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
+        wandb.log({ 
                     "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})

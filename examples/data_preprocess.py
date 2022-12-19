@@ -24,7 +24,7 @@ configf = "../configs/data_config.json"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d","--dataset_name", type=str, default="assist2015")
-    parser.add_argument("-f","--file_path", type=str, default="")
+    parser.add_argument("-f","--file_path", type=str, default="../data/peiyou/grade3_students_b_200.csv")
     parser.add_argument("-m","--min_seq_len", type=int, default=3)
     parser.add_argument("-l","--maxlen", type=int, default=200)
     parser.add_argument("-k","--kfold", type=int, default=5)
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # process raw data
     if args.dataset_name=="peiyou":
         dname2paths["peiyou"] = args.file_path
-    print(f"fpath: {args.file_path}")
+        print(f"fpath: {args.file_path}")
     dname, writef = process_raw_data(args.dataset_name, dname2paths)
     print("-"*50)
     # split

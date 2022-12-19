@@ -61,6 +61,15 @@ Args:
     --fusion_type: the fusion mode,default is "late_fusion"
     --use_wandb: use wandb or not, default is 1
 ```
+### Evaluation Protocol
+A question may be related to multiple knowledge concepts (KCs). To make the evaluation of pyKT is consistent with the real-world prediction scenarios, we train DLKT models on KCs but evaluate them on questions level as follows:
+
+- **Early fusion:** Calculate the average of the hidden states on KC levels, and then input the average results into the prediction layer, hence get the prediction results on question level. For example, to obtain the prediction $p_3$ of $q_3$, we average the hidden states $h_5,h_6$ into the prediction layer.
+
+  ![](../pics/early_fusion.png)
+- **Late fusion:** Employ three fusion types to obtain the question-level prediction based on the KC-level prediction results:(1) *Mean*: compute the average of the KC-level prediction results as the final prediction. (2) *Vote*: select half of the values of KC predictions as the final prediction. (3) *All*: only if all KC predictions are correct, the final prediction is correct, otherwise it is wrong.
+  ![](../pics/late_fusion.png)
+
 
  
 ## Hyperparameter Tuning

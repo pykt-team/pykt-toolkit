@@ -11,55 +11,13 @@ from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# def polyloss(logits, labels, epsilon=1.0):
-#     # pt, CE, and Poly1 have shape [batch].
-#     pt = tf.reduce_sum(labels * tf.nn.softmax(logits), axis=-1)
-#     CE = tf.nn.softmax_cross_entropy_with_logits(labels, logits)
-#     Poly1 = CE + epsilon * (1 - pt)
-#     return Poly1
-
-def SoftMax(x, g=0, t=0.1):
-    # x = np.array(x).cpu()
-    log_x = (x + g) / t
-    exp_x = log_x.exp()
-    softmax_x = exp_x / torch.sum(exp_x)
-    return softmax_x
-
-def polyloss(model, logits, labels, epsilon=1.0, reduction="mean"):
-    import torch.nn.functional as F
-    labels_onehot = F.one_hot(labels, num_classes=model.num_c).to(device=logits.device, dtype=logits.dtype)
-    pt = torch.sum(labels_onehot * SoftMax(F.softmax(logits, dim=-1)), dim=-1)
-    # pt = torch.sum(labels_onehot * SoftMax(logits), dim=-1)
-    CE = F.cross_entropy(input=logits, target=labels, reduction='none')
-    poly1 = CE + epsilon * (1 - pt)
-    if reduction == "mean":
-        poly1 = poly1.mean()
-    elif reduction == "sum":
-        poly1 = poly1.sum()
-    return poly1
-
-# def binary_polyloss(logits, labels, epsilon=1.0, reduction="mean"):
-#     # import torch.nn.functional as F
-#     # labels_onehot = F.one_hot(labels, num_classes=model.num_c).to(device=logits.device, dtype=logits.dtype)
-#     # pt = torch.sum(labels_onehot * F.softmax(logits, dim=-1), dim=-1)
-    
-#     pt = torch.sum(logits)
-#     CE = binary_cross_entropy(logits, labels, reduction="none")
-
-#     # CE = F.cross_entropy(input=logits, target=labels, reduction='none')
-#     poly1 = CE + epsilon * (1 - pt)
-#     if reduction == "mean":
-#         poly1 = poly1.mean()
-#     elif reduction == "sum":
-#         poly1 = poly1.sum()
-#     return poly1
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "cfdkt", "cakt", "cdkvmn", "bakt", "catkt", "csakt"]:
+    if model_name in ["cdkt", "bakt", "bakt_time"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -77,10 +35,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
         if flag:
             loss = loss1
 
-        if model_name == "cakt":
-            loss = loss + preloss[0]  
-    #elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
-    elif model_name in ["dkt", "dkt_forget", "dkvmn", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -116,7 +71,7 @@ def model_forward(model, data, epoch):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget", "cfdkt", "bakt"]:
+    if model_name in ["dkt_forget", "bakt_time"]:
         dcur, dgaps = data
     else:
         dcur = data
@@ -131,11 +86,6 @@ def model_forward(model, data, epoch):
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
 
-    # if model_name in ["cdkt"]: ## 1.3
-    #     y, y2 = model(c.long(), r.long(), train=True)
-    #     y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-    #     y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
-    #     ys = [y, y2] # first: yshft
     if model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
@@ -143,37 +93,11 @@ def model_forward(model, data, epoch):
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
-    elif model_name in ["cfdkt"]:
-        y, y2, y3 = model(dcur, dgaps, train=True)
-        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-        ys = [y, y2, y3]
-    elif model_name in ["cakt"]:
-        y, reg_loss, y2, y3 = model(dcur, train=True)#(cc.long(), cr.long(), cq.long(), train=True)
-        ys = [y[:,1:], y2, y3]
-        # ys = [y[:,1:], y2[:,1:], cshft] if model.emb_type.endswith("predcurc") else [y[:,1:]]
-        preloss.append(reg_loss)
     elif model_name in ["bakt"]:
-        y, y2, y3 = model(dcur, dgaps, train=True)
+        y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
-    elif model_name in ["catkt"]: # predcurc
-        y, features, y2, y3 = model(dcur, train=True)
-        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-        loss = cal_loss(model, [y, y2, y3], r, rshft, sm, epoch)
-        # at
-        # features_grad = grad(loss, features, retain_graph=True)
-        # p_adv = torch.FloatTensor(model.epsilon * _l2_normalize_adv(features_grad[0].data))
-        # p_adv = Variable(p_adv).to(device)
-        # pred_res, _, py2, py3 = model(dcur, p_adv, train=True)
-        # # second loss
-        # pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
-        # adv_loss = cal_loss(model, [pred_res, py2, py3], r, rshft, sm, epoch, flag=True)
-
-        # loss = loss + model.beta * adv_loss
-    elif model_name in ["csakt"]:
-        y, y2, y3 = model(dcur, train=True)
-        ys = [y, y2, y3]
-    elif model_name in ["cdkvmn"]:
-        y, y2, y3 = model(dcur, train=True)
+    elif model_name in ["bakt_time"]:
+        y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
@@ -231,10 +155,11 @@ def model_forward(model, data, epoch):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models:
+    elif model_name in que_type_models and model_name != "lpkt":
         y,loss = model.train_one_step(data)
-    if model_name not in ["atkt", "atktfix","iekt", "catkt"]:
-        loss = cal_loss(model, ys, r, rshft, sm, preloss, epoch)
+    
+    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
@@ -247,7 +172,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name in que_type_models:
+            if model.model_name in que_type_models and model.model_name != "lpkt":
                 model.model.train()
             else:
                 model.train()

@@ -6,7 +6,7 @@ from pykt.config import que_type_models
 import torch
 torch.set_num_threads(2)
 
-from pykt.models import evaluate_splitpred_question,load_model
+from pykt.models import evaluate_splitpred_question, load_model, lpkt_evaluate_multi_ahead
 
 def main(params):
     if params['use_wandb'] ==1:
@@ -18,7 +18,7 @@ def main(params):
         config = json.load(fin)
         model_config = copy.deepcopy(config["model_config"])
 
-        for remove_item in ['use_wandb','learning_rate','add_uuid']:
+        for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
             if remove_item in model_config:
                 del model_config[remove_item]
 
@@ -46,9 +46,11 @@ def main(params):
         save_test_path = os.path.join(save_dir, model.emb_type+"_test_ratio"+str(ratio)+"_"+str(use_pred)+"_predictions.txt")
     # model, testf, model_name, save_path="", use_pred=False, train_ratio=0.2
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
-    testf = os.path.join(data_config["dpath"], "test.csv")
+    testf = os.path.join(data_config["dpath"], params["test_filename"])
     if model_name in que_type_models:
-        dfinal = model.evaluate_multi_ahead(data_config,batch_size=32,ob_portions=ratio,accumulative=use_pred)
+        dfinal = model.evaluate_multi_ahead(data_config,batch_size=16,ob_portions=ratio,accumulative=use_pred)
+    elif model_name in ["lpkt"]:
+        dfinal = lpkt_evaluate_multi_ahead(model, data_config,batch_size=64,ob_portions=ratio,accumulative=use_pred)
     else:
         dfinal = evaluate_splitpred_question(model, data_config, testf, model_name, save_test_path, use_pred, ratio, atkt_pad)
     for key in dfinal:
@@ -60,6 +62,7 @@ def main(params):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_dir", type=str, default="saved_model")
+    parser.add_argument("--test_filename", type=str, default="test.csv")
     parser.add_argument("--use_pred", type=int, default=0)
     parser.add_argument("--train_ratio", type=float, default=0.9)
     parser.add_argument("--atkt_pad", type=int, default=0)

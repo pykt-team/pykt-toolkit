@@ -20,13 +20,10 @@ from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
 from .cdkt import CDKT
-from .cakt2 import CAKT
-from .cdkvmn import CDKVMN
-from .bakt3 import BAKT
-from .catkt import CATKT
-from .csakt import CSAKT
-from .cfdkt import CFDKT
+from .bakt import BAKT
+from .bakt_time import BAKTTime
 from .qdkt import QDKT
+from .qikt import QIKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -48,18 +45,10 @@ def init_model(model_name, model_config, data_config, emb_type):
     print(f"in init_model, model_name: {model_name}")
     if model_name == "cdkt":
         model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "cfdkt":
-        model = CFDKT(data_config["num_q"], data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "cakt":
         model = CAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "cdkvmn":
-        model = CDKVMN(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt":
-        model = BAKT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "catkt":
-        model = CATKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], fix=True).to(device)
-    elif model_name == "csakt":
-        model = CSAKT(data_config["num_q"], data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -121,6 +110,15 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
+    elif model_name == "qikt":
+        model = QIKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
+    elif model_name == "cdkt":
+        model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "bakt_time":
+        model = BAKTTime(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "bakt":
+        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print(f"The wrong model name: {model_name} was used...")
         return None

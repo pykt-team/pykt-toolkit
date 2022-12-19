@@ -1,0 +1,34 @@
+program: ./wandb_bakt_time_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["bakt_time"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/bakt_time_tiaocan"]
+    d_model:
+        values: [64, 256]
+    d_ff:
+        values: [64, 256]
+    final_fc_dim:
+        values: [64, 256]
+    final_fc_dim2:
+        values: [64, 256]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    num_attn_heads:
+        values: [4, 8]
+    n_blocks:
+        values: [1, 2, 4]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
