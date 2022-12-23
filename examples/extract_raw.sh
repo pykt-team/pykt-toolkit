@@ -1,6 +1,6 @@
 
-dataset="assist2009"
-models="akt_qid,akt_qid_selfattn_fixed_add_block"
+dataset="ednet"
+models="dkt,akt,iekt,qdkt,qikt,saint"
 
 IFS=','
 for i in $models; do
