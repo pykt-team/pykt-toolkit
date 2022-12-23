@@ -171,17 +171,21 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index):
+                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index,c=10000):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
         """
+        if "_c" in emb_type:
+            c = int(emb_type.split("_c")[-1])
+        else:
+            c = 10000
         if emb_type in ['qid_selfattn_learning','qid_ma_learning']:
             self.pos_model = LearnablePositionalEmbedding(d_model=d_model)
-        elif emb_type in ['qid_selfattn_fixed','qid_ma_fixed']:
-            self.pos_model = CosinePositionalEmbedding(d_model=d_model)
+        elif emb_type in ['qid_selfattn_fixed','qid_selfattn_fixed_c5','qid_selfattn_fixed_c10','qid_selfattn_fixed_c100','qid_selfattn_fixed_c1000','qid_ma_fixed']:
+            self.pos_model = CosinePositionalEmbedding(d_model=d_model,c=c)
         elif emb_type in ['qid_selfattn_fixed_add_block']:
-            self.pos_model = CosinePositionalEmbeddingWithBlock(d_model=d_model)
+            self.pos_model = CosinePositionalEmbeddingWithBlock(d_model=d_model,c=c)
         else:
             self.pos_model = None
         kq_same = kq_same == 1
@@ -292,7 +296,7 @@ class MultiHeadAttention(nn.Module):
             constant_(self.out_proj.bias, 0.)
 
     def forward(self, q, k, v, mask, zero_pad, pdiff=None):
-        if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_ma_learning','qid_ma_fixed','qid_selfattn_fixed_add_block']:
+        if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_selfattn_fixed_c5','qid_selfattn_fixed_c10','qid_selfattn_fixed_c100','qid_selfattn_fixed_c1000','qid_ma_learning','qid_ma_fixed','qid_selfattn_fixed_add_block']:
             if self.emb_type in ['qid_selfattn_fixed_add_block']:
                 pos_emb = self.pos_model(q,self.block_index)
                 # print(f"pos_emb shape is {pos_emb.shape}")
@@ -422,13 +426,13 @@ class LearnablePositionalEmbedding(nn.Module):
 
 
 class CosinePositionalEmbedding(nn.Module):
-    def __init__(self, d_model, max_len=512):
+    def __init__(self, d_model, max_len=512,c=10000):
         super().__init__()
         # Compute the positional encodings once in log space.
         pe = 0.1 * torch.randn(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1).float()
         div_term = torch.exp(torch.arange(0, d_model, 2).float() *
-                             -(math.log(10000.0) / d_model))
+                             -(math.log(c) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -438,11 +442,11 @@ class CosinePositionalEmbedding(nn.Module):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
 
 class CosinePositionalEmbeddingWithBlock(nn.Module):
-    def __init__(self, d_model, max_len=512,max_block=8):
+    def __init__(self, d_model, max_len=512,max_block=8,c=10000):
         super().__init__()
         # Compute the positional encodings once in log space.
         div_term = torch.exp(torch.arange(0, d_model, 2).float() *
-                                -(math.log(10000.0) / d_model))
+                                -(math.log(c) / d_model))
         self.weight_list = []
         pe = 0.1 * torch.randn(max_block,max_len, d_model)
         for position_block in range(max_block):
