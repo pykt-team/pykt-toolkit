@@ -49,7 +49,7 @@ def main(params):
     # model, testf, model_name, save_path="", use_pred=False, train_ratio=0.2
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
     testf = os.path.join(data_config["dpath"], params["test_filename"])
-    if model_name in que_type_models:
+    if model_name in que_type_models and model_name != "lpkt":
         dfinal = model.evaluate_multi_ahead(data_config,batch_size=16,ob_portions=ratio,accumulative=use_pred)
     elif model_name in ["lpkt"]:
         dfinal = lpkt_evaluate_multi_ahead(model, data_config,batch_size=64,ob_portions=ratio,accumulative=use_pred)
