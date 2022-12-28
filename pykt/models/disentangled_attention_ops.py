@@ -12,7 +12,36 @@ import math
 from packaging import version
 import torch
 from torch.nn import LayerNorm
-from ..utils import traceable
+# from ..utils import traceable
+
+import os
+
+def traceable(cls):
+  """ Decorator over customer functions
+      There is an issue for tracing customer python torch Function, using this decorator to work around it.
+      e.g.
+      @traceable
+      class MyOp(torch.autograd.Function):
+      xxx
+  """
+
+  class _Function(object):
+    @staticmethod
+    def apply(*args):
+      jit_trace = (os.getenv('JIT_TRACE', 'False').lower() == 'true')
+      if jit_trace:
+        return cls.forward(_Function, *args)
+      else:
+        return cls.apply(*args)
+
+    @staticmethod
+    def save_for_backward(*args):
+      pass
+
+  _Function.__name__ = cls.__name__
+  _Function.__doc__ = cls.__doc__
+  return _Function
+
 
 if version.Version(torch.__version__) >= version.Version('1.0.0'):
   from torch import _softmax_backward_data as _softmax_backward_data

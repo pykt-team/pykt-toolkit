@@ -6,6 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
+from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -245,7 +246,7 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None,block_index=0):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None,block_index=0,max_relative_positions=-1,position_buckets=-1):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
@@ -264,6 +265,11 @@ class MultiHeadAttention(nn.Module):
             # linear
             self.linear = nn.Linear(d_model, d_model, bias=bias)
             self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        elif emb_type in ["qid_disentangled_attention"]:
+            self.attn = DisentangledSelfAttention(num_attention_heads=n_heads,hidden_size=d_model,hidden_dropout_prob=dropout,attention_probs_dropout_prob=dropout)
+            self.max_relative_positions = max_relative_positions
+            self.position_buckets = position_buckets
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
         elif emb_type.startswith("qid"):
             self.d_k = d_feature
             self.h = n_heads
@@ -280,7 +286,6 @@ class MultiHeadAttention(nn.Module):
             torch.nn.init.xavier_uniform_(self.gammas)
             self._reset_parameters()
 
-
     def _reset_parameters(self):
         xavier_uniform_(self.k_linear.weight)
         xavier_uniform_(self.v_linear.weight)
@@ -294,7 +299,13 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             # constant_(self.attnlinear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
-
+            
+    def get_rel_pos(self, hidden_states, query_states=None, relative_pos=None):
+        if relative_pos is None:
+            q = query_states.size(-2) if query_states is not None else hidden_states.size(-2)
+            relative_pos = build_relative_position(q, hidden_states.size(-2), bucket_size = self.position_buckets, max_position=self.max_relative_positions)
+        return relative_pos
+    
     def forward(self, q, k, v, mask, zero_pad, pdiff=None):
         if self.emb_type in ['qid_selfattn_learning','qid_selfattn_fixed','qid_selfattn_fixed_c5','qid_selfattn_fixed_c10','qid_selfattn_fixed_c100','qid_selfattn_fixed_c1000','qid_ma_learning','qid_ma_fixed','qid_selfattn_fixed_add_block']:
             if self.emb_type in ['qid_selfattn_fixed_add_block']:
@@ -313,15 +324,16 @@ class MultiHeadAttention(nn.Module):
             # v = v.transpose(1,2)
             scores = self.pooling(v)
             concat = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
-            # concat = concat.transpose(1,2)#.contiguous().view(bs, -1, self.d_model)
+           
         elif self.emb_type.endswith("linear"):
-            # v = v.transpose(1,2)
             scores = self.linear(v)
             concat = self.pad_zero(scores, bs, scores.shape[2], zero_pad)
-            # concat = concat.transpose(1,2)
-        elif self.emb_type.startswith("qid"):
+           
+        elif self.emb_type in ["qid_disentangled_attention"]:#放在这里才能生效
+            relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)
+            concat = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)['hidden_states']
+        elif self.emb_type in ("qid"):
             # perform linear operation and split into h heads
-
             k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
             if self.kq_same is False:
                 q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
@@ -344,9 +356,7 @@ class MultiHeadAttention(nn.Module):
             # concatenate heads and put through final linear layer
             concat = scores.transpose(1, 2).contiguous()\
                 .view(bs, -1, self.d_model)
-
         output = self.out_proj(concat)
-
         return output
 
     def pad_zero(self, scores, bs, dim, zero_pad):
@@ -408,8 +418,6 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None,emb_
     # print(f"after zero pad scores: {scores}")
     scores = dropout(scores)
     output = torch.matmul(scores, v)
-    # import sys
-    # sys.exit()
     return output
 
 

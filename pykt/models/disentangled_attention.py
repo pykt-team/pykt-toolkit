@@ -40,39 +40,40 @@ def test_log_bucket():
   pdb.set_trace()
 
 class DisentangledSelfAttention(nn.Module):
-    def __init__(self, config):
+    def __init__(self, num_attention_heads,hidden_size,max_position_embeddings=200,share_att_key=False,pos_att_type="c2p|p2c",relative_attention=True,position_buckets=-1,max_relative_positions=-1,hidden_dropout_prob=0.1,attention_probs_dropout_prob=0.1):
         super().__init__()
-        self.num_attention_heads = config.num_attention_heads
-        _attention_head_size = int(config.hidden_size / config.num_attention_heads)
-        self.attention_head_size = getattr(config, 'attention_head_size', _attention_head_size)
+        self.num_attention_heads = num_attention_heads
+        _attention_head_size = int(hidden_size / num_attention_heads)
+        self.attention_head_size = _attention_head_size
         self.all_head_size = self.num_attention_heads * self.attention_head_size
-        self.query_proj = nn.Linear(config.hidden_size, self.all_head_size, bias=True)
-        self.key_proj = nn.Linear(config.hidden_size, self.all_head_size, bias=True)
-        self.value_proj = nn.Linear(config.hidden_size, self.all_head_size, bias=True)
+        self.query_proj = nn.Linear(hidden_size, self.all_head_size, bias=True)
+        self.key_proj = nn.Linear(hidden_size, self.all_head_size, bias=True)
+        self.value_proj = nn.Linear(hidden_size, self.all_head_size, bias=True)
 
-        self.share_att_key = getattr(config, 'share_att_key', False)
-        self.pos_att_type = [x.strip() for x in getattr(config, 'pos_att_type', 'c2p').lower().split('|')] # c2p|p2c
-        self.relative_attention = getattr(config, 'relative_attention', False)
+        self.share_att_key = share_att_key
+        self.pos_att_type = [x.strip() for x in pos_att_type.lower().split('|')] # c2p|p2c
+        self.relative_attention = relative_attention
+        
 
         if self.relative_attention:
-            self.position_buckets = getattr(config, 'position_buckets', -1)
-            self.max_relative_positions = getattr(config, 'max_relative_positions', -1)
+            self.position_buckets = position_buckets
+            self.max_relative_positions = max_relative_positions
             if self.max_relative_positions <1:
-                self.max_relative_positions = config.max_position_embeddings
+                self.max_relative_positions = max_position_embeddings
             self.pos_ebd_size = self.max_relative_positions
             if self.position_buckets>0:
                 self.pos_ebd_size = self.position_buckets
                 # For backward compitable
-
-            self.pos_dropout = StableDropout(config.hidden_dropout_prob)
+            self.rel_embeddings = nn.Embedding(self.pos_ebd_size*2, hidden_size)
+            self.pos_dropout = StableDropout(hidden_dropout_prob)
 
             if (not self.share_att_key):
                 if 'c2p' in self.pos_att_type or 'p2p' in self.pos_att_type:
-                    self.pos_key_proj = nn.Linear(config.hidden_size, self.all_head_size, bias=True)
+                    self.pos_key_proj = nn.Linear(hidden_size, self.all_head_size, bias=True)
                 if 'p2c' in self.pos_att_type or 'p2p' in self.pos_att_type:
-                    self.pos_query_proj = nn.Linear(config.hidden_size, self.all_head_size)
+                    self.pos_query_proj = nn.Linear(hidden_size, self.all_head_size)
 
-        self.dropout = StableDropout(config.attention_probs_dropout_prob)
+        self.dropout = StableDropout(attention_probs_dropout_prob)
         self._register_load_state_dict_pre_hook(self._pre_load_hook)
 
     def transpose_for_scores(self, x, attention_heads):
@@ -80,7 +81,7 @@ class DisentangledSelfAttention(nn.Module):
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3).contiguous().view(-1, x.size(1), x.size(-1))
 
-    def forward(self, q,k,v, attention_mask, return_att=False, query_states=None, relative_pos=None, rel_embeddings=None):
+    def forward(self, q,k,v, attention_mask, return_att=False, query_states=None, relative_pos=None,zero_pad=False):
         query_layer = self.transpose_for_scores(self.query_proj(q), self.num_attention_heads).float()
         key_layer = self.transpose_for_scores(self.key_proj(k), self.num_attention_heads).float()
         value_layer = self.transpose_for_scores(self.value_proj(v), self.num_attention_heads)
@@ -97,26 +98,33 @@ class DisentangledSelfAttention(nn.Module):
         scale = 1/math.sqrt(query_layer.size(-1)*scale_factor)
         attention_scores = torch.bmm(query_layer, key_layer.transpose(-1, -2)*scale)
         if self.relative_attention:
-            rel_embeddings = self.pos_dropout(rel_embeddings)
+            rel_embeddings = self.pos_dropout(self.rel_embeddings.weight)
             rel_att = self.disentangled_attention_bias(query_layer, key_layer, relative_pos, rel_embeddings, scale_factor)
 
         if rel_att is not None:
             attention_scores = (attention_scores + rel_att)
-        attention_scores = (attention_scores - attention_scores.max(dim=-1, keepdim=True).values.detach()).to(hidden_states)
+        attention_scores = (attention_scores - attention_scores.max(dim=-1, keepdim=True).values.detach()).to(q)
         attention_scores = attention_scores.view(-1, self.num_attention_heads, attention_scores.size(-2), attention_scores.size(-1))
 
         # bxhxlxd
         _attention_probs = XSoftmax.apply(attention_scores, attention_mask, -1)
-        attention_probs = self.dropout(_attention_probs)
+        attention_probs = self.dropout(_attention_probs)#shape is [batch size, num_head, seq_len, seq_len]
+        
+        if zero_pad:
+            attention_probs[:,:,0,:] = 0# 第一行score置0
+            # print(f"attention_probs shape is {attention_probs.shape}")
+            # print(f"attention_probs is {attention_probs}")
+           
+        
         context_layer = torch.bmm(attention_probs.view(-1, attention_probs.size(-2), attention_probs.size(-1)), value_layer)
         context_layer = context_layer.view(-1, self.num_attention_heads, context_layer.size(-2), context_layer.size(-1)).permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (-1,)
         context_layer = context_layer.view(*new_context_layer_shape)
-
+        # print(f"hidden_states shape is {context_layer.shape}")
         return {
-            'hidden_states': context_layer,
-            'attention_probs': _attention_probs,
-            'attention_logits': attention_scores
+            'hidden_states': context_layer,#计算完的特征
+            'attention_probs': _attention_probs,#经过softmax的attention
+            'attention_logits': attention_scores#计算完的原始attention score
             }
 
     def disentangled_attention_bias(self, query_layer, key_layer, relative_pos, rel_embeddings, scale_factor):
