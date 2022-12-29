@@ -6,10 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
-from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, \
-        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
-from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
+from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -33,7 +30,7 @@ class BAKT(nn.Module):
             kq_same: if key query same, kq_same=1, else = 0
         """
         self.model_name = "bakt"
-        print(f"model_name: {self.model_name}, emb_type: {emb_type}")
+        # print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
@@ -61,7 +58,7 @@ class BAKT(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len,emb_type=self.emb_type)
 
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
@@ -123,40 +120,14 @@ class BAKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
+        if emb_type.startswith("qid"):
             d_output = self.model(q_embed_data, qa_embed_data)
 
             concat_q = torch.cat([d_output, q_embed_data], dim=-1)
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type.endswith("predcurc"): # predict current question' current concept
-            # predict concept
-            qemb = self.question_emb(pid_data)
-
-            # predcurc(self, qemb, cemb, xemb, dcur, train):
-            cemb = q_embed_data
-            if emb_type.find("noxemb") != -1:
-                y2, q_embed_data, qa_embed_data = self.predcurc2(qemb, cemb, qa_embed_data, dcur, train)
-            else:
-                y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
-            
-            # q_embed_data = self.changecemb(qemb, cemb)
-
-            # predict response
-            d_output = self.model(q_embed_data, qa_embed_data)
-            # if emb_type.find("after") != -1:
-            #     curh = self.model(q_embed_data+qemb, qa_embed_data+qemb)
-            #     y2 = self.afterpredcurc(curh, dcur)
-            if emb_type.find("his") != -1:
-                y3 = self.predhis(d_output, dcur)
-
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            # if emb_type.find("his") != -1:
-            #     y3 = self.predhis(concat_q, dcur)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
+        
 
         if train:
             return preds, y2, y3
@@ -168,7 +139,7 @@ class BAKT(nn.Module):
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
-                 d_ff, n_heads, dropout, kq_same, model_type, seq_len):
+                 d_ff, n_heads, dropout, kq_same, model_type, seq_len,emb_type):
         super().__init__()
         """
             n_block : number of stacked blocks in the attention
@@ -182,19 +153,30 @@ class Architecture(nn.Module):
         if model_type in {'bakt'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
-                for _ in range(n_blocks)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same,emb_type=emb_type,block_index=block_index)
+                for block_index in range(n_blocks)
             ])
-        self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
-
+            
+        if "_c" in emb_type:
+            c = int(emb_type.split("_c")[-1])
+        else:
+            c = 10000
+            
+        if emb_type in ['qid_selfattn_learning']:
+            self.position_emb = LearnablePositionalEmbedding(d_model=d_model)
+        elif emb_type in ['qid','qid_selfattn_fixed','qid_selfattn_fixed_c5','qid_selfattn_fixed_c10','qid_selfattn_fixed_c100','qid_selfattn_fixed_c1000']:
+            self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len,c=c)
+        else:
+            self.position_emb = None
+            
     def forward(self, q_embed_data, qa_embed_data):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
-
-        q_posemb = self.position_emb(q_embed_data)
-        q_embed_data = q_embed_data + q_posemb
-        qa_posemb = self.position_emb(qa_embed_data)
-        qa_embed_data = qa_embed_data + qa_posemb
+        if self.position_emb is not None:
+            q_posemb = self.position_emb(q_embed_data)
+            q_embed_data = q_embed_data + q_posemb
+            qa_posemb = self.position_emb(qa_embed_data)
+            qa_embed_data = qa_embed_data + qa_posemb
 
         qa_pos_embed = qa_embed_data
         q_pos_embed = q_embed_data
@@ -213,7 +195,7 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same):
+                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index,c=10000):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
@@ -221,7 +203,7 @@ class TransformerLayer(nn.Module):
         kq_same = kq_same == 1
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same)
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -273,25 +255,33 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True, emb_type="qid",pos_model=None,block_index=0,max_relative_positions=-1,position_buckets=-1):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
         """
         self.d_model = d_model
-        self.d_k = d_feature
-        self.h = n_heads
-        self.kq_same = kq_same
+        self.emb_type = emb_type
+        self.pos_model = pos_model
+        self.block_index = block_index
+        if emb_type in ["qid_disentangled_attention"]:
+            self.attn = DisentangledSelfAttention(num_attention_heads=n_heads,hidden_size=d_model,hidden_dropout_prob=dropout,attention_probs_dropout_prob=dropout)
+            self.max_relative_positions = max_relative_positions
+            self.position_buckets = position_buckets
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        elif emb_type.startswith("qid"):
+            self.d_k = d_feature
+            self.h = n_heads
+            self.kq_same = kq_same
 
-        self.v_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.k_linear = nn.Linear(d_model, d_model, bias=bias)
-        if kq_same is False:
-            self.q_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.dropout = nn.Dropout(dropout)
-        self.proj_bias = bias
-        self.out_proj = nn.Linear(d_model, d_model, bias=bias)
-
-        self._reset_parameters()
+            self.v_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.k_linear = nn.Linear(d_model, d_model, bias=bias)
+            if kq_same is False:
+                self.q_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.dropout = nn.Dropout(dropout)
+            self.proj_bias = bias
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+            self._reset_parameters()
 
     def _reset_parameters(self):
         xavier_uniform_(self.k_linear.weight)
@@ -306,34 +296,39 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
+    def get_rel_pos(self, hidden_states, query_states=None, relative_pos=None):
+        if relative_pos is None:
+            q = query_states.size(-2) if query_states is not None else hidden_states.size(-2)
+            relative_pos = build_relative_position(q, hidden_states.size(-2), bucket_size = self.position_buckets, max_position=self.max_relative_positions)
+        return relative_pos
+    
     def forward(self, q, k, v, mask, zero_pad):
-
         bs = q.size(0)
-
-        # perform linear operation and split into h heads
-
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
-        if self.kq_same is False:
-            q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+        if self.emb_type in ["qid_disentangled_attention"]:#放在这里才能生效
+            relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)
+            concat = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)['hidden_states']
         else:
-            q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
-        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+            # perform linear operation and split into h heads
+            k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+            if self.kq_same is False:
+                q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+            else:
+                q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
+            v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
 
-        # transpose to get dimensions bs * h * sl * d_model
+            # transpose to get dimensions bs * h * sl * d_model
 
-        k = k.transpose(1, 2)
-        q = q.transpose(1, 2)
-        v = v.transpose(1, 2)
-        # calculate attention using function we will define next
-        scores = attention(q, k, v, self.d_k,
-                           mask, self.dropout, zero_pad)
-
-        # concatenate heads and put through final linear layer
-        concat = scores.transpose(1, 2).contiguous()\
-            .view(bs, -1, self.d_model)
+            k = k.transpose(1, 2)
+            q = q.transpose(1, 2)
+            v = v.transpose(1, 2)
+            # calculate attention using function we will define next
+            scores = attention(q, k, v, self.d_k,
+                            mask, self.dropout, zero_pad)
+            # concatenate heads and put through final linear layer
+            concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
 
         output = self.out_proj(concat)
-
         return output
 
 
@@ -356,8 +351,6 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad):
     # print(f"after zero pad scores: {scores}")
     scores = dropout(scores)
     output = torch.matmul(scores, v)
-    # import sys
-    # sys.exit()
     return output
 
 
@@ -374,13 +367,13 @@ class LearnablePositionalEmbedding(nn.Module):
 
 
 class CosinePositionalEmbedding(nn.Module):
-    def __init__(self, d_model, max_len=512):
+    def __init__(self, d_model, max_len=512,c=10000):
         super().__init__()
         # Compute the positional encodings once in log space.
         pe = 0.1 * torch.randn(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1).float()
         div_term = torch.exp(torch.arange(0, d_model, 2).float() *
-                             -(math.log(10000.0) / d_model))
+                             -(math.log(c) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -388,3 +381,21 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
+class CosinePositionalEmbeddingWithBlock(nn.Module):
+    def __init__(self, d_model, max_len=512,max_block=8,c=10000):
+        super().__init__()
+        # Compute the positional encodings once in log space.
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+                                -(math.log(c) / d_model))
+        self.weight_list = []
+        pe = 0.1 * torch.randn(max_block,max_len, d_model)
+        for position_block in range(max_block):
+            position = torch.arange(0, max_len).unsqueeze(1).float()
+            pe[position_block,:, 0::2] = torch.sin(position * div_term) + torch.sin(position_block * div_term)
+            pe[position_block,:, 1::2] = torch.cos(position * div_term) + torch.sin(position_block * div_term)
+        pe = pe.unsqueeze(1)
+        self.weight = nn.Parameter(pe, requires_grad=False)
+            
+    def forward(self, x,block=0):
+        return self.weight[block,:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)

@@ -332,7 +332,7 @@ class MultiHeadAttention(nn.Module):
         elif self.emb_type in ["qid_disentangled_attention"]:#放在这里才能生效
             relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)
             concat = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)['hidden_states']
-        elif self.emb_type in ("qid"):
+        elif self.emb_type.startswith("qid"):
             # perform linear operation and split into h heads
             k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
             if self.kq_same is False:
