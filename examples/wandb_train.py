@@ -97,7 +97,7 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size, aug=False)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 

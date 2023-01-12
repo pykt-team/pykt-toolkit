@@ -24,6 +24,20 @@ class transformer_FFN(Module):
             )
     def forward(self, in_fea):
         return self.FFN(in_fea)
+    
+class RobertaEncode(Module): # OOM
+    def __init__(self, emb_size, emb_path, pretrain_dim=768) -> None:
+        super().__init__()
+        
+        embs = pd.read_pickle(emb_path)
+        
+        self.emb_layer = Embedding.from_pretrained(embs)
+        self.l1 = Linear(pretrain_dim, pretrain_dim)
+        self.l2 = Linear(pretrain_dim, emb_size)
+    
+    def forward(self, qs):
+        e = self.l2(self.l1(self.emb_layer(qs)))
+        return e
 
 def ut_mask(seq_len):
     """ Upper Triangular Mask

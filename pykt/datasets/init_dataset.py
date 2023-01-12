@@ -68,7 +68,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     max_pcount = cur.max_pcount if cur.max_pcount > max_pcount else max_pcount
     return max_rgap, max_sgap, max_pcount
 
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
+def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, aug=False):
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -98,8 +98,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     else:
-        
-        curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, False, aug)
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)

@@ -22,20 +22,25 @@ class KTDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds, qtest=False):
+    def __init__(self, file_path, input_type, folds, qtest=False, aug=False):
         super(KTDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
         self.qtest = qtest
+        self.aug = aug
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
             processed_data = file_path + folds_str + "_qtest.pkl"
+        elif self.aug:
+            processed_data = file_path + folds_str + "_aug.pkl"
+            sequence_path = sequence_path[0:-4] + "_aug.csv"
+            print(f"sequence_path: {sequence_path}")
         else:
             processed_data = file_path + folds_str + ".pkl"
 
         if not os.path.exists(processed_data):
-            print(f"Start preprocessing {file_path} fold: {folds_str}...")
+            print(f"Start preprocessing {sequence_path} fold: {folds_str}...")
             if self.qtest:
                 self.dori, self.dqtest = self.__load_data__(sequence_path, folds)
                 save_data = [self.dori, self.dqtest]
@@ -51,7 +56,7 @@ class KTDataset(Dataset):
                 self.dori = pd.read_pickle(processed_data)
                 for key in self.dori:
                     self.dori[key] = self.dori[key]#[:100]
-        print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}")
+        print(f"file path: {sequence_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}")
 
     def __len__(self):
         """return the dataset length
