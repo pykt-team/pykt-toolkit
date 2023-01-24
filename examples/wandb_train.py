@@ -41,9 +41,11 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
+        if model_name in ["bakt", "bakt_time"]:
+            train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
-        if model_name in ["qdkt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
+        if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
@@ -86,12 +88,13 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt"]:
+    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
     model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+    print(f"model is {model}")
     if model_name == "hawkes":
         weight_p, bias_p = [], []
         for name, p in filter(lambda x: x[1].requires_grad, model.named_parameters()):

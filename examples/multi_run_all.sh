@@ -18,7 +18,7 @@ echo log_name=$4
 
 echo "Start generate yamls"
 #generate sweep config
-python generate_wandb.py --model_names $models --dataset_names $dataset  --project_name $task_name-$dataset --src_dir seedwandb --all_dir $task_name
+python generate_wandb.py --model_names $models --dataset_names $dataset  --project_name $task_name --src_dir seedwandb --all_dir $task_name
 
 echo "Start lanuch sweeps"
 #lanuch sweep

@@ -8,6 +8,8 @@ from tqdm import tqdm_notebook
 import argparse
 from pykt.config import que_type_models
 from extract_quelevel_raw_result import get_one_result_help as get_quelevel_one_result_help
+import traceback
+
 
 cut = True
 
@@ -68,6 +70,8 @@ def get_metrics(df, y_pred_col='y_pred', y_true_col='y_true', name="test", cut=F
     """获取原始指标"""
     if not save_dir is None:
         save_df(df,name,save_dir)
+    if len(df)==0:
+        return {}
     print(f"get_metrics,y_pred_col={y_pred_col},name={name}")
     # 针对concept_preds
     if y_pred_col == "concept_preds":
@@ -142,12 +146,13 @@ def add_concepts(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict)
     df_qid_long, df_qid_short = paser_raw_data(
         qid_test, df_qid_test, stu_inter_num_dict=stu_inter_num_dict)
     # get report
-    base_long_report = get_metrics(df_qid_long, cut=cut, name='long',save_dir=save_dir)
-    report.update(base_long_report)
+    if len(df_qid_long)!=0:
+        base_long_report = get_metrics(df_qid_long, cut=cut, name='long',save_dir=save_dir)
+        report.update(base_long_report)
     
-
-    base_short_report = get_metrics(df_qid_short, cut=cut, name='short',save_dir=save_dir)
-    report.update(base_short_report)
+    if len(df_qid_short)!=0:
+        base_short_report = get_metrics(df_qid_short, cut=cut, name='short',save_dir=save_dir)
+        report.update(base_short_report)
    
     
     df_qid = pd.concat([df_qid_long, df_qid_short])
@@ -166,13 +171,14 @@ def add_concept_win(save_dir, data_dir, report, stu_inter_num_dict, cut, data_di
     df_qid_test_win = data_dict['df_qid_test_win']
     df_qid_win_long, df_qid_win_short = paser_raw_data(qid_test_win, df_qid_test_win, stu_inter_num_dict)
 
-    base_win_long_report = get_metrics(df_qid_win_long, cut=cut, name='win_long',save_dir=save_dir)
-    report.update(base_win_long_report)
+    if len(df_qid_win_long)!=0:
+        base_win_long_report = get_metrics(df_qid_win_long, cut=cut, name='win_long',save_dir=save_dir)
+        report.update(base_win_long_report)
 
     
-    
-    base_win_short_report = get_metrics(df_qid_win_short, cut=cut, name='win_short',save_dir=save_dir)
-    report.update(base_win_short_report)
+    if len(df_qid_win_short)!=0:
+        base_win_short_report = get_metrics(df_qid_win_short, cut=cut, name='win_short',save_dir=save_dir)
+        report.update(base_win_short_report)
 
     
     df_qid_win = pd.concat([df_qid_win_long, df_qid_win_short])
@@ -208,20 +214,23 @@ def concept_update_l2(save_dir, data_dir, report, stu_inter_num_dict, cut, data_
         
     # 筛选需要计算的指标
     df_result_long = df_result[df_result['cidx'].isin(keep_cidx)].copy()
-    df_result_win_long = df_result_win[df_result_win['cidx'].isin(keep_cidx)].copy()
+    if len(df_result_long)!=0:
+        report.update(get_metrics(df_result_long, cut=cut, name='b200',save_dir=save_dir))
     
-    # update report
-    report.update(get_metrics(df_result_long, cut=cut, name='b200',save_dir=save_dir))
-    report.update(get_metrics(df_result_win_long, cut=cut, name='win_b200',save_dir=save_dir))
+    df_result_win_long = df_result_win[df_result_win['cidx'].isin(keep_cidx)].copy()
+    if len(df_result_win_long)!=0:
+        report.update(get_metrics(df_result_win_long, cut=cut, name='win_b200',save_dir=save_dir))
     
     
     # 小于200的指标
     df_result_short = df_result[~df_result['cidx'].isin(keep_cidx)].copy()
+    if len(df_result_short)!=0:
+        report.update(get_metrics(df_result_short, cut=cut, name='s200',save_dir=save_dir))
+        
     df_result_win_short = df_result_win[~df_result_win['cidx'].isin(keep_cidx)].copy()
+    if len(df_result_short)!=0:
+        report.update(get_metrics(df_result_win_short, cut=cut, name='win_s200',save_dir=save_dir))
     
-    # update report
-    report.update(get_metrics(df_result_short, cut=cut, name='s200',save_dir=save_dir))
-    report.update(get_metrics(df_result_win_short, cut=cut, name='win_s200',save_dir=save_dir))
 
 # question
 
@@ -272,29 +281,39 @@ def update_question_df(df):
 
 def que_update_ls_report(que_test, que_win_test, report,save_dir):
     # split
-    que_short = que_test[que_test['inter_num'] <= 200].reset_index()
-    que_long = que_test[que_test['inter_num'] > 200].reset_index()
-
-    que_win_short = que_win_test[que_win_test['inter_num']
-                                 <= 200].reset_index()
-    que_win_long = que_win_test[que_win_test['inter_num'] > 200].reset_index()
+    if len(que_test)!=0:
+        que_short = que_test[que_test['inter_num'] <= 200].reset_index()
+        que_long = que_test[que_test['inter_num'] > 200].reset_index()
+    else:
+        que_short = pd.DataFrame()
+        que_long = pd.DataFrame()
+   
+    if len(que_win_test)!=0:
+        que_win_short = que_win_test[que_win_test['inter_num']
+                                    <= 200].reset_index()
+        que_win_long = que_win_test[que_win_test['inter_num'] > 200].reset_index()
+    else:
+        que_win_short = pd.DataFrame()
+        que_win_long = pd.DataFrame()
 
     
     # update
     for y_pred_col in ['concept_preds', 'late_mean', 'late_vote', 'late_all', 'early_preds']:
         print(f"que_update_ls_report start {y_pred_col}")
-        if y_pred_col not in que_test.columns:
+        if len(que_test)!=0 and y_pred_col not in que_test.columns:
             print(f"skip {y_pred_col}")
             continue
         # long
-        report_long = get_metrics(que_long, y_true_col="late_trues",
-                                  y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
-        report.update(report_long)
+        if len(que_long)!=0:
+            report_long = get_metrics(que_long, y_true_col="late_trues",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_long',save_dir=save_dir)
+            report.update(report_long)
 
         # short
-        report_short = get_metrics(que_short, y_true_col="late_trues",
-                                   y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
-        report.update(report_short)
+        if len(que_short)!=0:
+            report_short = get_metrics(que_short, y_true_col="late_trues",
+                                    y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_short',save_dir=save_dir)
+            report.update(report_short)
 
         # long + short
         report_col = get_metrics(que_test, y_true_col="late_trues",
@@ -302,14 +321,16 @@ def que_update_ls_report(que_test, que_win_test, report,save_dir):
         report.update(report_col)
 
         # win long
-        report_win_long = get_metrics(que_win_long, y_true_col="late_trues",
-                                      y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
-        report.update(report_win_long)
+        if len(que_win_long)!=0:
+            report_win_long = get_metrics(que_win_long, y_true_col="late_trues",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_long',save_dir=save_dir)
+            report.update(report_win_long)
 
         # win short
-        report_win_short = get_metrics(que_win_short, y_true_col="late_trues",
-                                       y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
-        report.update(report_win_short)
+        if len(que_win_short)!=0:
+            report_win_short = get_metrics(que_win_short, y_true_col="late_trues",
+                                        y_pred_col=y_pred_col, cut=cut, name=f'{y_pred_col}_win_short',save_dir=save_dir)
+            report.update(report_win_short)
         
         # win long + win short
         report_win = get_metrics(que_win_test, y_true_col="late_trues",
@@ -359,38 +380,43 @@ def que_update_l2(que_test, que_win_test, report,save_dir):
 def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict):
     config = json.load(open(os.path.join(save_dir,"config.json")))
     emb_type = config['params']['emb_type']
-
-
-    que_test = pd.read_csv(os.path.join(
-        save_dir, f"{emb_type}_test_question_predictions.txt"), sep='\t')
-    que_test = update_question_df(que_test)
-
+    
     df_que_test = data_dict['df_que_test']
-
-    que_win_test = pd.read_csv(os.path.join(
-        save_dir, f"{emb_type}_test_question_window_predictions.txt"), sep='\t')
-    que_win_test = update_question_df(que_win_test)
-
-    df_que_win_test = data_dict['df_que_win_test']
-
     # 映射学生
     orirow_2_uid = {}
     for _, row in df_que_test.iterrows():
         orirow_2_uid[int(row['orirow'].split(',')[0])] = row['uid']
+   
+    try:
+        que_test = pd.read_csv(os.path.join(
+            save_dir, f"{emb_type}_test_question_predictions.txt"), sep='\t')
+        que_test = update_question_df(que_test)
+        # map
+        que_test['uid'] = que_test['orirow'].map(orirow_2_uid)
+        que_test['inter_num'] = que_test['uid'].map(stu_inter_num_dict)
+        save_df(que_test,'que_test',save_dir)
+    except:
+        que_test = pd.DataFrame()
 
-    # map
-    que_test['uid'] = que_test['orirow'].map(orirow_2_uid)
-    que_test['inter_num'] = que_test['uid'].map(stu_inter_num_dict)
+   
+    try:
+        que_win_test = pd.read_csv(os.path.join(
+            save_dir, f"{emb_type}_test_question_window_predictions.txt"), sep='\t')
+        que_win_test = update_question_df(que_win_test)
+        df_que_win_test = data_dict['df_que_win_test']
 
-    que_win_test['uid'] = que_win_test['orirow'].map(orirow_2_uid)
-    que_win_test['inter_num'] = que_win_test['uid'].map(stu_inter_num_dict)
+        que_win_test['uid'] = que_win_test['orirow'].map(orirow_2_uid)
+        que_win_test['inter_num'] = que_win_test['uid'].map(stu_inter_num_dict)
+        save_df(que_win_test,'que_win_test',save_dir)
+    except:
+        que_win_test = pd.DataFrame()
 
     # print("Start 基于题目的长短序列")
     try:
         print("Start 基于题目的长短序列")
         que_update_ls_report(que_test, que_win_test, report,save_dir=save_dir)  # short long 结果
     except:
-         print("Fail 基于题目的长短序列")
+        print("Fail 基于题目的长短序列")
 
     # print("Start 基于题目的>200部分")
     
@@ -398,10 +424,9 @@ def add_question_report(save_dir, data_dir, report, stu_inter_num_dict, cut, dat
         print("Start 基于题目的>200部分")
         que_update_l2(que_test, que_win_test, report,save_dir=save_dir)  # 大于200部分的结果
     except:
-         print("Start 基于题目的>200部分")
+        print("Start 基于题目的>200部分")
          
-    save_df(que_test,'que_test',save_dir)
-    save_df(que_win_test,'que_win_test',save_dir)
+   
     que_test = None
     return que_test,que_win_test
 
@@ -428,21 +453,21 @@ def get_one_result(root_save_dir, stu_inter_num_dict, data_dict, cut, skip=False
                 print("Start 知识点非win")
                 add_concepts(save_dir, data_dir, report,stu_inter_num_dict, cut, data_dict)
             except:
-                print("Fail 知识点非win")
+                print(f"Fail 知识点非win,details is {traceback.format_exc()}")
 
             #知识点win
             try:
                 print("Start 知识点win")
                 add_concept_win(save_dir, data_dir, report,stu_inter_num_dict, cut, data_dict)
             except:
-                print("Fail 知识点win")
+                print(f"Fail 知识点win,details is {traceback.format_exc()}")
 
             #长短序列
             try:
                 print("Start 知识点长短序列")
                 concept_update_l2(save_dir, data_dir, report, stu_inter_num_dict, cut, data_dict)
             except:
-                print("Fail 知识点长短序列")
+                print(f"Fail 知识点长短序列,details is {traceback.format_exc()}")
 
             
             if not data_dict['df_que_test'] is None:
@@ -496,7 +521,7 @@ def get_one_result_help(dataset, model_name,model_root_dir,data_root_dir):
 if __name__ == "__main__":
     # model_root_dir = "/root/autodl-nas/liuqiongqiong/bakt/pykt-toolkit/examples/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
-    model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path_1002"
+    model_root_dir = "/root/autodl-nas/project/full_result_pykt/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_qikt/examples/best_model_path"
     data_root_dir = '/root/autodl-nas/project/pykt_nips2022/data'
     

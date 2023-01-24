@@ -24,31 +24,29 @@ def main(params):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
                 for _type in [["qid"]]:
-                    
-                    for fold in folds.split(","):
-                        _type = [str(k) for k in _type]
-                        fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
-                        ftarget = os.path.join(all_dir, fname)
-                        fpath = m + ".yaml"
-                        fpath = os.path.join(src_dir, fpath)
-                        print(fpath, ftarget)
-                        with open(fpath, "r") as fin,\
-                            open(ftarget, "w") as fout:
-                            data = fin.read()
-        #                     data = data.replace("[\"dkt\"]", "[\"" + m + "\"]")
-                            data = data.replace("xes", dataset_name)
-                            data = data.replace("tiaocan", "tiaocan_"+dataset_name+save_dir_suffix)
-                            if "[\"qid" in data and "[\"qid\"]" not in data: 
-                                pass
-                            else:
+                    for ab_mode in args.ab_types.split(','):
+                        for fold in folds.split(","):
+                            _type = [str(k) for k in _type]
+                            fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") +"_"+ab_mode+ "_" + str(fold) + ".yaml"
+                            ftarget = os.path.join(all_dir, fname)
+                            fpath = m + "_ab.yaml"
+                            fpath = os.path.join(src_dir, fpath)
+                            print(fpath, ftarget)
+                            with open(fpath, "r") as fin,\
+                                open(ftarget, "w") as fout:
+                                data = fin.read()
+            #                     data = data.replace("[\"dkt\"]", "[\"" + m + "\"]")
+                                data = data.replace("xes", dataset_name)
+                                data = data.replace("tiaocan", "tiaocan_"+dataset_name+save_dir_suffix)
                                 data = data.replace("[\"qid\"]", str(_type))
-                            data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
-                            data = data.replace('BATCH_SIZE',str(params["batch_size"]))
-                            fout.write("name: " + fname.split(".")[0] + "\n")
-                            fout.write(data)
-                        
-                        if not generate_all:
-                            fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
+                                data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
+                                data = data.replace('AB_MODE', ab_mode)
+                                data = data.replace('BATCH_SIZE',str(params["batch_size"]))
+                                fout.write("name: " + fname.split(".")[0] + "\n")
+                                fout.write(data)
+                            
+                            if not generate_all:
+                                fallsh.write(pre + ftarget + " -p {}".format(project_name) + "\n")
         
         if generate_all:
             files = os.listdir(all_dir)
@@ -62,7 +60,8 @@ if __name__ == "__main__":
     parser.add_argument("--src_dir", type=str, default="./seedwandb/")
     parser.add_argument("--project_name", type=str, default="kt_toolkits")
     parser.add_argument("--dataset_names", type=str, default="assist2015")
-    parser.add_argument("--model_names", type=str, default="dkt,dkt+,dkt_forget,kqn,atktfix,dkvmn,sakt,saint,akt,gkt")
+    parser.add_argument("--model_names", type=str, default="dkt")
+    parser.add_argument("--ab_types", type=str, default="a+b+c+irt,a+b+c,a+c+irt,a+b+irt,a+irt,b+irt")
     parser.add_argument("--folds", type=str, default="0,1,2,3,4")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--save_dir_suffix", type=str, default="")

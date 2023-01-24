@@ -1,0 +1,36 @@
+program: wandb_qikt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["qikt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["iekt"]
+    save_dir:
+        values: ["models/xdkt_tiaocan"]
+    emb_size:
+        values: [64, 256]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
+    mlp_layer_num:
+        values: [1,2]
+    loss_c_all_lambda:
+        values: [0,0.5,1,1.5,2]
+    loss_q_all_lambda:
+        values: [0,0.5,1,1.5,2]
+    loss_c_next_lambda:
+        values: [0,0.5,1,1.5,2]
+    output_mode:
+        values: ['OUTPUT_MODEL']
+    batch_size:
+        values: [32]

@@ -48,6 +48,7 @@ class CIntegration(Module):
 
         ntotal = num_rgap + num_sgap + num_pcount
         self.cemb = Linear(ntotal, emb_dim, bias=False)
+        print(f"num_sgap: {num_sgap}, num_rgap: {num_rgap}, num_pcount: {num_pcount}, ntotal: {ntotal}")
         # print(f"total: {ntotal}, self.cemb.weight: {self.cemb.weight.shape}")
 
     def forward(self, vt, rgap, sgap, pcount):

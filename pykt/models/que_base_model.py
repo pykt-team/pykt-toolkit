@@ -352,12 +352,12 @@ class QueBaseModel(nn.Module):
         return start_index,seq_len
 
    
-    def _evaluate_multi_ahead_accumulative(self,data_config,batch_size=1,ob_portions=0.5,acc_threshold=0.5):
+    def _evaluate_multi_ahead_accumulative(self,data_config,batch_size=1,ob_portions=0.5,acc_threshold=0.5,max_len=200):
        
-        testf = os.path.join(data_config["dpath"], "test.csv")
+        testf = os.path.join(data_config["dpath"], "test_quelevel.csv")
         df = pd.read_csv(testf)
         print("total sequence length is {}".format(len(df)))
-
+        # max_len = data_config["maxlen"]
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
@@ -372,13 +372,14 @@ class QueBaseModel(nn.Module):
                 cur_r = torch.tensor(seq_y_pred_hist).unsqueeze(0).to(self.device)
                 # print(f"cur_q is {cur_q} shape is {cur_q.shape}")
                 # print(f"cur_r is {cur_r} shape is {cur_r.shape}")
-                cq = torch.cat([hist_q,cur_q],axis=1)
-                cc = torch.cat([hist_c,cur_c],axis=1)
-                cr = torch.cat([hist_r,cur_r],axis=1)
+                cq = torch.cat([hist_q,cur_q],axis=1)[:,-max_len:]
+                cc = torch.cat([hist_c,cur_c],axis=1)[:,-max_len:]
+                cr = torch.cat([hist_r,cur_r],axis=1)[:,-max_len:]
                 # print(f"cc_full is {cc_full}")
                 # print(f"cr is {cr} shape is {cr.shape}")
                 # print(f"cq is {cq} shape is {cq.shape}")
                 data = [cq,cc,cr]
+                # print(f"cq.shape is {cq.shape}")
                 cq,cc,cr = [x.to(self.device) for x in data]#full sequence,[1,n]
                 q,c,r = [x[:,:-1].to(self.device) for x in data]#[0,n-1]
                 qshft,cshft,rshft = [x[:,1:].to(self.device) for x in data]#[1,n]
@@ -410,9 +411,9 @@ class QueBaseModel(nn.Module):
         Returns:
             dataset: new dataset for multi-ahead prediction
         """
-        testf = os.path.join(data_config["dpath"], "test.csv")
+        testf = os.path.join(data_config["dpath"], "test_quelevel.csv")
         df = pd.read_csv(testf)
-        print("total sequence length is {}".format(len(df)))
+        print("total sequence length is {}".format(len(df))) 
         y_pred_list = []
         y_true_list = []
         for i, row in df.iterrows():
@@ -458,7 +459,7 @@ class QueBaseModel(nn.Module):
 
         return auc,acc
 
-    def evaluate_multi_ahead(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5,accumulative=False):
+    def evaluate_multi_ahead(self,data_config,batch_size,ob_portions=0.5,acc_threshold=0.5,accumulative=False,max_len=200):
         """Predictions in the multi-step ahead prediction scenario
 
         Args:
@@ -475,7 +476,7 @@ class QueBaseModel(nn.Module):
         with torch.no_grad():
             if accumulative:
                 print("predict use accumulative")
-                auc,acc = self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
+                auc,acc = self._evaluate_multi_ahead_accumulative(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold,max_len=max_len)
             else:
                 print("predict use no accumulative")
                 auc,acc = self._evaluate_multi_ahead_help(data_config,batch_size=batch_size,ob_portions=ob_portions,acc_threshold=acc_threshold)
