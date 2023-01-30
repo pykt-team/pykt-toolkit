@@ -14,12 +14,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--final_fc_dim", type=int, default=256)
     parser.add_argument("--final_fc_dim2", type=int, default=256)
-    parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--nheads", type=int, default=4)
-    parser.add_argument("--loss1", type=float, default=0.5)
-    parser.add_argument("--loss2", type=float, default=0.5)
-    parser.add_argument("--loss3", type=float, default=0.5)
-    parser.add_argument("--start", type=int, default=50)
     
     parser.add_argument("--d_model", type=int, default=256)
     parser.add_argument("--d_ff", type=int, default=256)

@@ -21,7 +21,7 @@ class DKTQueNet(nn.Module):
         self.dropout_layer = nn.Dropout(dropout)
         self.out_layer = nn.Linear(self.hidden_size, num_q)
 
-        if self.emb_type == "qaid+qc_merge+predc":
+        if self.emb_type == "qaid+qc_merge":
             from .utils import transformer_FFN
             self.dnn =  transformer_FFN(self.emb_size, dropout)
             self.cpredict = nn.Linear(self.emb_size, self.num_c)

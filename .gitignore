@@ -64,3 +64,4 @@ examples/qikt_improve/
 examples/*.txt
 examples/nips2022-peiyou/
 examples/nips2022-ednet/
+data
