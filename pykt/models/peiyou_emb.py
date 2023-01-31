@@ -122,7 +122,7 @@ class KCRouteEncoder(Module):
         elif self.emb_type.endswith("rcon"): # only route content
             cemb = cemb2
         elif self.emb_type.endswith("rcadd"): # use
-            print("in rcadd!")
+            # print("in rcadd!")
             cemb = cemb1 + cemb2
         elif self.emb_type.endswith("rcmul"):
             cemb = torch.mul(cemb1, cemb2)
