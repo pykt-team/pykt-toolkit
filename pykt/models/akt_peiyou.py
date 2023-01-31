@@ -6,7 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
-from .peiyou_emb import KCRouteEncoder
+from .peiyou_emb import KCRouteEncoder, QuestionEncoder
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -43,30 +43,37 @@ class AKTPeiyou(nn.Module):
         self.n_question = n_croutes if emb_type.find("rc") != -1 else n_question
         
         if self.n_pid > 0:
-            self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
             ####
             # 此处的变化也需要改成在route上的变化
-            if emb_type.find("rc") == -1:
+            if emb_type.find("rc") == -1 and emb_type.find("tail") == -1:
+                self.difficult_param = nn.Embedding(self.n_pid+1, 1) # 题目难度
                 self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             else: # 用了route
+                ####
+                self.question_emb = QuestionEncoder(n_pid, emb_type, embed_l, dropout, dpretrain)
+                self.difficult_param = nn.Sequential(
+                    nn.Dropout(self.dropout),
+                    nn.Linear(embed_l, 1)
+                )
+                ####
                 self.q_embed_diff = KCRouteEncoder(num_level, self.n_question, emb_type, embed_l, dropout, dpretrain["kc_embs"][0],dpretrain["kc_embs"][1])
             ####
             self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
         
-        if emb_type.startswith("qid"): # akt has no question encoder
+        # if emb_type.startswith("qid"): # akt has no question encoder
             # n_question+1 ,d_model
-            if emb_type.find("rc") == -1:
-                self.q_embed = nn.Embedding(self.n_question, embed_l)
-            else: # 用了route
-                ####
-                # change to pretrain
-                # 实际是知识点的embedding
-                self.q_embed = KCRouteEncoder(num_level, self.n_question, emb_type, embed_l, dropout, dpretrain["kc_embs"][0],dpretrain["kc_embs"][1])
-                ####
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
+        if emb_type.find("rc") == -1 and emb_type.find("tail") == -1:
+            self.q_embed = nn.Embedding(self.n_question, embed_l)
+        else: # 用了route
+            ####
+            # change to pretrain
+            # 实际是知识点的embedding
+            self.q_embed = KCRouteEncoder(num_level, self.n_question, emb_type, embed_l, dropout, dpretrain["kc_embs"][0],dpretrain["kc_embs"][1])
+            ####
+        if self.separate_qa: 
+            self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l) # interaction emb
+        else: # false default
+            self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=self.n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
@@ -86,7 +93,7 @@ class AKTPeiyou(nn.Module):
                 torch.nn.init.constant_(p, 0.)
 
     def base_emb(self, kc_routes, q_data, target):
-        if self.emb_type.find("rc") == -1:
+        if self.emb_type.find("rc") == -1 and self.emb_type.find("tail") == -1:
             q_embed_data = self.q_embed(q_data)
         else:
             q_embed_data = self.q_embed(kc_routes, q_data)  # BS, seqlen,  d_model# c_ct
@@ -96,8 +103,10 @@ class AKTPeiyou(nn.Module):
     def forward(self, dcur, qtest=False):
         q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
         qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
-        
+        qtypes, qtypesshft = dcur["qtypes"], dcur["shft_qtypes"]
+
         pid_data = torch.cat((q[:,0:1], qshft), dim=1).long()
+        cqtypes = torch.cat((qtypes[:,0:1], qtypesshft), dim=1).long()
         q_data = torch.cat((c[:,0:1], cshft), dim=1).long()
         target = torch.cat((r[:,0:1], rshft), dim=1).long()
         
@@ -105,18 +114,23 @@ class AKTPeiyou(nn.Module):
         kc_routes = torch.cat((kcr[:,0:1,:], kcrshft), dim=1).long()
         emb_type = self.emb_type
         # Batch First
-        if emb_type.startswith("qid"):
-            q_embed_data, qa_embed_data = self.base_emb(kc_routes, q_data, target)
+        # if emb_type.startswith("qid"):
+        q_embed_data, qa_embed_data = self.base_emb(kc_routes, q_data, target)
             
             # print(f"q_embed_data: {q_embed_data}")
             # assert False
 
         if self.n_pid > 0: # have problem id
-            if emb_type.find("rc") == -1:
+            if emb_type.find("rc") == -1 and self.emb_type.find("tail") == -1:
                 q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+                pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
             else:
                 q_embed_diff_data = self.q_embed_diff(kc_routes, q_data)
-            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
+                ##
+                qembs = self.question_emb(pid_data, cqtypes)
+                pid_embed_data = self.difficult_param(qembs)
+                ##
+            
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 

@@ -48,6 +48,7 @@ class QueEmb(nn.Module):
         self.pretrain_dim = pretrain_dim
 
         # if emb_type in ["qc_merge","qaid_qc"]:
+        ## iekt: qc_merge
         if "qc_merge" in emb_type:
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
@@ -103,6 +104,7 @@ class QueEmb(nn.Module):
 
     def forward(self,q,c,r=None):
         emb_type = self.emb_type
+        ## iekt: qc_merge
         if "qc_merge" in emb_type:
             concept_avg = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             que_emb = self.que_emb(q)#[batch,max_len-1,emb_size]
@@ -121,7 +123,7 @@ class QueEmb(nn.Module):
             que_c_emb = self.que_c_linear(que_c_emb)#[batch,max_len-1,emb_size]
             xemb = xemb + que_c_emb
             # print("qid+qc_merge")
-        elif emb_type=="qc_merge":
+        elif emb_type=="qc_merge": ## iekt: qc_merge
             # print("qc_merge")
             xemb = que_c_emb
         elif emb_type =="qaid_qc":

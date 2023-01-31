@@ -77,7 +77,7 @@ def main(params):
             train_config["batch_size"] = 16 
         if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
-        if model_name in ["akt_peiyou"]:
+        if model_name in ["akt_peiyou", "iekt_peiyou"]:
             train_config["batch_size"] = 64
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
@@ -136,7 +136,7 @@ def main(params):
                 weight_p.append(p)
         optdict = [{'params': weight_p}, {'params': bias_p, 'weight_decay': 0}]
         opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
-    elif model_name == "iekt":
+    elif model_name in ["iekt", "iekt_peiyou"]:
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
     else:
         if optimizer == "sgd":

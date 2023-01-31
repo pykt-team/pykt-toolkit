@@ -1,4 +1,4 @@
-que_type_models = ["iekt","qdkt","qikt","lpkt"]
+que_type_models = ["iekt","iekt_peiyou","qdkt","qdkt_peiyou","qikt","lpkt"]
 
 qikt_ab_models = ["qikt_ab_a+b+c","qikt_ab_a+b+c+irt","qikt_ab_a+b+irt","qikt_ab_a+c+irt","qikt_ab_a+irt","qikt_ab_b+irt"]
 

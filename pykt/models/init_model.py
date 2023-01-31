@@ -25,6 +25,8 @@ from .bakt_time import BAKTTime
 from .qdkt import QDKT
 from .qikt import QIKT
 from .akt_peiyou import AKTPeiyou
+from .iekt_peiyou import IEKTPeiyou
+from .qdkt_peiyou import QDKTPeiyou
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -108,9 +110,25 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+    elif model_name == "iekt_peiyou":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = IEKTPeiyou(num_q=data_config['num_q'], num_croutes=data_config["num_croutes"], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=dpretrain, device=device).to(device)   
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
+    elif model_name == "qdkt_peiyou":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = QDKTPeiyou(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=dpretrain,device=device).to(device)
     elif model_name == "qikt":
         model = QIKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
