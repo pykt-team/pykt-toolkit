@@ -52,7 +52,7 @@ class AKTPeiyou(nn.Module):
                 ####
                 self.question_emb = QuestionEncoder(n_pid, emb_type, embed_l, dropout, dpretrain)
                 self.difficult_param = nn.Sequential(
-                    nn.Dropout(self.dropout),
+                    nn.Dropout(self.dropout), nn.ReLU(),
                     nn.Linear(embed_l, 1)
                 )
                 ####
