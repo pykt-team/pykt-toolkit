@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from .peiyou_emb import QueBaseModelPeiyou, QuestionEncoder
+from .peiyou_emb import QueBaseModelPeiyou, QuestionEncoder, KCRouteEncoder
 from pykt.utils import debug_print
 
 class QDKTNetPeiyou(nn.Module):
@@ -19,6 +19,7 @@ class QDKTNetPeiyou(nn.Module):
         self.emb_type = emb_type
         
         self.que_emb = QuestionEncoder(num_q, emb_type, emb_size, dropout, emb_path, pretrain_dim)
+        # self.que_emb = KCRouteEncoder(10, 1175, emb_type, emb_size, dropout, emb_path["kc_embs"][0], emb_path["kc_embs"][1], model_name="iekt_peiyou")
         # self.que_emb = nn.Embedding(self.num_q, self.emb_size)
 
         self.interaction_emb = nn.Embedding(self.num_q * 2, self.emb_size)
@@ -29,8 +30,12 @@ class QDKTNetPeiyou(nn.Module):
 
     def forward(self, q, qtypes, c ,r,data=None):
         qemb = self.que_emb(q[:,:-1], qtypes[:,:-1])
+        # qemb = self.que_emb(None, c[:,:-1,:])
         x = (q + self.num_q * r)[:,:-1]
         xemb = self.interaction_emb(x)
+        # print(qemb)
+        # print(xemb)
+        # assert False
         xemb = xemb + qemb
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)

@@ -51,11 +51,18 @@ class RobertaEncode(Module): # OOM
         
         if add > 0:
             embs = torch.cat([torch.zeros(add, pretrain_dim).to(device), embs], dim=0)
+        # embs = embs*0.0001
+        # import numpy as np
+        # # embs = torch.rand(embs.shape[0], embs.shape[1]).to(device)
+        # embs = torch.rand(embs.shape[0], emb_size).to(device)
+        # pretrain_dim = emb_size
+        # embs = torch.tensor(embs, dtype=float).to(device)
         self.emb_layer = Embedding.from_pretrained(embs)
         print(f"add: {add}, emb len: {len(embs)}")
-        self.l1 = Linear(pretrain_dim, pretrain_dim)
-        self.dropout = Dropout(dropout)
-        self.l2 = Linear(pretrain_dim, emb_size)
+        self.reduction = nn.Sequential(
+            Dropout(dropout), Linear(pretrain_dim, pretrain_dim//2), ReLU(),
+            Dropout(dropout), Linear(pretrain_dim//2, emb_size)
+        )
     
     def load_embs(self, emb_path):
         embs = []
@@ -64,9 +71,14 @@ class RobertaEncode(Module): # OOM
             obj = json.load(fin)
         for i in range(0, len(obj)):
             embs.append(obj[str(i)])
+        # if emb_path.find("content") != -1:
+        #     print(f"emb_path: {emb_path}, 1100: {embs[1100]}")
         return embs
     
     def forward(self, qs):
-        e = self.l2(self.dropout(self.l1(self.emb_layer(qs))))
+        # print(qs)
+        # print(self.emb_layer(torch.LongTensor([[1100]]).to(device)))
+        # assert False
+        e = self.reduction((self.emb_layer(qs)))
         return e
         

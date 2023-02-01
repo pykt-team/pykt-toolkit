@@ -36,7 +36,7 @@ class QuestionEncoder(Module):
             # print(qid_emb)
             # print(cont_emb)
             # assert False
-            return qid_emb + type_emb
+            return qid_emb + cont_emb
         
         if self.emb_type.startswith("qadd"):
             return qid_emb + cont_emb + ana_emb + type_emb
