@@ -25,16 +25,16 @@ def init_test_datasets(data_config, model_name, batch_size):
             test_question_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     elif model_name in ["akt_peiyou"]:
         print("in akt_peiyou dataloader!")
-        test_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+        # test_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        # test_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
         if "test_question_file" in data_config:
-            test_question_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
+            # test_question_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
         print("in iekt_peiyou dataloader!")
-        test_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=[-1], 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        # test_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
+        #                 input_type=data_config["input_type"], folds=[-1], 
+        #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
         test_window_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
                         input_type=data_config["input_type"], folds=[-1], 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
@@ -68,9 +68,14 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             # test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
+    if model_name in ["akt_peiyou"]:
+        test_loader, test_window_dataset = None, None
+    elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
+        test_loader = None
+        test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
+    else:
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
     if "test_question_file" in data_config:
         print(f"has test_question_file!")
         test_question_loader,test_question_window_loader = None,None
@@ -117,10 +122,11 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, aug
         curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     elif model_name in ["akt_peiyou"]:
+        print("in akt_peiyou dataloader!")
         curtrain = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, False)
         curvalid = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
     elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
-        print("in iekt_peiyou dataloader!")
+        print(f"in {model_name} dataloader!")
         curvalid = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                         input_type=data_config["input_type"], folds={i}, 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
