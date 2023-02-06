@@ -59,15 +59,18 @@ def main(params):
         # model_name = model_name.split("_")[0]
         return
     # test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
-    save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
-    testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
-    print(f"testauc: {testauc}, testacc: {testacc}")
+    testauc, testacc = -1, -1
+    if test_loader != None:
+        save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
+        testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
+        print(f"testauc: {testauc}, testacc: {testacc}")
     # assert False
 
     window_testauc, window_testacc = -1, -1
-    save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
-    window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
-    print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    if test_window_loader != None:
+        save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
+        print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
     # question_testauc, question_testacc = -1, -1
     # question_window_testauc, question_window_testacc = -1, -1
@@ -86,9 +89,9 @@ def main(params):
             dres["oriauc"+key] = q_testaucs[key]
         for key in q_testaccs:
             dres["oriacc"+key] = q_testaccs[key]
-            
+    '''       
     dres = dict()
-    '''
+    
     if "test_question_window_file" in data_config and not test_question_window_loader is None:
         save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
         qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path)
@@ -110,7 +113,7 @@ def main(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bz", type=int, default=256)
+    parser.add_argument("--bz", type=int, default=32)
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--save", type=str, default="False")
     parser.add_argument("--fusion_type", type=str, default="late_fusion")

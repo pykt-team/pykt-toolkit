@@ -36,5 +36,14 @@
             "models/saint_tiaocan_algebra2005/algebra2005_saint_qid_models/saint_tiaocan_algebra2005_3407_3_0.3_256_0.001_4_2_1_1_ca32c14e-ec95-4de3-8240-74f0ae8f13ab/",
             "models/saint_tiaocan_algebra2005/algebra2005_saint_qid_models/saint_tiaocan_algebra2005_3407_4_0.3_256_0.0001_8_4_1_1_32d7136f-4690-4c4f-8a36-00c0d596c2ce/"
         ]
+    },
+    "peiyou2": {
+        "model_path_fold_first": [
+            "./best_model_path/peiyou2/qdkt_peiyou/qdkt_peiyou_tiaocan_peiyou2_42_0_0.5_64_0.001_32_200_1_1_d3c1d9d1-43a1-47c5-bf6f-df6704362605",
+            "./best_model_path/peiyou2/qdkt_peiyou/qdkt_peiyou_tiaocan_peiyou2_42_1_0.5_64_0.001_32_200_1_1_2efc030d-5f9e-408a-aec7-458d708fb0f5",
+            "./best_model_path/peiyou2/qdkt_peiyou/qdkt_peiyou_tiaocan_peiyou2_42_2_0.5_64_0.001_32_200_1_1_f5096ecb-7bd3-4536-8b2e-354ebd07c65a",
+            "./best_model_path/peiyou2/qdkt_peiyou/qdkt_peiyou_tiaocan_peiyou2_3407_3_0.5_64_0.001_32_200_1_1_1529da42-ee6c-4d25-ae5c-f4dd92694f70",
+            "./best_model_path/peiyou2/qdkt_peiyou/qdkt_peiyou_tiaocan_peiyou2_3407_4_0.5_64_0.001_32_200_1_1_34f1879a-07cc-407f-81a1-0d639425757a"
+        ]
     }
 }

@@ -497,6 +497,7 @@ class WandbUtils:
         if len(all_res) < 5:
             print("Failure running exists, please check!!!")
             return
+        '''
         repeated_aucs = np.unique(all_res["testauc"].values)
         repeated_accs = np.unique(all_res["testacc"].values)
         repeated_window_aucs = np.unique(all_res["window_testauc"].values)
@@ -510,79 +511,84 @@ class WandbUtils:
             print(key + "_repeated:", "%.4f"%repeated_auc_mean + "±" + "%.4f"%repeated_auc_std + "," + "%.4f"%repeated_acc_mean + "±" + "%.4f"%repeated_acc_std + "," + "%.4f"%repeated_winauc_mean + "±" + "%.4f"%repeated_winauc_std + "," + "%.4f"%repeated_winacc_mean + "±" + "%.4f"%repeated_winacc_std) 
         else:
             print(key + "_repeated:", "%.4f"%repeated_auc_mean + "," + "%.4f"%repeated_acc_mean + "," + "%.4f"%repeated_winauc_mean + "," + "%.4f"%repeated_winacc_mean)
-        try:       
-            question_aucs = np.unique(all_res["oriaucconcepts"].values)
-            question_accs = np.unique(all_res["oriaccconcepts"].values)
+        '''
+        try: 
+            # question_aucs = np.unique(all_res["oriaucconcepts"].values)
+            # question_accs = np.unique(all_res["oriaccconcepts"].values)
             question_window_aucs = np.unique(all_res["windowaucconcepts"].values)
             question_window_accs = np.unique(all_res["windowaccconcepts"].values)
-            question_auc_mean, question_auc_std = np.mean(question_aucs), np.std(question_aucs, ddof=0)
-            question_acc_mean, question_acc_std = np.mean(question_accs), np.std(question_accs, ddof=0)
+            # question_auc_mean, question_auc_std = np.mean(question_aucs), np.std(question_aucs, ddof=0)
+            # question_acc_mean, question_acc_std = np.mean(question_accs), np.std(question_accs, ddof=0)
             question_winauc_mean, question_winauc_std = np.mean(question_window_aucs), np.std(question_window_aucs, ddof=0)
             question_winacc_mean, question_winacc_std = np.mean(question_window_accs), np.std(question_window_accs, ddof=0)
             key = dataset_name + "_" + model_name
             if print_std:
-                print(key + "_concepts:", "%.4f"%question_auc_mean + "±" + "%.4f"%question_auc_std + "," + "%.4f"%question_acc_mean + "±" + "%.4f"%question_acc_std + "," + "%.4f"%question_winauc_mean + "±" + "%.4f"%question_winauc_std + "," + "%.4f"%question_winacc_mean + "±" + "%.4f"%question_winacc_std) 
+                # print(key + "_concepts:", "%.4f"%question_auc_mean + "±" + "%.4f"%question_auc_std + "," + "%.4f"%question_acc_mean + "±" + "%.4f"%question_acc_std)
+                print(key + "_winconcepts:", "%.4f"%question_winauc_mean + "±" + "%.4f"%question_winauc_std + "," + "%.4f"%question_winacc_mean + "±" + "%.4f"%question_winacc_std)
             else:
-                print(key + "_concepts:", "%.4f"%question_auc_mean + "," + "%.4f"%question_acc_mean + "," + "%.4f"%question_winauc_mean + "," + "%.4f"%question_winacc_mean) 
+                # print(key + "_concepts:", "%.4f"%question_auc_mean + "," + "%.4f"%question_acc_mean) 
+                print(key + "_winconcepts:", "%.4f"%question_winauc_mean + "," + "%.4f"%question_winacc_mean)
         except:
             print(f"{model_name} don't have question tag!!!")
             return
 
-        try:
-            early_aucs = np.unique(all_res["oriaucearly_preds"].values)
-            early_accs = np.unique(all_res["oriaccearly_preds"].values)
-            early_window_aucs = np.unique(all_res["windowaucearly_preds"].values)
-            early_window_accs = np.unique(all_res["windowaccearly_preds"].values)
-            early_auc_mean, early_auc_std = np.mean(early_aucs), np.std(early_aucs, ddof=0)
-            early_acc_mean, early_acc_std = np.mean(early_accs), np.std(early_accs, ddof=0)
-            early_winauc_mean, early_winauc_std = np.mean(early_window_aucs), np.std(early_window_aucs, ddof=0)
-            early_winacc_mean, early_winacc_std = np.mean(early_window_accs), np.std(early_window_accs, ddof=0)
-            key = dataset_name + "_" + model_name
-            if print_std:
-                print(key + "_early:", "%.4f"%early_auc_mean + "±" + "%.4f"%early_auc_std + "," + "%.4f"%early_acc_mean + "±" + "%.4f"%early_acc_std + "," + "%.4f"%early_winauc_mean + "±" + "%.4f"%early_winauc_std + "," + "%.4f"%early_winacc_mean + "±" + "%.4f"%early_winacc_std)
-            else:
-                print(key + "_early:", "%.4f"%early_auc_mean + "," + "%.4f"%early_acc_mean + "," + "%.4f"%early_winauc_mean + "," + "%.4f"%early_winacc_mean)         
-        except:
-            print(f"{model_name} don't have early fusion!!!")
+        # try:
+        #     early_aucs = np.unique(all_res["oriaucearly_preds"].values)
+        #     early_accs = np.unique(all_res["oriaccearly_preds"].values)
+        #     early_window_aucs = np.unique(all_res["windowaucearly_preds"].values)
+        #     early_window_accs = np.unique(all_res["windowaccearly_preds"].values)
+        #     early_auc_mean, early_auc_std = np.mean(early_aucs), np.std(early_aucs, ddof=0)
+        #     early_acc_mean, early_acc_std = np.mean(early_accs), np.std(early_accs, ddof=0)
+        #     early_winauc_mean, early_winauc_std = np.mean(early_window_aucs), np.std(early_window_aucs, ddof=0)
+        #     early_winacc_mean, early_winacc_std = np.mean(early_window_accs), np.std(early_window_accs, ddof=0)
+        #     key = dataset_name + "_" + model_name
+        #     if print_std:
+        #         print(key + "_early:", "%.4f"%early_auc_mean + "±" + "%.4f"%early_auc_std + "," + "%.4f"%early_acc_mean + "±" + "%.4f"%early_acc_std + "," + "%.4f"%early_winauc_mean + "±" + "%.4f"%early_winauc_std + "," + "%.4f"%early_winacc_mean + "±" + "%.4f"%early_winacc_std)
+        #     else:
+        #         print(key + "_early:", "%.4f"%early_auc_mean + "," + "%.4f"%early_acc_mean + "," + "%.4f"%early_winauc_mean + "," + "%.4f"%early_winacc_mean)         
+        # except:
+        #     print(f"{model_name} don't have early fusion!!!")
 
-        late_mean_aucs = np.unique(all_res["oriauclate_mean"].values)
-        late_mean_accs = np.unique(all_res["oriacclate_mean"].values)
+        # late_mean_aucs = np.unique(all_res["oriauclate_mean"].values)
+        # late_mean_accs = np.unique(all_res["oriacclate_mean"].values)
         late_mean_window_aucs = np.unique(all_res["windowauclate_mean"].values)
         late_mean_window_accs = np.unique(all_res["windowacclate_mean"].values)
-        latemean_auc_mean, latemean_auc_std = np.mean(late_mean_aucs), np.std(late_mean_aucs, ddof=0)
-        latemean_acc_mean, latemean_acc_std = np.mean(late_mean_accs), np.std(late_mean_accs, ddof=0)
+        # latemean_auc_mean, latemean_auc_std = np.mean(late_mean_aucs), np.std(late_mean_aucs, ddof=0)
+        # latemean_acc_mean, latemean_acc_std = np.mean(late_mean_accs), np.std(late_mean_accs, ddof=0)
         latemean_winauc_mean, latemean_winauc_std = np.mean(late_mean_window_aucs), np.std(late_mean_window_aucs, ddof=0)
         latemean_winacc_mean, latemean_winacc_std = np.mean(late_mean_window_accs), np.std(late_mean_window_accs, ddof=0)
         key = dataset_name + "_" + model_name
         if print_std:
-            print(key + "_latemean:", "%.4f"%latemean_auc_mean + "±" + "%.4f"%latemean_auc_std + "," + "%.4f"%latemean_acc_mean + "±" + "%.4f"%latemean_acc_std + "," + "%.4f"%latemean_winauc_mean + "±" + "%.4f"%latemean_winauc_std + "," + "%.4f"%latemean_winacc_mean + "±" + "%.4f"%latemean_winacc_std)
+            # print(key + "_latemean:", "%.4f"%latemean_auc_mean + "±" + "%.4f"%latemean_auc_std + "," + "%.4f"%latemean_acc_mean + "±" + "%.4f"%latemean_acc_std)
+            print(key + "_winlatemean:", "%.4f"%latemean_winauc_mean + "±" + "%.4f"%latemean_winauc_std + "," + "%.4f"%latemean_winacc_mean + "±" + "%.4f"%latemean_winacc_std)
         else:
-            print(key + "_latemean:", "%.4f"%latemean_auc_mean + "," + "%.4f"%latemean_acc_mean + "," + "%.4f"%latemean_winauc_mean + "," + "%.4f"%latemean_winacc_mean)
+            # print(key + "_latemean:", "%.4f"%latemean_auc_mean + "," + "%.4f"%latemean_acc_mean)
+            print(key + "_winlatemean:", "%.4f"%latemean_winauc_mean + "," + "%.4f"%latemean_winacc_mean)
 
-        late_vote_aucs = np.unique(all_res["oriauclate_vote"].values)
-        late_vote_accs = np.unique(all_res["oriacclate_vote"].values)
-        late_vote_window_aucs = np.unique(all_res["windowauclate_vote"].values)
-        late_vote_window_accs = np.unique(all_res["windowacclate_vote"].values)
-        latevote_auc_mean, latevote_auc_std = np.mean(late_vote_aucs), np.std(late_vote_aucs, ddof=0)
-        latevote_acc_mean, latevote_acc_std = np.mean(late_vote_accs), np.std(late_vote_accs, ddof=0)
-        latevote_winauc_mean, latevote_winauc_std = np.mean(late_vote_window_aucs), np.std(late_vote_window_aucs, ddof=0)
-        latevote_winacc_mean, latevote_winacc_std = np.mean(late_vote_window_accs), np.std(late_vote_window_accs, ddof=0)
-        key = dataset_name + "_" + model_name
-        if print_std:
-            print(key + "_latevote:", "%.4f"%latevote_auc_mean + "±" + "%.4f"%latevote_auc_std + "," + "%.4f"%latevote_acc_mean + "±" + "%.4f"%latevote_acc_std + "," + "%.4f"%latevote_winauc_mean + "±" + "%.4f"%latevote_winauc_std + "," + "%.4f"%latevote_winacc_mean + "±" + "%.4f"%latevote_winacc_std)
-        else:
-            print(key + "_latevote:", "%.4f"%latevote_auc_mean + "," + "%.4f"%latevote_acc_mean + "," + "%.4f"%latevote_winauc_mean + "," + "%.4f"%latevote_winacc_mean)
+        # late_vote_aucs = np.unique(all_res["oriauclate_vote"].values)
+        # late_vote_accs = np.unique(all_res["oriacclate_vote"].values)
+        # late_vote_window_aucs = np.unique(all_res["windowauclate_vote"].values)
+        # late_vote_window_accs = np.unique(all_res["windowacclate_vote"].values)
+        # latevote_auc_mean, latevote_auc_std = np.mean(late_vote_aucs), np.std(late_vote_aucs, ddof=0)
+        # latevote_acc_mean, latevote_acc_std = np.mean(late_vote_accs), np.std(late_vote_accs, ddof=0)
+        # latevote_winauc_mean, latevote_winauc_std = np.mean(late_vote_window_aucs), np.std(late_vote_window_aucs, ddof=0)
+        # latevote_winacc_mean, latevote_winacc_std = np.mean(late_vote_window_accs), np.std(late_vote_window_accs, ddof=0)
+        # key = dataset_name + "_" + model_name
+        # if print_std:
+        #     print(key + "_latevote:", "%.4f"%latevote_auc_mean + "±" + "%.4f"%latevote_auc_std + "," + "%.4f"%latevote_acc_mean + "±" + "%.4f"%latevote_acc_std + "," + "%.4f"%latevote_winauc_mean + "±" + "%.4f"%latevote_winauc_std + "," + "%.4f"%latevote_winacc_mean + "±" + "%.4f"%latevote_winacc_std)
+        # else:
+        #     print(key + "_latevote:", "%.4f"%latevote_auc_mean + "," + "%.4f"%latevote_acc_mean + "," + "%.4f"%latevote_winauc_mean + "," + "%.4f"%latevote_winacc_mean)
 
-        late_all_aucs = np.unique(all_res["oriauclate_all"].values)
-        late_all_accs = np.unique(all_res["oriacclate_all"].values)
-        late_all_window_aucs = np.unique(all_res["windowauclate_all"].values)
-        late_all_window_accs = np.unique(all_res["windowacclate_all"].values)
-        lateall_auc_mean, lateall_auc_std = np.mean(late_all_aucs), np.std(late_all_aucs, ddof=0)
-        lateall_acc_mean, lateall_acc_std = np.mean(late_all_accs), np.std(late_all_accs, ddof=0)
-        lateall_winauc_mean, lateall_winauc_std = np.mean(late_all_window_aucs), np.std(late_all_window_aucs, ddof=0)
-        lateall_winacc_mean, lateall_winacc_std = np.mean(late_all_window_accs), np.std(late_all_window_accs, ddof=0)
-        key = dataset_name + "_" + model_name
-        if print_std:
-            print(key + "_lateall:", "%.4f"%lateall_auc_mean + "±" + "%.4f"%lateall_auc_std + "," + "%.4f"%lateall_acc_mean + "±" + "%.4f"%lateall_acc_std + "," + "%.4f"%lateall_winauc_mean + "±" + "%.4f"%lateall_winauc_std + "," + "%.4f"%lateall_winacc_mean + "±" + "%.4f"%lateall_winacc_std)
-        else:
-            print(key + "_lateall:", "%.4f"%lateall_auc_mean + "," + "%.4f"%lateall_acc_mean + "," + "%.4f"%lateall_winauc_mean + "," + "%.4f"%lateall_winacc_mean)
+        # late_all_aucs = np.unique(all_res["oriauclate_all"].values)
+        # late_all_accs = np.unique(all_res["oriacclate_all"].values)
+        # late_all_window_aucs = np.unique(all_res["windowauclate_all"].values)
+        # late_all_window_accs = np.unique(all_res["windowacclate_all"].values)
+        # lateall_auc_mean, lateall_auc_std = np.mean(late_all_aucs), np.std(late_all_aucs, ddof=0)
+        # lateall_acc_mean, lateall_acc_std = np.mean(late_all_accs), np.std(late_all_accs, ddof=0)
+        # lateall_winauc_mean, lateall_winauc_std = np.mean(late_all_window_aucs), np.std(late_all_window_aucs, ddof=0)
+        # lateall_winacc_mean, lateall_winacc_std = np.mean(late_all_window_accs), np.std(late_all_window_accs, ddof=0)
+        # key = dataset_name + "_" + model_name
+        # if print_std:
+        #     print(key + "_lateall:", "%.4f"%lateall_auc_mean + "±" + "%.4f"%lateall_auc_std + "," + "%.4f"%lateall_acc_mean + "±" + "%.4f"%lateall_acc_std + "," + "%.4f"%lateall_winauc_mean + "±" + "%.4f"%lateall_winauc_std + "," + "%.4f"%lateall_winacc_mean + "±" + "%.4f"%lateall_winacc_std)
+        # else:
+        #     print(key + "_lateall:", "%.4f"%lateall_auc_mean + "," + "%.4f"%lateall_acc_mean + "," + "%.4f"%lateall_winauc_mean + "," + "%.4f"%lateall_winacc_mean)

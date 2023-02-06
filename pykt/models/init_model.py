@@ -151,11 +151,11 @@ def init_model(model_name, model_config, data_config, emb_type):
     return model
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
-    infs = model_name.split("_")
-    save = False
-    if len(infs) == 2:
-        model_name, save = infs[0], True
-    print(f"in load model! model name: {model_name}, save: {save}")
+    # infs = model_name.split("_")
+    # save = False
+    # if len(infs) == 2:
+    #     model_name, save = infs[0], True
+    print(f"in load model! model name: {model_name}")#, save: {save}")
     model = init_model(model_name, model_config, data_config, emb_type)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)

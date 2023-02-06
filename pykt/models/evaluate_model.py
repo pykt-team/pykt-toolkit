@@ -505,7 +505,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
             elif model_name in ["akt_peiyou"]:
-                y, h = model(dcurori, qtest=True)
+                y, reg_loss, h = model(dcurori, qtest=True)
                 y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)

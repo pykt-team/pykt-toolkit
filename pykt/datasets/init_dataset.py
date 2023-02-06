@@ -69,7 +69,7 @@ def init_test_datasets(data_config, model_name, batch_size):
             # test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     if model_name in ["akt_peiyou"]:
-        test_loader, test_window_dataset = None, None
+        test_loader, test_window_loader = None, None
     elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
         test_loader = None
         test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
