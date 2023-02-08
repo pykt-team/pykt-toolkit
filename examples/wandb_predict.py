@@ -89,8 +89,8 @@ def main(params):
             dres["oriauc"+key] = q_testaucs[key]
         for key in q_testaccs:
             dres["oriacc"+key] = q_testaccs[key]
-    '''       
     dres = dict()
+    '''       
     
     if "test_question_window_file" in data_config and not test_question_window_loader is None:
         save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")

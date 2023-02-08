@@ -1,0 +1,34 @@
+program: wandb_iekt_peiyou_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["iekt_peiyou"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/iekt_peiyou_tiaocan"]
+    emb_size:
+        values: [64, 256]
+    lamb:
+        values: [30,40,50]
+    n_layer:
+        values: [1,2]
+    cog_levels:
+        values: [10,20,30]
+    acq_levels:
+        values: [10,20,30]
+    gamma:
+        values: [0.2,0.4,0.6,0.8]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
