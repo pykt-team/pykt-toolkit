@@ -27,6 +27,7 @@ from .qikt import QIKT
 from .akt_peiyou import AKTPeiyou
 from .iekt_peiyou import IEKTPeiyou
 from .qdkt_peiyou import QDKTPeiyou
+from .bakt_peiyou import BAKTPeiyou 
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -138,6 +139,13 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = BAKTTime(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt":
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "bakt_peiyou":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = BAKTPeiyou(data_config["num_croutes"], data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, dpretrain=dpretrain).to(device)
     elif model_name == "akt_peiyou":
         dpretrain = {
             "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],

@@ -217,6 +217,7 @@ class QueEmbPeiyou(nn.Module):
             concept_avg = self.concept_emb(croutes, c)
         que_emb = self.que_emb(q, qtypes)#[batch,max_len-1,emb_size]
         # print(f"que_emb shape is {que_emb.shape}")
+        # print(f"concept_avg is {concept_avg.shape}")
         que_c_emb = torch.cat([concept_avg, que_emb],dim=-1)#[batch,max_len-1,2*emb_size]
     
         # print("qc_merge")
