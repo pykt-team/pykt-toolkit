@@ -1,4 +1,48 @@
 import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+def skill_difficult(df,skill,correct):
+    df = df.reset_index(drop=True)
+    df['skill_difficult'] = 1
+    set_skills = set(np.array(df[skill]))
+    for i in tqdm(set_skills):
+        count = 0
+        idx = df[(df.skill_id == i)].index.tolist()
+        tmp_data = df.iloc[idx]
+        correct_1 = tmp_data[correct]
+        if len(idx) < 30:
+            continue
+        else:
+            for j in np.array(correct_1):
+                count += j
+            if count == 0:
+                continue
+            else:
+                avg = int((count/len(correct_1))*100)+1
+                df['skill_difficult'].loc[idx] = avg
+    return df
+
+def question_difficult(df,problem,correct):
+    df = df.reset_index(drop=True)
+    df['question_difficult'] = 1
+    set_questions = set(np.array(df[problem]))
+    for i in tqdm(set_questions):
+        count = 0
+        idx = df[(df.problem_id == i)].index.tolist()
+        tmp_data = df.iloc[idx]
+        correct_1 = tmp_data[correct]
+        if len(idx) < 30:
+            continue
+        else:
+            for j in np.array(correct_1):
+                count += j
+            if count == 0:
+                continue
+            else:
+                avg = int((count/len(correct_1))*100)+1
+                df['question_difficult'].loc[idx] = avg
+    return df
 
 def sta_infos(df, keys, stares, split_str="_"):
     # keys: 0: uid , 1: concept, 2: question

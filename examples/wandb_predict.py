@@ -6,6 +6,7 @@ import torch
 
 from pykt.models import evaluate,evaluate_question,load_model
 from pykt.datasets import init_test_datasets
+from pykt.utils import set_seed
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
@@ -18,6 +19,8 @@ def main(params):
         import wandb
         os.environ['WANDB_API_KEY'] = wandb_config["api_key"]
         wandb.init(project="wandb_predict")
+
+    set_seed(42)
 
     save_dir, batch_size, fusion_type = params["save_dir"], params["bz"], params["fusion_type"].split(",")
 

@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from .utils import sta_infos, write_txt, change2timestamp,format_list2str
+from .utils import sta_infos,skill_difficult,question_difficult, write_txt, change2timestamp,format_list2str
 
 
 
@@ -68,14 +68,19 @@ def get_user_inters(df):
         seq_response_cost = ["NA"]
         seq_start_time = group['answer_timestamp'].tolist()
         seq_problems = group['QuestionId'].tolist()
+        seq_skill_difficult = group['skill_difficult'].tolist()
+        seq_question_difficult = group['question_difficult'].tolist()
+        
         seq_len = len(group)
         user_inters.append(
             [[str(user), str(seq_len)],
-             format_list2str(seq_problems),
-             format_list2str(seq_skills),
-             format_list2str(seq_ans),
-             format_list2str(seq_start_time),
-             format_list2str(seq_response_cost)])
+            format_list2str(seq_problems),
+            format_list2str(seq_skills),
+            format_list2str(seq_ans),
+            format_list2str(seq_start_time),
+            format_list2str(seq_response_cost),
+            format_list2str(seq_skill_difficult),
+            format_list2str(seq_question_difficult)])
     return user_inters
 
 
@@ -91,9 +96,22 @@ def read_data_from_csv(primary_data_path,meta_data_dir,task_name,write_file):
     df['tmp_index'] = range(len(df))
     df = df.dropna(subset=["UserId","answer_timestamp", "SubjectId_level3_str", "IsCorrect", "answer_timestamp","QuestionId"])
     
+    df = df[df['IsCorrect'].isin([0,1])]#filter responses
+    df['IsCorrect'] = df['IsCorrect'].apply(int)
+
+   
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
+    df.rename(columns={'SubjectId_level3_str':'skill_id'},inplace=True)
+    df.rename(columns={'QuestionId':'problem_id'},inplace=True)
+
+    df = skill_difficult(df,'skill_id','IsCorrect')
+    df = question_difficult(df,'problem_id','IsCorrect')
+    
+    df.rename(columns={'skill_id':'SubjectId_level3_str'},inplace=True)
+    df.rename(columns={'problem_id':'QuestionId'},inplace=True)
+    
     user_inters = get_user_inters(df)
     write_txt(write_file, user_inters)
     

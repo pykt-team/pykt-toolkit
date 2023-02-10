@@ -1,5 +1,5 @@
 import pandas as pd
-from .utils import sta_infos, write_txt, change2timestamp
+from .utils import sta_infos, write_txt, change2timestamp,format_list2str
 
 KEYS = ["User", "Problem"]
 def read_data_from_csv(read_file, write_file):
@@ -34,8 +34,17 @@ def read_data_from_csv(read_file, write_file):
         timestamps = curdf["Submit Time"].astype(str)
         questions = ["NA"]
         usetimes = ["NA"]
+        skill_difficult = ["NA"]
+        question_difficult = ["NA"]
         uids = [str(uid), str(len(responses))]
-        data.append([uids, questions, concepts, responses, timestamps, usetimes])
+        data.append([uids, 
+        questions, 
+        concepts, 
+        responses, 
+        timestamps, 
+        usetimes,
+        format_list2str(skill_difficult),
+        format_list2str(question_difficult)])
         if len(data) % 1000 == 0:
             print(len(data))
     

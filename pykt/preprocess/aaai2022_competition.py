@@ -1,5 +1,5 @@
 import pandas as pd
-from .utils import sta_infos, write_txt, format_list2str, change2timestamp, replace_text
+from .utils import sta_infos, write_txt, format_list2str, change2timestamp, replace_text,skill_difficult,question_difficult
 import json
 
 KEYS = ["stu_id", "concept_id", "que_id"]
@@ -23,11 +23,19 @@ def read_data_from_csv(read_file, write_file, dq2c):
     df = df[df['label'].isin([0,1])] #filter responses
     df['label'] = df['label'].astype(int)
     
-
-
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
+    df.rename(columns={'concept_id':'skill_id'},inplace=True)
+    df.rename(columns={'que_id':'problem_id'},inplace=True)
+
+    df = skill_difficult(df,'skill_id','label')
+    df = question_difficult(df,'problem_id','label')
+    
+    df.rename(columns={'skill_id':'concept_id'},inplace=True)
+    df.rename(columns={'problem_id':'que_id'},inplace=True)
+    
+
     ui_df = df.groupby(['stu_id'], sort=False)
 
     user_inters = []
@@ -40,11 +48,20 @@ def read_data_from_csv(read_file, write_file, dq2c):
         seq_problems = tmp_inter['que_id'].astype(str)
         seq_start_time = tmp_inter['timestamp'].astype(str)
         seq_response_cost = ["NA"]
-
+        seq_skill_difficult = tmp_inter['skill_difficult'].tolist()
+        seq_question_difficult = tmp_inter['question_difficult'].tolist()
+        
         assert seq_len == len(seq_skills) == len(seq_ans)
 
         user_inters.append(
-            [[str(user), str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_response_cost])
+            [[str(user), str(seq_len)], 
+            seq_problems, 
+            seq_skills, 
+            seq_ans, 
+            seq_start_time,
+            seq_response_cost,
+            format_list2str(seq_skill_difficult),
+            format_list2str(seq_question_difficult)])
 
     write_txt(write_file, user_inters)
 
