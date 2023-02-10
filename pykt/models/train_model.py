@@ -15,7 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time"]:
+    if model_name in ["atdkt", "simplekt", "bakt_time"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -81,14 +81,14 @@ def model_forward(model, data):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-    if model_name in ["cdkt"]:
+    if model_name in ["atdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
         if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
-    elif model_name in ["bakt"]:
+    elif model_name in ["simplekt"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["bakt_time"]:
