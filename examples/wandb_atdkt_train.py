@@ -5,7 +5,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--dataset_name", type=str, default="algebra2005")
-    parser.add_argument("--model_name", type=str, default="cdkt")
+    parser.add_argument("--model_name", type=str, default="atdkt")
     parser.add_argument("--emb_type", type=str, default="qid")
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--seed", type=int, default=3407)

@@ -11,7 +11,7 @@ else:
     from torch import FloatTensor, LongTensor
 import numpy as np
 
-class CDKTDataset(Dataset):
+class ATDKTDataset(Dataset):
     """Dataset for KT
         can use to init dataset for: (for models except dkt_forget)
             train data, valid data
@@ -24,16 +24,16 @@ class CDKTDataset(Dataset):
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
     def __init__(self, file_path, input_type, folds, qtest=False):
-        super(CDKTDataset, self).__init__()
+        super(ATDKTDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
         self.qtest = qtest
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
-            processed_data = file_path + folds_str + "_cdkt_qtest.pkl"
+            processed_data = file_path + folds_str + "_atdkt_qtest.pkl"
         else:
-            processed_data = file_path + folds_str + "_cdkt.pkl"
+            processed_data = file_path + folds_str + "_atdkt.pkl"
         self.dpath = "/".join(file_path.split("/")[0:-1])
 
         if not os.path.exists(processed_data):
@@ -51,8 +51,6 @@ class CDKTDataset(Dataset):
                 self.dori, self.dqtest = pd.read_pickle(processed_data)
             else:
                 self.dori = pd.read_pickle(processed_data)
-                for key in self.dori:
-                    self.dori[key] = self.dori[key]#[:100]
         print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}")
 
     def __len__(self):

@@ -1,17 +1,17 @@
-program: ./wandb_bakt_train.py
+program: ./wandb_simplekt_train.py
 method: bayes
 metric:
     goal: maximize
     name: validauc
 parameters:
     model_name:
-        values: ["bakt"]
+        values: ["simplekt"]
     dataset_name:
         values: ["xes"]
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["models/bakt_tiaocan"]
+        values: ["models/simplekt_tiaocan"]
     d_model:
         values: [64, 256]
     d_ff:
