@@ -6,6 +6,7 @@ import math
 import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
+from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
@@ -67,7 +68,7 @@ class BAKT(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len,emb_type=self.emb_type)
 
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
@@ -76,38 +77,6 @@ class BAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
-        
-        if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
-            self.l1 = loss1
-            self.l2 = loss2
-            self.l3 = loss3
-            num_layers = num_layers
-            self.emb_size, self.hidden_size = d_model, d_model
-            self.num_q, self.num_c = n_pid, n_question
-            
-            if self.num_q > 0:
-                self.question_emb = Embedding(self.num_q, self.emb_size) # 1.2
-            if self.emb_type.find("trans") != -1:
-                self.nhead = nheads
-                # d_model = self.hidden_size# * 2
-                encoder_layer = TransformerEncoderLayer(d_model, nhead=self.nhead)
-                encoder_norm = LayerNorm(d_model)
-                self.trans = TransformerEncoder(encoder_layer, num_layers=num_layers, norm=encoder_norm)
-            elif self.emb_type.find("lstm") != -1:    
-                self.qlstm = LSTM(self.emb_size, self.hidden_size, batch_first=True)
-            # self.qdrop = Dropout(dropout)
-            self.qclasifier = Linear(self.hidden_size, self.num_c)
-            if self.emb_type.find("cemb") != -1:
-                self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
-            self.closs = CrossEntropyLoss()
-            # 加一个预测历史准确率的任务
-            if self.emb_type.find("his") != -1:
-                self.start = start
-                self.hisclasifier = nn.Sequential(
-                    # nn.Linear(self.hidden_size*2, self.hidden_size), nn.ELU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
-                    nn.Linear(self.hidden_size//2, 1))
-                self.hisloss = nn.MSELoss()
 
         self.reset()
 
@@ -132,127 +101,6 @@ class BAKT(nn.Module):
         pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
         return pad_attn_mask.repeat(self.nhead, 1, 1)
 
-    def predcurc(self, qemb, cemb, xemb, dcur, train):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        chistory = xemb
-        if self.num_q > 0:
-            catemb = qemb + chistory
-        else:
-            catemb = chistory
-        if self.separate_qa:
-            catemb += cemb
-        # if self.emb_type.find("cemb") != -1: akt本身就加了cemb
-        #     catemb += cemb
-
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        if train:
-            start = 0
-            cpreds = self.qclasifier(qh[:,start:,:])
-            flag = sm[:,start:]==1
-            y2 = self.closs(cpreds[flag], c[:,start:][flag])
-
-        xemb = xemb + qh# + cemb
-        if self.separate_qa:
-            xemb = xemb + cemb
-        if self.emb_type.find("qemb") != -1:
-            xemb = xemb+qemb
-        
-        return y2, xemb
-
-    def predcurc2(self, qemb, cemb, xemb, dcur, train):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        chistory = cemb
-        if self.num_q > 0:
-            catemb = qemb + chistory
-        else:
-            catemb = chistory
-
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        if train:
-            start = 0
-            cpreds = self.qclasifier(qh[:,start:,:])
-            flag = sm[:,start:]==1
-            y2 = self.closs(cpreds[flag], c[:,start:][flag])
-
-        # xemb = xemb+qh
-        # if self.separate_qa:
-        #     xemb = xemb+cemb
-        cemb = cemb + qh
-        xemb = xemb+qh
-        if self.emb_type.find("qemb") != -1:
-            cemb = cemb+qemb
-            xemb = xemb+qemb
-        
-        return y2, cemb, xemb
-
-    def changecemb(self, qemb, cemb):
-        catemb = cemb
-        if self.emb_type.find("qemb") != -1:
-            catemb += qemb
-        if self.emb_type.find("trans") != -1:
-            mask = ut_mask(seq_len = catemb.shape[1])
-            qh = self.trans(catemb.transpose(0,1), mask).transpose(0,1)
-        else:
-            qh, _ = self.qlstm(catemb)
-        
-        cemb = cemb + qh
-        if self.emb_type.find("qemb") != -1:
-            cemb = cemb+qemb
-        
-        return cemb
-
-    def afterpredcurc(self, h, dcur):
-        y2 = 0
-        sm, c, cshft = dcur["smasks"], dcur["cseqs"], dcur["shft_cseqs"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-        c = torch.cat([c[:,0:1], cshft], dim=-1)
-        
-        start = 1
-        cpreds = self.qclasifier(h[:,start:,:])
-        flag = sm[:,start:]==1
-        y2 = self.closs(cpreds[flag], c[:,start:][flag])
-        
-        return y2
-
-    def predhis(self, h, dcur):
-        sm = dcur["smasks"]
-        padsm = torch.ones(sm.shape[0], 1).to(device)
-        sm = torch.cat([padsm, sm], dim=-1)
-
-        # predict history correctness rates
-        
-        start = self.start
-        rpreds = torch.sigmoid(self.hisclasifier(h)[:,start:,:]).squeeze(-1)
-        rsm = sm[:,start:]
-        rflag = rsm==1
-        # rtrues = torch.cat([dcur["historycorrs"][:,0:1], dcur["shft_historycorrs"]], dim=-1)[:,start:]
-        padr = torch.zeros(h.shape[0], 1).to(device)
-        rtrues = torch.cat([padr, dcur["historycorrs"]], dim=-1)[:,start:]
-        # rtrues = dcur["historycorrs"][:,start:]
-        # rtrues = dcur["totalcorrs"][:,start:]
-        # print(f"rpreds: {rpreds.shape}, rtrues: {rtrues.shape}")
-        y3 = self.hisloss(rpreds[rflag], rtrues[rflag])
-
-        # h = self.dropout_layer(h)
-        # y = torch.sigmoid(self.out_layer(h))
-        return y3
 
     def forward(self, dcur, qtest=False, train=False, attn_grads=None,save_path="", save_attn_path="", save_grad_path=""):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -307,33 +155,7 @@ class BAKT(nn.Module):
             output = self.out(concat_q).squeeze(-1)
             m = nn.Sigmoid()
             preds = m(output)
-        elif emb_type.endswith("predcurc"): # predict current question' current concept
-            # predict concept
-            qemb = self.question_emb(pid_data)
 
-            # predcurc(self, qemb, cemb, xemb, dcur, train):
-            cemb = q_embed_data
-            if emb_type.find("noxemb") != -1:
-                y2, q_embed_data, qa_embed_data = self.predcurc2(qemb, cemb, qa_embed_data, dcur, train)
-            else:
-                y2, qa_embed_data = self.predcurc(qemb, cemb, qa_embed_data, dcur, train)
-            
-            # q_embed_data = self.changecemb(qemb, cemb)
-
-            # predict response
-            d_output = self.model(q_embed_data, qa_embed_data)
-            # if emb_type.find("after") != -1:
-            #     curh = self.model(q_embed_data+qemb, qa_embed_data+qemb)
-            #     y2 = self.afterpredcurc(curh, dcur)
-            if emb_type.find("his") != -1:
-                y3 = self.predhis(d_output, dcur)
-
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            # if emb_type.find("his") != -1:
-            #     y3 = self.predhis(concat_q, dcur)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
 
         if train:
             return preds, y2, y3
@@ -345,7 +167,7 @@ class BAKT(nn.Module):
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
-                 d_ff, n_heads, dropout, kq_same, model_type, seq_len):
+                 d_ff, n_heads, dropout, kq_same, model_type, seq_len,emb_type):
         super().__init__()
         """
             n_block : number of stacked blocks in the attention
@@ -359,8 +181,8 @@ class Architecture(nn.Module):
         if model_type in {'bakt'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
-                for _ in range(n_blocks)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same,emb_type=emb_type,block_index=block_index)
+                for block_index in range(n_blocks)
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
@@ -390,7 +212,7 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same):
+                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index,c=10000):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
@@ -398,7 +220,7 @@ class TransformerLayer(nn.Module):
         kq_same = kq_same == 1
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same)
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -450,7 +272,7 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True,emb_type="qid",pos_model=None,block_index=0,max_relative_positions=-1,position_buckets=-1):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
@@ -459,6 +281,11 @@ class MultiHeadAttention(nn.Module):
         self.d_k = d_feature
         self.h = n_heads
         self.kq_same = kq_same
+        if emb_type in ["qid_disentangled_sparse_attn"]:
+            self.attn = DisentangledSelfAttention(num_attention_heads=n_heads,hidden_size=d_model,hidden_dropout_prob=dropout,attention_probs_dropout_prob=dropout)
+            self.max_relative_positions = max_relative_positions
+            self.position_buckets = position_buckets
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
 
         self.v_linear = nn.Linear(d_model, d_model, bias=bias)
         self.k_linear = nn.Linear(d_model, d_model, bias=bias)
@@ -482,32 +309,43 @@ class MultiHeadAttention(nn.Module):
             if self.kq_same is False:
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
-
+    def get_rel_pos(self, hidden_states, query_states=None, relative_pos=None):
+        if relative_pos is None:
+            q = query_states.size(-2) if query_states is not None else hidden_states.size(-2)
+            relative_pos = build_relative_position(q, hidden_states.size(-2), bucket_size = self.position_buckets, max_position=self.max_relative_positions)
+        return relative_pos
+    
     def forward(self, q, k, v, mask, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
 
-        bs = q.size(0)
-
-        # perform linear operation and split into h heads
-
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
-        if self.kq_same is False:
-            q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+        if emb_type in ['qid_disentangled_sparse_attn']:
+            relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)# get relative position 
+            attn_result = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)
+            concat = attn_result['hidden_states']
+            attn_weights = attn_result['attention_no_softmax']
         else:
-            q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
-        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+            bs = q.size(0)
 
-        # transpose to get dimensions bs * h * sl * d_model
+            # perform linear operation and split into h heads
 
-        k = k.transpose(1, 2)
-        q = q.transpose(1, 2)
-        v = v.transpose(1, 2)
-        # calculate attention using function we will define next
-        scores, attn_weights = attention(q, k, v, self.d_k,
-                           mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
+            k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+            if self.kq_same is False:
+                q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+            else:
+                q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
+            v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
 
-        # concatenate heads and put through final linear layer
-        concat = scores.transpose(1, 2).contiguous()\
-            .view(bs, -1, self.d_model)
+            # transpose to get dimensions bs * h * sl * d_model
+
+            k = k.transpose(1, 2)
+            q = q.transpose(1, 2)
+            v = v.transpose(1, 2)
+            # calculate attention using function we will define next
+            scores, attn_weights = attention(q, k, v, self.d_k,
+                            mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
+
+            # concatenate heads and put through final linear layer
+            concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
 
         output = self.out_proj(concat)
 
