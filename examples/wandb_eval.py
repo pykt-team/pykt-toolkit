@@ -25,7 +25,7 @@ def main(params):
         trained_params = config["params"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
         seq_len = config["train_config"]["seq_len"]
-        if model_name in ["saint", "sakt", "atdkt"]:
+        if model_name in ["saint", "sakt", "cdkt"]:
             model_config["seq_len"] = seq_len
         data_config = config["data_config"]
 
@@ -49,7 +49,7 @@ def main(params):
     # model, testf, model_name, save_path="", use_pred=False, train_ratio=0.2
     # testauc, testacc = evaluate_splitpred(model, test_loader, model_name, save_test_path)
     testf = os.path.join(data_config["dpath"], params["test_filename"])
-    if model_name in que_type_models and model_name != "lpkt":
+    if model_name in que_type_models:
         dfinal = model.evaluate_multi_ahead(data_config,batch_size=16,ob_portions=ratio,accumulative=use_pred)
     elif model_name in ["lpkt"]:
         dfinal = lpkt_evaluate_multi_ahead(model, data_config,batch_size=64,ob_portions=ratio,accumulative=use_pred)

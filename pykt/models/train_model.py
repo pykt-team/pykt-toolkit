@@ -8,6 +8,7 @@ from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
+import pickle
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -15,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["atdkt", "simplekt", "bakt_time"]:
+    if model_name in ["cdkt", "bakt", "bakt_time"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -63,7 +64,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(model, data):
+def model_forward(model, data, attn_grads=None):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -81,16 +82,18 @@ def model_forward(model, data):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-    if model_name in ["atdkt"]:
+    if model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
         if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
-    elif model_name in ["simplekt"]:
-        y, y2, y3 = model(dcur, train=True)
+    elif model_name in ["bakt"]:
+        y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["bakt_qikt"]:
+        loss = model(dcur, train=True, attn_grads=attn_grads)
     elif model_name in ["bakt_time"]:
         y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
@@ -150,30 +153,47 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models and model_name != "lpkt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
     
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
+    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None):
     max_auc, best_epoch = 0, -1
     train_step = 0
     if model.model_name=='lpkt':
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
     for i in range(1, num_epochs + 1):
         loss_mean = []
-        for data in train_loader:
+        for j,data in enumerate(train_loader):
             train_step+=1
-            if model.model_name in que_type_models and model.model_name != "lpkt":
+            if model.model_name in que_type_models:
                 model.model.train()
             else:
                 model.train()
-            loss = model_forward(model, data)
+            if model.model_name.find("bakt") != -1:
+                if j == 0 or model.emb_type.find("grad") == -1 and model.emb_type != "qid":attn_grads=None
+                # if model.model_name.find("qikt") == -1:
+                #     if j != 0:pre_attn_weights = model.attn_weights
+                loss = model_forward(model, data, attn_grads)
+            else:
+                loss = model_forward(model, data, i)
             opt.zero_grad()
+            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
+            #     model.attn_weights.retain_grad()
             loss.backward()#compute gradients 
+            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
+            #     if j == len(train_loader) - 1:
+            #         pre_attn_grads = attn_grads
+            #         # print(f"pre_attn_grads:{pre_attn_grads.shape}")
+            #     attn_grads = model.attn_weights.grad
+            #     # print(f"after_training_attn_grads:{attn_grads.shape}")
+            #     if j == len(train_loader) - 1:
+            #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
+            #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])                
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())
@@ -209,4 +229,11 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
 
         if i - best_epoch >= 10:
             break
+    if model.emb_type == "qid":
+        attn_grads = attn_grads.detach().cpu().numpy()
+        # print(f"writing:{attn_grads.shape}")
+        np.savez(f"./save_attn/{dataset_name}_save_grad_fold_{fold}.npz",attn_grads)
+        attn_weights = attn_weights.detach().cpu().numpy()
+        # print(f"attn_weights:{model.attn_weights.shape}")        
+        np.savez(f"./save_attn/{dataset_name}_save_attnweight_fold_{fold}.npz",attn_weights)
     return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch

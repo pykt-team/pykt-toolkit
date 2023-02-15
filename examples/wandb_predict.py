@@ -28,8 +28,8 @@ def main(params):
             if remove_item in model_config:
                 del model_config[remove_item]    
         trained_params = config["params"]
-        model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
-        if model_name in ["saint", "sakt", "atdkt"]:
+        model_name, dataset_name, emb_type, fold = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"], trained_params["fold"]
+        if model_name in ["saint", "sakt", "cdkt"]:
             train_config = config["train_config"]
             seq_len = train_config["seq_len"]
             model_config["seq_len"] = seq_len   
@@ -53,17 +53,21 @@ def main(params):
 
     model = load_model(model_name, model_config, data_config, emb_type, save_dir)
 
-    save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
-    testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
-    print(f"testauc: {testauc}, testacc: {testacc}")
+    testauc, testacc = -1, -1
+    # save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
+    # testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
+    # print(f"testauc: {testauc}, testacc: {testacc}")
+
 
     window_testauc, window_testacc = -1, -1
-    save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
-    window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
-    print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    if dataset_name in ["statics2011", "assist2015", "poj"]:
+        save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold)
+        # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+        print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
-    # question_testauc, question_testacc = -1, -1
-    # question_window_testauc, question_window_testacc = -1, -1
+    question_testauc, question_testacc = -1, -1
+    question_window_testauc, question_window_testacc = -1, -1
   
     dres = {
         "testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc,
@@ -71,25 +75,26 @@ def main(params):
 
     q_testaucs, q_testaccs = -1,-1
     qw_testaucs, qw_testaccs = -1,-1
-    if "test_question_file" in data_config and not test_question_loader is None:
-        save_test_question_path = os.path.join(save_dir, model.emb_type+"_test_question_predictions.txt")
-        q_testaucs, q_testaccs = evaluate_question(model, test_question_loader, model_name, fusion_type, save_test_question_path)
-        for key in q_testaucs:
-            dres["oriauc"+key] = q_testaucs[key]
-        for key in q_testaccs:
-            dres["oriacc"+key] = q_testaccs[key]
-            
-    if "test_question_window_file" in data_config and not test_question_window_loader is None:
-        save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
-        qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path)
-        for key in qw_testaucs:
-            dres["windowauc"+key] = qw_testaucs[key]
-        for key in qw_testaccs:
-            dres["windowacc"+key] = qw_testaccs[key]
+    # if "test_question_file" in data_config and not test_question_loader is None:
+    #     save_test_question_path = os.path.join(save_dir, model.emb_type+"_test_question_predictions.txt")
+    #     q_testaucs, q_testaccs = evaluate_question(model, test_question_loader, model_name, fusion_type, save_test_question_path)
+    #     for key in q_testaucs:
+    #         dres["oriauc"+key] = q_testaucs[key]
+    #     for key in q_testaccs:
+    #         dres["oriacc"+key] = q_testaccs[key]
+
+    if dataset_name in ["nips_task34", "assist2009", "algebra2005","bridge2algebra2006"]:     
+        if "test_question_window_file" in data_config and not test_question_window_loader is None:
+            save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
+            qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path, dataset_name, fold)
+            for key in qw_testaucs:
+                dres["windowauc"+key] = qw_testaucs[key]
+            for key in qw_testaccs:
+                dres["windowacc"+key] = qw_testaccs[key]
 
         
-    # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
-    # print(f"question_testauc: {question_testauc}, question_testacc: {question_testacc}, question_window_testauc: {question_window_testauc}, question_window_testacc: {question_window_testacc}")
+    print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    print(f"question_testauc: {question_testauc}, question_testacc: {question_testacc}, question_window_testauc: {question_window_testauc}, question_window_testacc: {question_window_testacc}")
     
     print(dres)
     raw_config = json.load(open(os.path.join(save_dir,"config.json")))
