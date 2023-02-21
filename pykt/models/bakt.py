@@ -220,17 +220,17 @@ class TransformerLayer(nn.Module):
         self.emb_type = emb_type
         if self.emb_type in ['qid_aa']:
             area_attn_core = AreaAttention(
-                key_query_size=d_model,
+                d_model=d_model,
                 max_area_width=max_area_width,
                 dropout_rate=dropout,
             )
             self.masked_attn_head = MultiHeadAreaAttention(
                 area_attention=area_attn_core,
-                num_heads=n_heads,
-                key_query_size=d_model,
-                key_query_size_hidden=d_model,
-                value_size=d_model,
-                value_size_hidden=d_model
+                n_heads=n_heads,
+                d_model=d_model,
+                kq_same = kq_same,
+                dropout=dropout,
+                d_feature=d_feature
             )
         else:
             self.masked_attn_head = MultiHeadAttention(
@@ -381,7 +381,10 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
     This is called by Multi-head atention object to find the values.
     """
     # d_k: 每一个头的dim
-
+    #print(f"q: {q.shape}, keys: {k.shape}, masks: {mask.shape}, vals: {v.shape}")
+    #q: torch.Size([64, 8, 200, 32]), keys: torch.Size([64, 8, 200, 32]), masks: torch.Size([1, 1, 200, 200]), vals: torch.Size([64, 8, 200, 32])
+    
+    
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
             math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)

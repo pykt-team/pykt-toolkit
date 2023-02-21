@@ -5,62 +5,35 @@ from torch.nn.functional import softmax
 import numpy as np
 import pandas as pd
 import math
+from torch.nn.init import xavier_uniform_
+from torch.nn.init import constant_
 
 class AreaAttention(nn.Module):
-    def __init__(self,key_query_size,  max_area_width, dropout_rate=0.2):
+    def __init__(self,d_model,  max_area_width, dropout_rate=0.2):
         super(AreaAttention, self).__init__()
         self.max_area_width = max_area_width
         self.dropout = nn.Dropout(p=dropout_rate)
-        self.area_temperature = np.power(key_query_size, 0.5)
+        self.area_temperature = np.power(d_model, 0.5)
         
 
-    def forward(self, q, key, val, attn_mask,zero_pad):
-        # print(f"q: {q}")
-        # print(f"key: {key}")
-        # print(f"val: {val}")
-        keys = self._compute_values(key, "mean")
-        masks =self. _compute_masks(attn_mask,zero_pad)
-        allvals = self._compute_values(val, "sum")
-        n_head = q.shape[1]
-        d_k = q.shape[-1]
-        # print(f"q: {q.shape}, keys: {keys.shape}, masks: {masks.shape}, vals: {allvals.shape}")
-        # q: torch.Size([64, 8, 200, 256]), keys: torch.Size([64, 8, 400, 256]), masks: torch.Size([1, 1, 200, 400]), vals: torch.Size([64, 8, 400, 256])
+    def forward(self, q, k, v,d_k, mask,zero_pad):
+        # print(f"q: {q.shape}, keys: {k.shape}, masks: {mask.shape}, vals: {v.shape}")
+        #q: torch.Size([64, 8, 200, 32]), keys: torch.Size([64, 8, 200, 32]), masks: torch.Size([1, 1, 200, 200]), vals: torch.Size([64, 8, 200, 32])
+        
+        k = self._compute_values(k, "mean")
+        mask = self._compute_masks(mask,zero_pad)
+        v = self._compute_values(v, "sum")
+        # print(f"q: {q.shape}, keys: {k.shape}, masks: {mask.shape}, vals: {v.shape}")
+        bs = k.shape[0]
 
-        # attention_probs.view(-1, attention_probs.size(-2), attention_probs.size(-1))
-        q = q.view(-1, q.size(-2), q.size(-1))
-        keys = keys.view(-1, keys.size(-2), keys.size(-1)).transpose(1,2)
-        # print(f"line30 q shape is {q.shape}, keys.shape is {keys.shape}")
-        ws = torch.bmm(q, keys)/ math.sqrt(d_k)
-            #torch.Size([512, 200, 400]) 512 = 64*8
-        # print(f"ws: {ws.shape}")
-        ws = ws.view(-1,n_head, ws.size(-2), ws.size(-1))#torch.Size([64, 8, 200, 400])
-        # print(f"ws: {ws.shape}")
-        
-        # masks = torch.repeat_interleave(masks, repeats=key.shape[0], dim=0)
-        # ws+=masks
-        # ws = ws / self.area_temperature
-        
-        ws.masked_fill_(masks == 0, -1e32)
-        ws = F.softmax(ws, dim=-1)  # BS,8,seqlen,seqlen
-        
-        
-        # if zero_pad:
-        #     bs, head,seqlen,seqlen = ws.shape
-        #     pad_zero = torch.zeros(bs, head, 1, seqlen).to(attn_mask.device)
-        #     new_attn_mask = torch.cat([pad_zero, new_attn_mask[:, :, 1:, :]], dim=2)
-            
-        all_weights = softmax(ws, dim=-1)
-        all_weights = self.dropout(all_weights)
-       
-        # print(f"all_weights.shape is: {all_weights.shape}")
-        # print(f"all_weights is: {all_weights}")
-        
-            
-
-        # print(f"all_weights: {all_weights}")
-        # print(f"allvals: {allvals}")
-        finalemb = torch.matmul(all_weights, allvals)
-        return finalemb
+        scores = torch.matmul(q, k.transpose(-2, -1)) / \
+            math.sqrt(d_k)
+        # print(f"scores shape is {scores.shape}")
+        scores.masked_fill_(mask == 0, -1e32)
+        scores = F.softmax(scores, dim=-1)
+        scores = self.dropout(scores)
+        output = torch.matmul(scores, v)
+        return output
 
     def _compute_masks(self, attn_mask,zero_pad):
         # print(f"ori mask: {attn_mask.shape}")
@@ -113,58 +86,79 @@ class AreaAttention(nn.Module):
 class MultiHeadAreaAttention(nn.Module):
     """ Multi-Head version of Area Attention. """
 
-    # def __init__(self, area_attention: AreaAttention, num_heads: int, key_query_size: int,
-    def __init__(self, area_attention: None, num_heads, key_query_size,
-                 key_query_size_hidden, value_size, value_size_hidden):
+    # def __init__(self, area_attention: AreaAttention, n_heads: int, d_model: int,
+    def __init__(self, area_attention, n_heads,d_feature,d_model,dropout,kq_same, bias=True):
         """
         Initializes the Multi-Head Area Attention module.
         :param area_attention: initialized single head Area Attention module
-        :param num_heads: number of heads
-        :param key_query_size: input size of keys and queries
-        :param key_query_size_hidden: hidden size of keys and queries
-        :param value_size: input size of values
-        :param value_size_hidden: hidden size of values
+        :param n_heads: number of heads
+        :param d_model: input size of keys and queries
         """
         super(MultiHeadAreaAttention, self).__init__()
+        self.d_k = d_feature
+        self.d_model = d_model
+        self.h = n_heads
         self.area_attention = area_attention
-        self.num_heads = num_heads
-        self.key_query_size = key_query_size//self.num_heads
-        self.key_query_size_hidden = key_query_size_hidden//self.num_heads
-        self.value_size = value_size//self.num_heads
-        self.value_size_hidden = value_size_hidden//self.num_heads
+        self.n_heads = n_heads
+        self.kq_same = kq_same
+        
+        self.v_linear = nn.Linear(d_model, d_model,bias=bias)
+        self.k_linear = nn.Linear(d_model, d_model,bias=bias)
+        if kq_same is False:
+            self.q_linear = nn.Linear(d_model, d_model,bias=bias)
+        self.dropout = nn.Dropout(dropout)
+        self.proj_bias = bias
+        self.out_proj = nn.Linear(d_model, d_model,bias=bias)
+        
+        self._reset_parameters()
+        
+    def _reset_parameters(self):
+        xavier_uniform_(self.k_linear.weight)
+        xavier_uniform_(self.v_linear.weight)
+        if self.kq_same is False:
+            xavier_uniform_(self.q_linear.weight)
 
-        self.query_projection = nn.Linear(key_query_size, key_query_size_hidden)
-        self.key_projection = nn.Linear(key_query_size, key_query_size_hidden)
-        self.value_projection = nn.Linear(value_size, value_size_hidden)
-        self.output_projection = nn.Linear(value_size_hidden, value_size)
+        if self.proj_bias:
+            constant_(self.k_linear.bias, 0.)
+            constant_(self.v_linear.bias, 0.)
+            if self.kq_same is False:
+                constant_(self.q_linear.bias, 0.)
+            constant_(self.out_proj.bias, 0.)
 
     def forward(self, q, k, v, mask,zero_pad):
         """
         Forward pass of the Multi-Head Area Attention module.
-        :param q: queries Tensor with shape (batch_size, num_queries, key_query_size)
-        :param k: keys Tensor with shape (batch_size, num_keys_values, key_query_size)
-        :param v: values Tensor with shape (batch_size, num_keys_values, value_size)
-        :returns a Tensor with shape (batch_size, num_queries, value_size)
+        :param q: queries Tensor with shape (bs, num_queries, d_model)
+        :param k: keys Tensor with shape (bs, num_keys_values, d_model)
+        :param v: values Tensor with shape (bs, num_keys_values, d_model)
+        :returns a Tensor with shape (bs, num_queries, d_model)
         """
         # print(f"raw q shape is {q.shape}")
-        # print(f"query head weight: {self.query_projection.weight}")
-        batch_size, num_queries, _ = q.size()#[64, 200, 256]
-        num_keys_values = k.size(1)
-        # print(f"new q shape is {self.query_projection(q).shape}")
-        q = self.query_projection(q)#[64, 200, 2048]
-        q = q.view(batch_size, num_queries, self.num_heads, self.key_query_size_hidden)#[64, 200, 8, 256]
-        q = q.permute(0, 2, 1, 3).contiguous()#[64, 8, 200, 256]
-        # q = q.flatten(0, 1)#[512, 200, 256]
-        k = self.key_projection(k).view(batch_size, num_keys_values, self.num_heads, self.key_query_size_hidden).permute(0, 2, 1, 3).contiguous()#.flatten(0, 1)
-        v = self.value_projection(v).view(batch_size, num_keys_values, self.num_heads, self.value_size_hidden).permute(0, 2, 1, 3).contiguous()#.flatten(0, 1)
+        # print(f"query head weight: {self.q_linear.weight}")
+        bs, num_queries, _ = q.size()#[64, 200, 256]
+        # print(f"new q shape is {self.q_linear(q).shape}")
+        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+        
+        if self.kq_same is False:
+            q = self.q_linear(q)
+        else:
+            q = self.k_linear(q)
+        q = q.view(bs, -1, self.h, self.d_k)
+        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+        k = k.transpose(1, 2)
+        q = q.transpose(1, 2)
+        v = v.transpose(1, 2)
         # print(f"after q: {q.shape}, k: {k.shape}")
         # print(f"q: {q}")
-        attention = self.area_attention(q, k, v, mask,zero_pad = zero_pad)
+        scores = self.area_attention(q=q, k=k, v=v,d_k=self.d_k,mask=mask,zero_pad = zero_pad)
         # output = attention
         # print(f"attn: {attention.shape}") # 
-        attention = attention.view(batch_size, self.num_heads, num_queries, self.value_size_hidden)
-        attention = attention.permute(0, 2, 1, 3).contiguous().flatten(-2, -1)
-        output = self.output_projection(attention)
+        # scores = attention.view(bs, self.n_heads, num_queries, self.d_model)
+        # print(f"scores shape is {scores.shape}")#
+        concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
+        # print(f"concat shape is {concat.shape}")#
+        output = self.out_proj(concat)
         # print(f"output: {output.shape}")
         # import sys
         # sys.exit()
