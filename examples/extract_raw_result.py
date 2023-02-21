@@ -521,21 +521,23 @@ def get_one_result_help(dataset, model_name,model_root_dir,data_root_dir):
 if __name__ == "__main__":
     # model_root_dir = "/root/autodl-nas/liuqiongqiong/bakt/pykt-toolkit/examples/best_model_path"
     # model_root_dir = "/root/autodl-nas/project/pykt_nips2022/examples/best_model_path"
-    model_root_dir = "/root/autodl-nas/project/full_result_pykt/best_model_path"
-    # model_root_dir = "/root/autodl-nas/project/pykt_qikt/examples/best_model_path"
+    model_root_dir = "/root/autodl-nas/tabchen/other_kt_exps/sparse/examples/best_model_path"
     data_root_dir = '/root/autodl-nas/project/pykt_nips2022/data'
     
 
-    import wandb
-    wandb.init()
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="assist2009")
     parser.add_argument("--model_name", type=str, default="akt")
+    parser.add_argument("--use_wandb", type=int, default=0)
     args = parser.parse_args()
     if args.model_name in que_type_models:
         get_quelevel_one_result_help(args.dataset, args.model_name,model_root_dir,data_root_dir)#for question level
     else:
         get_one_result_help(args.dataset, args.model_name,model_root_dir,data_root_dir)
-    wandb.log({"dataset": args.dataset, "model_name": args.model_name})
+    if args.use_wandb ==1:
+        import wandb
+        wandb.init()
+        wandb.log({"dataset": args.dataset, "model_name": args.model_name})
     # python extract_raw_result.py --dataset {dataset} --model_name {model_name}
     #wandb sweep seedwandb/extract_raw.yaml

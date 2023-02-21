@@ -7,12 +7,9 @@ import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
 from .disentangled_attention import DisentangledSelfAttention,build_relative_position
-from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
-        MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
-from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 import random
-from entmax import sparsemax, entmax15, entmax_bisect, EntmaxBisect
+from entmax import sparsemax, entmax15
+from .masked_area_attn import MultiHeadAreaAttention,AreaAttention
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -25,7 +22,7 @@ class BAKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, sparse_ratio=0.8, k_index=5, stride=1):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, sparse_ratio=0.8, k_index=5, stride=1,max_area_width=3):
         super().__init__()
         """
         Input:
@@ -48,6 +45,7 @@ class BAKT(nn.Module):
         self.sparse_ratio = sparse_ratio
         self.k_index = k_index
         self.stride = stride
+        self.max_area_width = max_area_width
 
         embed_l = d_model
         if self.n_pid > 0:
@@ -68,7 +66,7 @@ class BAKT(nn.Module):
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
-                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len,emb_type=self.emb_type)
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len,emb_type=self.emb_type,max_area_width=max_area_width)
 
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
@@ -139,7 +137,7 @@ class BAKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
+        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch","qid_aa"]:
             d_output, attn_weights = self.model(q_embed_data, qa_embed_data)
             self.attn_weights = attn_weights
 
@@ -167,7 +165,7 @@ class BAKT(nn.Module):
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
-                 d_ff, n_heads, dropout, kq_same, model_type, seq_len,emb_type):
+                 d_ff, n_heads, dropout, kq_same, model_type, seq_len,emb_type,max_area_width=3):
         super().__init__()
         """
             n_block : number of stacked blocks in the attention
@@ -181,7 +179,7 @@ class Architecture(nn.Module):
         if model_type in {'bakt'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same,emb_type=emb_type,block_index=block_index)
+                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same,emb_type=emb_type,block_index=block_index,max_area_width=max_area_width)
                 for block_index in range(n_blocks)
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
@@ -212,15 +210,31 @@ class Architecture(nn.Module):
 
 class TransformerLayer(nn.Module):
     def __init__(self, d_model, d_feature,
-                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index,c=10000):
+                 d_ff, n_heads, dropout,  kq_same, emb_type,block_index,c=10000,max_area_width=3):
         super().__init__()
         """
             This is a Basic Block of Transformer paper. It containts one Multi-head attention object. Followed by layer norm and postion wise feedforward net and dropout layer.
         """
         kq_same = kq_same == 1
         # Multi-Head Attention Block
-        self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
+        self.emb_type = emb_type
+        if self.emb_type in ['qid_aa']:
+            area_attn_core = AreaAttention(
+                key_query_size=d_model,
+                max_area_width=max_area_width,
+                dropout_rate=dropout,
+            )
+            self.masked_attn_head = MultiHeadAreaAttention(
+                area_attention=area_attn_core,
+                num_heads=n_heads,
+                key_query_size=d_model,
+                key_query_size_hidden=d_model,
+                value_size=d_model,
+                value_size_hidden=d_model
+            )
+        else:
+            self.masked_attn_head = MultiHeadAttention(
+                d_model, d_feature, n_heads, dropout, kq_same=kq_same, emb_type=emb_type,block_index=block_index)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -254,12 +268,20 @@ class TransformerLayer(nn.Module):
         src_mask = (torch.from_numpy(nopeek_mask) == 0).to(device)
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
-            query2,_ = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+            if self.emb_type in ['qid_aa']:
+                query2,_ = self.masked_attn_head(
+                    query, key, values, mask=src_mask,zero_pad=True)
+            else:
+                query2,_ = self.masked_attn_head(
+                    query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
-            # Calls block.masked_attn_head.forward() method
-            query2,_ = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
+            if self.emb_type in ['qid_aa']:
+                query2,_ = self.masked_attn_head(
+                    query, key, values, mask=src_mask,zero_pad=False)
+            else:
+                # Calls block.masked_attn_head.forward() method
+                query2,_ = self.masked_attn_head(
+                    query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -309,6 +331,7 @@ class MultiHeadAttention(nn.Module):
             if self.kq_same is False:
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
+            
     def get_rel_pos(self, hidden_states, query_states=None, relative_pos=None):
         if relative_pos is None:
             q = query_states.size(-2) if query_states is not None else hidden_states.size(-2)
@@ -341,8 +364,9 @@ class MultiHeadAttention(nn.Module):
             v = v.transpose(1, 2)
             # calculate attention using function we will define next
             scores, attn_weights = attention(q, k, v, self.d_k,
-                            mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
-
+                            mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)#scores shape is torch.Size([64, 8, 200, 32])
+            print(f"scores shape is {scores.shape}")#
+            
             # concatenate heads and put through final linear layer
             concat = scores.transpose(1, 2).contiguous()\
                 .view(bs, -1, self.d_model)
@@ -560,7 +584,9 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
 
     if zero_pad:
         pad_zero = torch.zeros(bs, head, 1, seqlen).to(device)
-        scores = torch.cat([pad_zero, scores[:bs, :, 1:, :]], dim=2) # 第一行score置0
+        scores = torch.cat([pad_zero, scores[:bs, :, 1:, :]], dim=2) # 等价于第一行score置0
+        # scores[:,:,0,:] = torch.zeros(bs, head, 1, seqlen).to(device)
+        # print(f"scores shape is {scores.shape},bs is {bs}")
     # print(f"after zero pad scores: {scores}")
 
     if emb_type == "qid":

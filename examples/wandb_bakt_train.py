@@ -29,6 +29,8 @@ if __name__ == "__main__":
     parser.add_argument("--sparse_ratio", type=float, default=0.8)
     parser.add_argument("--k_index", type=int, default=5)
     parser.add_argument("--stride", type=int, default=1)
+    parser.add_argument("--max_area_width", type=int, default=2)
+    
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
