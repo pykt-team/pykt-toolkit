@@ -303,7 +303,7 @@ class MultiHeadAttention(nn.Module):
         self.d_k = d_feature
         self.h = n_heads
         self.kq_same = kq_same
-        if emb_type in ["qid_disentangled_sparse_attn"]:
+        if emb_type in ["qid_disentangled_sparse_attn","qid_disentangled_sparseattn"]:
             self.attn = DisentangledSelfAttention(num_attention_heads=n_heads,hidden_size=d_model,hidden_dropout_prob=dropout,attention_probs_dropout_prob=dropout)
             self.max_relative_positions = max_relative_positions
             self.position_buckets = position_buckets
@@ -340,9 +340,14 @@ class MultiHeadAttention(nn.Module):
     
     def forward(self, q, k, v, mask, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
         bs = q.size(0)
-        if emb_type in ['qid_disentangled_sparse_attn']:
+        if emb_type in ['qid_disentangled_sparse_attn','qid_disentangled_sparseattn']:
             relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)# get relative position 
-            scores, attn_weights = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos,emb_type=emb_type)
+            scores, attn_weights = self.attn(q,k,v,mask,
+                                             zero_pad=zero_pad,
+                                             relative_pos=relative_pos,
+                                             emb_type=emb_type,
+                                             sparse_ratio=sparse_ratio,
+                                             k_index=k_index)
             concat = scores.transpose(1, 2).contiguous()\
                 .view(bs, -1, self.d_model)
             # concat = attn_result['hidden_states']

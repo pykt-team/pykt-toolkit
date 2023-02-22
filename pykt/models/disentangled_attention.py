@@ -102,7 +102,7 @@ class DisentangledSelfAttention(nn.Module):
         return x.permute(0, 2, 1, 3).contiguous().view(-1, x.size(1), x.size(-1))
     
 
-    def forward(self, q,k,v, mask, return_att=False, query_states=None, relative_pos=None,zero_pad=False,emb_type="qid",k_index=None):
+    def forward(self, q,k,v, mask, return_att=False, query_states=None, relative_pos=None,zero_pad=False,emb_type="qid",k_index=None,sparse_ratio=0.1):
         """_summary_
 
         Args:
@@ -150,7 +150,7 @@ class DisentangledSelfAttention(nn.Module):
             scores[:,:,0,:] = 0# 第一行score置0,不参与attention，softmax后其实就是0
             # print(f"attention_probs shape is {attention_probs.shape}")
             # print(f"attention_probs is {attention_probs}")
-        scores = change_attn_scores(scores, emb_type, k_index, q.device,mask)
+        scores = change_attn_scores(scores=scores, emb_type=emb_type, k_index=k_index, device=q.device, mask=mask,sparse_ratio=sparse_ratio)
         # print(f"scores shape is {scores.shape},value_layer shape is {value_layer.shape}")
         scores = self.dropout(scores)
         output = torch.matmul(scores, value_layer)
