@@ -12,6 +12,7 @@ import numpy as np
 from torch import nn
 from .disentangled_attention_ops import *
 from functools import lru_cache
+from .utils import change_attn_scores
 
 
 def make_log_bucket_position(relative_pos, bucket_size, max_position):
@@ -101,14 +102,14 @@ class DisentangledSelfAttention(nn.Module):
         return x.permute(0, 2, 1, 3).contiguous().view(-1, x.size(1), x.size(-1))
     
 
-    def forward(self, q,k,v, attention_mask, return_att=False, query_states=None, relative_pos=None,zero_pad=False):
+    def forward(self, q,k,v, mask, return_att=False, query_states=None, relative_pos=None,zero_pad=False,emb_type="qid",k_index=None):
         """_summary_
 
         Args:
             q (_type_): B*seq*dim
             k (_type_): B*seq*dim
             v (_type_): B*seq*dim
-            attention_mask (_type_): 1*1*seq*seq
+            mask (_type_): 1*1*seq*seq
             return_att (bool, optional): _description_. Defaults to False.
             query_states (_type_, optional): _description_. Defaults to None.
             relative_pos (_type_, optional): _description_. Defaults to None.
@@ -141,33 +142,20 @@ class DisentangledSelfAttention(nn.Module):
             attention_scores = (attention_scores + rel_att)
         attention_scores = (attention_scores - attention_scores.max(dim=-1, keepdim=True).values.detach()).to(q)
         attention_scores = attention_scores.view(-1, self.num_attention_heads, attention_scores.size(-2), attention_scores.size(-1))#B*num_head*seq*seq
-        
-        # bxhxlxd
-        rmask = ~(attention_mask.bool())
-        output_no_softmax = attention_scores.masked_fill(rmask, float('-inf'))#mask True的地方置-inf
-        # print("output_no_softmax[0] is",output_no_softmax[0])
-        # print("rmask[0] is ",rmask[0])
-        _attention_probs = XSoftmax.apply(attention_scores, attention_mask, -1)
-        attention_probs = self.dropout(_attention_probs)#B*num_head*seq*seq
+        value_layer = value_layer.view(-1, self.num_attention_heads, value_layer.size(-2), value_layer.size(-1))#B*num_head*seq*dim
+        scores = attention_scores
  
         if zero_pad:
             # print(f"raw attention_probs is {attention_probs}")
-            attention_probs[:,:,0,:] = 0# 第一行score置0,不参与attention，softmax后其实就是0
+            scores[:,:,0,:] = 0# 第一行score置0,不参与attention，softmax后其实就是0
             # print(f"attention_probs shape is {attention_probs.shape}")
             # print(f"attention_probs is {attention_probs}")
-           
-        context_layer = torch.bmm(attention_probs.view(-1, attention_probs.size(-2), attention_probs.size(-1)), value_layer)
-        context_layer = context_layer.view(-1, self.num_attention_heads, context_layer.size(-2), context_layer.size(-1)).permute(0, 2, 1, 3).contiguous()
-        new_context_layer_shape = context_layer.size()[:-2] + (-1,)
-        context_layer = context_layer.view(*new_context_layer_shape)# B*seq*dim
-        # print("line 163 context_layer",context_layer.size())
-        # print(f"hidden_states shape is {context_layer.shape}")
-        return {
-            'hidden_states': context_layer,#计算完的特征
-            'attention_probs': _attention_probs,#经过softmax的attention，且mask
-            'attention_no_softmax': output_no_softmax,#未经过softmax的attention，且mask
-            'attention_logits': attention_scores#计算完的原始attention score，未mask
-            }
+        scores = change_attn_scores(scores, emb_type, k_index, q.device,mask)
+        # print(f"scores shape is {scores.shape},value_layer shape is {value_layer.shape}")
+        scores = self.dropout(scores)
+        output = torch.matmul(scores, value_layer)
+        return output, scores
+
 
     def disentangled_attention_bias(self, query_layer, key_layer, relative_pos, rel_embeddings, scale_factor):
         """Get relative attention score

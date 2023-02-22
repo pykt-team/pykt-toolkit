@@ -8,7 +8,7 @@ from enum import IntEnum
 import numpy as np
 from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 import random
-from entmax import sparsemax, entmax15
+from .utils import change_attn_scores
 from .masked_area_attn import MultiHeadAreaAttention,AreaAttention
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -339,14 +339,16 @@ class MultiHeadAttention(nn.Module):
         return relative_pos
     
     def forward(self, q, k, v, mask, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
-
+        bs = q.size(0)
         if emb_type in ['qid_disentangled_sparse_attn']:
             relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)# get relative position 
-            attn_result = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)
-            concat = attn_result['hidden_states']
-            attn_weights = attn_result['attention_no_softmax']
+            scores, attn_weights = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos,emb_type=emb_type)
+            concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
+            # concat = attn_result['hidden_states']
+            # attn_weights = attn_result['attention_no_softmax']
         else:
-            bs = q.size(0)
+            
 
             # perform linear operation and split into h heads
 
@@ -365,7 +367,7 @@ class MultiHeadAttention(nn.Module):
             # calculate attention using function we will define next
             scores, attn_weights = attention(q, k, v, self.d_k,
                             mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)#scores shape is torch.Size([64, 8, 200, 32])
-            print(f"scores shape is {scores.shape}")#
+            # print(f"scores shape is {scores.shape}")#
             
             # concatenate heads and put through final linear layer
             concat = scores.transpose(1, 2).contiguous()\
@@ -376,6 +378,7 @@ class MultiHeadAttention(nn.Module):
         return output, attn_weights
 
 
+
 def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1, save_path="", save_attn_path="", save_grad_path=""):
     """
     This is called by Multi-head atention object to find the values.
@@ -384,242 +387,19 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
     #print(f"q: {q.shape}, keys: {k.shape}, masks: {mask.shape}, vals: {v.shape}")
     #q: torch.Size([64, 8, 200, 32]), keys: torch.Size([64, 8, 200, 32]), masks: torch.Size([1, 1, 200, 200]), vals: torch.Size([64, 8, 200, 32])
     
-    
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
             math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
-    if emb_type.find("stride") == -1 and emb_type.find("local") == -1:
-        scores.masked_fill_(mask == 0, -1e32)
-        if emb_type.find("sparsemax") != -1 :
-            # print(f"using attn_type: sparsemax")
-            scores = sparsemax(scores, dim=-1)
-        elif emb_type.find("entmax15") != -1:
-            # print(f"using attn_type:entmax15")
-            scores = entmax15(scores, dim=-1)
-        else:
-            # print(f"using attn_type: std_softmax")
-            scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-    # print(f"scores_before:{scores}")
-
-    # 对于每一个ai，独立的生成一个【0，1】之间的随机数（uniformly sampled）
-    if emb_type.find("uniform_attn") != -1:
-        scores = torch.rand(bs,head,seqlen,seqlen).to(device)
-        scores.masked_fill_(mask == 0, -1e32)
-        scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-    # 不改变ai的值，随机调换位置
-    elif emb_type.find("random_attn") != -1:
-        # print(f"running emb_type is {emb_type}")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        total_idx = torch.tensor([]).to(device)
-        for j in range(bs*head):
-            index = torch.zeros(2*seqlen).to(device)
-            for i in range(2,seqlen):
-                tmp_idx = torch.tensor(random.sample(range(0,i),i) + [0] * (seqlen - i)).to(device)
-                index = torch.cat([index,tmp_idx])
-            total_idx = torch.cat([total_idx,torch.reshape(index, (seqlen,-1))]).long()
-        new_scores = torch.gather(scores, -1, total_idx).reshape(bs,head,seqlen,-1)
-        new_scores.masked_fill_(mask == 0, 0)
-        scores = new_scores
-
-    # 不改变ai的值，随机调换位置(加速版)
-    elif emb_type.find("random_fast_attn") != -1:
-        # print(f"running emb_type is {emb_type}")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        total_idx = torch.tensor([]).to(device)
-        # print(f"before sorted:{scores}")
-        for j in range(head):
-            index = torch.zeros(2*seqlen).to(device)
-            for i in range(2,seqlen):
-                tmp_sample = torch.randperm(i)
-                tmp_sample = tmp_sample.unsqueeze(0).unsqueeze(0)
-                tmp_idx = torch.nn.functional.pad(tmp_sample, pad = [0, (seqlen-i), 0, 0]).squeeze(0).squeeze(0).to(device)
-                index = torch.cat([index,tmp_idx])
-            total_idx = torch.cat([total_idx,torch.reshape(index, (seqlen,-1))]).long()
-        total_idx = total_idx.reshape(head,seqlen,-1).repeat(bs,1,1).reshape(bs*head*seqlen,-1)
-        new_scores = torch.gather(scores, -1, total_idx).reshape(bs,head,seqlen,-1)
-        new_scores.masked_fill_(mask == 0, 0)
-        scores = new_scores
-        # print(f"after sorted:{scores}")
-
-    elif emb_type.find("permute_attn") != -1:
-        # print(f"running emb_type is {emb_type}")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        # print(f"before sorted:{scores}")
-        total_idx = torch.tensor([]).to(device)
-        for j in range(bs*head):
-            index = torch.zeros(3*seqlen).to(device)
-            for i in range(3,seqlen):
-                tmp_idx = torch.tensor([0] + random.sample(range(1,i),i-1) + [0] * (seqlen - i)).to(device)
-                index = torch.cat([index,tmp_idx])
-            total_idx = torch.cat([total_idx,torch.reshape(index, (seqlen,-1))]).long()
-        new_scores = torch.gather(scores, -1, total_idx).reshape(bs,head,seqlen,-1)
-        new_scores.masked_fill_(mask == 0, 0)
-        scores = new_scores
-        # print(f"after sorted:{scores}")
-
-    elif emb_type.find("permute_fast_attn") != -1:
-        # print(f"running emb_type is {emb_type}")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        total_idx = torch.tensor([]).to(device)
-        for j in range(head):
-            index = torch.zeros(2*seqlen).to(device)
-            for i in range(2,seqlen):
-                tmp_sample = np.arange(1,i-1)
-                random.shuffle(tmp_sample)
-                tmp_sample = torch.tensor(tmp_sample).unsqueeze(0).unsqueeze(0)
-                tmp_sample = torch.nn.functional.pad(tmp_sample, pad = [0, 1, 0, 0], value=i-1)
-                tmp_idx = torch.nn.functional.pad(tmp_sample, pad = [1, (seqlen-i), 0, 0]).squeeze(0).squeeze(0).to(device)
-                index = torch.cat([index,tmp_idx])
-            total_idx = torch.cat([total_idx,torch.reshape(index, (seqlen,-1))]).long()
-        total_idx = total_idx.reshape(head,seqlen,-1).repeat(bs,1,1).reshape(bs*head*seqlen,-1)
-        new_scores = torch.gather(scores, -1, total_idx).reshape(bs,head,seqlen,-1)
-        new_scores.masked_fill_(mask == 0, 0)
-        scores = new_scores
-
-    elif emb_type.find("sort_attn") != -1:
-        # print(f"running emb_type is {emb_type}")
-        # print(f"before sorted:{scores}")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        sorted_scores,sorted_idx = torch.sort(scores,descending=True)
-        new_scores = torch.gather(scores, -1, sorted_idx).reshape(bs,head,seqlen,-1)
-        # new_scores.masked_fill_(mask == 0, -1e32)
-        scores = new_scores
-        # print(f"after sorted:{scores}")
-
-    # sparse attention
-    elif emb_type.find("sparse_attn") != -1:
-        # scorted_attention
-        sorted_scores,sorted_idx = torch.sort(scores,descending=True)
-        sorted_scores = sorted_scores.reshape(bs*head*seqlen, seqlen)
-        scores = torch.zeros(bs*head*seqlen, seqlen).to(device)
-        for i,attn in enumerate(sorted_scores):
-            for j in range(seqlen):
-                if torch.sum(attn[:j]) >= sparse_ratio:
-                    scores[i][:j] = attn[:j]
-                    break
-        scores = torch.where(scores == torch.tensor(0).to(device),torch.tensor(-1e32).to(device),scores).reshape(bs,head,seqlen,-1)
-        scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-
-    elif emb_type.find("sparseattn") != -1:
-        # scorted_attention
-        scores_a = scores[:, :, :k_index, :]
-        scores_b = scores[:, :, k_index:, :].reshape(bs*head*(seqlen-k_index), -1)
-        sorted_scores,sorted_idx = torch.sort(scores_b,descending=True)
-        scores_t = sorted_scores[:,k_index-1:k_index].repeat(1,seqlen)
-        scores_b = torch.where(scores_b - scores_t >= torch.tensor(0).to(device), scores_b, torch.tensor(-1e32).to(device)).reshape(bs,head,seqlen-k_index,-1)
-        scores = torch.cat([scores_a, scores_b], dim=2)
-        if emb_type == "qid_sparseattn":
-            # print(f"top_k:softmatx")
-            scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-        else:
-            # print(f"top_k:entmax15")
-            scores = entmax15(scores, dim=-1)  # BS,8,seqlen,seqlen
-
-    elif emb_type.find("grad") != -1:
-        grads = np.load(save_grad_path,allow_pickle=True)["arr_0"]
-        new_scores = torch.from_numpy(grads).to(device)
-        new_scores.masked_fill_(mask == 0, -1e32)
-        new_scores = new_scores[:bs, :, :, :]
-        if emb_type.find("multiples") != -1:
-            # print(f"emb_type.find != -1")
-            scores = np.load(save_attn_path,allow_pickle=True)["arr_0"]
-            scores = torch.from_numpy(scores).to(device)
-            new_scores = new_scores * scores[:bs, :, :, :]
-        scores = F.softmax(new_scores, dim=-1)  # BS,8,seqlen,seqlen
-
-    elif emb_type.find("old_grad") != -1:
-        if attn_grads is not None:
-            new_scores = attn_grads.detach().cpu().numpy()
-            new_scores = torch.tensor(new_scores, requires_grad=True).to(device)
-            new_scores.masked_fill_(mask == 0, -1e32)
-            if emb_type.find("multiples") != -1:
-                # print(f"emb_type.find != -1")
-                new_scores = new_scores[:bs, :, :, :] * scores
-            scores = F.softmax(new_scores, dim=-1)  # BS,8,seqlen,seqlen
-
-    elif emb_type.find("stride") != -1:
-        mask_x = torch.arange(seqlen).unsqueeze(-1).to(device)
-        mask_y = mask_x.permute(1,0).to(device)
-        mask_z = torch.zeros(seqlen,seqlen).to(device)
-        mask_q = mask_z + mask_x
-        mask_k = mask_z + mask_y
-        mask_c1 = mask_q > mask_k
-        mask_c2 = torch.eq(torch.fmod(mask_q - mask_k, stride), 0)
-        mask_c3 = torch.logical_and(mask_c1, mask_c2)
-        scores.masked_fill_(mask_c3 == 0, -1e32)
-        # print(f"before_scores: {scores}")
-        scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-
-    elif emb_type.find("local") != -1:
-        mask_a = torch.tril(torch.ones(seqlen, seqlen),-1).to(device)
-        mask_b = torch.triu(torch.ones(seqlen, seqlen), -k_index).to(device)
-        new_mask = mask_a * mask_b
-        scores.masked_fill_(new_mask == 0, -1e32)
-        scores = F.softmax(scores, dim=-1)
-
-    elif emb_type.find("accumulative") != -1:
-        # print(f"running local accumulative-attn")
-        scores = torch.reshape(scores, (bs*head*seqlen,-1))
-        sorted_scores,sorted_idx = torch.sort(scores,descending=True)
-        acc_scores = torch.cumsum(sorted_scores,dim=1)
-        acc_scores_a = torch.where(acc_scores<=0.999,acc_scores,torch.tensor(0).to(device).float())
-        acc_scores_b = torch.where(acc_scores>=sparse_ratio,1,0)
-        idx = torch.argmax(acc_scores_b,dim=1, keepdim=True)
-        new_mask = torch.zeros(bs*head*seqlen,seqlen).to(device)
-        a = torch.ones(bs*head*seqlen,seqlen).to(device)
-        new_mask.scatter_(1,idx,a) 
-        idx_matrix = torch.arange(seqlen).repeat(bs*seqlen*head,1).to(device)
-        new_mask = torch.where(idx_matrix - idx <= 0,0,1).float()
-        sorted_scores = new_mask * sorted_scores
-        sorted_scores = torch.where(sorted_scores==0.0,torch.tensor(-1).to(device).float(),sorted_scores)
-        tmp_scores, indices= torch.max(sorted_scores,dim=1)
-        tmp_scores = tmp_scores.unsqueeze(-1).repeat(1,seqlen)
-        new_scores = torch.where(tmp_scores-scores>=0,torch.tensor(-1e32).to(device).float(),scores).reshape((bs,head,seqlen,-1))
-        # scores = F.softmax(new_scores, dim=-1)
-        if emb_type == "qid_accumulative_attn":
-            # print(f"accumulative:softmax")
-            scores = F.softmax(new_scores, dim=-1)  # BS,8,seqlen,seqlen
-        else:
-            # print(f"accumulative:entmax15")
-            scores = entmax15(new_scores, dim=-1)  # BS,8,seqlen,seqlen
-    else:
-        before_dropout_scores = scores
-
+     
+    scores = change_attn_scores(scores, emb_type, k_index, device,mask)
     if zero_pad:
         pad_zero = torch.zeros(bs, head, 1, seqlen).to(device)
-        scores = torch.cat([pad_zero, scores[:bs, :, 1:, :]], dim=2) # 等价于第一行score置0
-        # scores[:,:,0,:] = torch.zeros(bs, head, 1, seqlen).to(device)
-        # print(f"scores shape is {scores.shape},bs is {bs}")
-    # print(f"after zero pad scores: {scores}")
-
-    if emb_type == "qid":
-        sub_scores = torch.reshape(scores,(bs*head*seqlen,-1))
-        sub_scores,sorted_idx = torch.sort(sub_scores,descending=True)
-        sub_scores = sub_scores[:,:5]
-        sub_scores = torch.cumsum(sub_scores,dim=1)
-        sub_scores = sub_scores[:,-1].tolist()
-        # with open("./2005_sub_scores_final.txt","a") as f:
-        #     f.write(str(sub_scores) + "\n")
-    # print(f"dropout_before:{scores}")
-
-    # tmp_scores = scores.clone()
-    # tmp_scores.masked_fill_(mask == 0, -1e32)
-    # tmp_scores = tmp_scores[:,:,2:,:]
-    # tmp_scores = tmp_scores.reshape(bs*head*(seqlen-2),-1)
-    # cnt_zeros = torch.count_nonzero(tmp_scores==0,1)
-    # print(f"cnt_zeros:{cnt_zeros.shape}")
-    # with open("./2005_cnt_zerosl.txt","a") as f:
-    #         f.write(str(cnt_zeros.tolist()) + "\n")
-
+        scores = torch.cat([pad_zero, scores[:bs, :, 1:, :]], dim=2)
+       
     scores = dropout(scores)
     output = torch.matmul(scores, v)
-    # import sys
-    # sys.exit()
-    if emb_type != "qid":
-        # print(f"output:{output}")
-        return output, scores
-    else:
-        return output, before_dropout_scores
+    return output, scores
+
 
 class LearnablePositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=512):
@@ -631,7 +411,6 @@ class LearnablePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
-
 
 class CosinePositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=512):
@@ -648,25 +427,3 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
-
-class timeGap(nn.Module):
-    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
-        super().__init__()
-        self.rgap_eye = torch.eye(num_rgap)
-        self.sgap_eye = torch.eye(num_sgap)
-        self.pcount_eye = torch.eye(num_pcount)
-
-        input_size = num_rgap + num_sgap + num_pcount
-
-        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
-
-    def forward(self, rgap, sgap, pcount):
-        rgap = self.rgap_eye[rgap].to(device)
-        sgap = self.sgap_eye[sgap].to(device)
-        pcount = self.pcount_eye[pcount].to(device)
-
-        tg = torch.cat((rgap, sgap, pcount), -1)
-        tg_emb = self.time_emb(tg)
-
-        return tg_emb
-
