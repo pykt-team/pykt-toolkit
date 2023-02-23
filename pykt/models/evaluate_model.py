@@ -90,58 +90,12 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))#, cthr, cphr, sque, sqh]))
     return "\n".join(results)
 
-def evaluate_subtasks(model, test_loader, model_name):
-    with torch.no_grad():
-        ctrues, cscores = [], []
-        rtrues, rscores = [], []
-        for data in test_loader:
-            dcur = data
-            c, cshft = dcur["cseqs"], dcur["shft_cseqs"]
-            m, sm = dcur["masks"], dcur["smasks"]
-            model.eval()
-
-            if model_name in ["cdkt"]:
-                cpreds, rpreds = model(dcur, subtasks=True)
-                # print(cpreds)
-                # assert False
-                cpreds = torch.argmax(cpreds, dim=-1)
-                # cpreds = (cpreds * one_hot(cshft.long(), model.num_c)).sum(-1)
-            
-            # predcurc task
-            curcpred = torch.masked_select(cpreds, sm).detach().cpu()
-            curctrue = torch.masked_select(c, sm).detach().cpu()
-            ctrues.append(curctrue.numpy())
-            cscores.append(curcpred.numpy())
-
-            # predhis task
-            start = model.start
-            rsm = sm[:,start:]
-            rflag = rsm==1
-            currtrue = dcur["historycorrs"][:,start:][rflag]
-            currpred = rpreds[rflag]
-            # print(f"currtrue: {currtrue.shape}, currpred: {currpred.shape}")
-            # assert False
-            rtrues.append(currtrue.detach().cpu().numpy())
-            rscores.append(currpred.detach().cpu().numpy())
-        # predcurs task
-        ts = np.concatenate(ctrues, axis=0)
-        ps = np.concatenate(cscores, axis=0)
-        # TODO!
-        print(f"ts: {ts.shape}, ps: {ps.shape}")
-        # print(f"ps: {ps}, ts: {ts}")
-        # assert False
-        acc = metrics.accuracy_score(ts, ps)
-        # predhis task
-        
-        rts = np.concatenate(rtrues, axis=0)
-        rps = np.concatenate(rscores, axis=0)
-        print(f"rts: {rts.shape}, rps: {rps.shape}")
-        mse = metrics.mean_squared_error(rts, rps)
-    return acc, mse
-
 def evaluate(model, test_loader, model_name, save_path=""):
     if save_path != "":
+        # ptype = "qemb"
+        # save_path = save_path+"_"+ptype
         fout = open(save_path, "w", encoding="utf8")
+    # indexx = 0
     with torch.no_grad():
         y_trues = []
         y_scores = []
@@ -181,8 +135,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 y = model(dcur, dgaps)
                 y = y[:,1:]
             elif model_name in ["bakt", "bakt_peiyou"]:
-                y = model(dcur)
+                y, q_data, qdiff, qemb = model(dcur)
                 y = y[:,1:]
+                q_data = q_data[:,1:]
+                qdiff = qdiff[:,1:,:]
+                qemb = qemb[:,1:,:]
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -225,9 +182,17 @@ def evaluate(model, test_loader, model_name, save_path=""):
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
+                # # 知识点id，题目embedding
+                # if ptype == "qemb":
+                #     result = save_cur_predict_result(dres, c, r, cshft, rshft, q_data, qemb, m, sm, y)
+                # else:
+                    # result = save_cur_predict_result(dres, c, r, cshft, rshft, q_data, qdiff, m, sm, y)
                 # result = save_cur_predict_result(dres, c, r, cshft, rshft, q, qh, m, sm, y)
                 result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
                 fout.write(result+"\n")
+                # index += c.shape[0]
+                # if index >= 2000:
+                #     assert False
 
             y = torch.masked_select(y, sm).detach().cpu()
             # print(f"pred_results:{y}")  

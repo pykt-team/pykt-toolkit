@@ -469,8 +469,10 @@ class WandbUtils:
             model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
             tmp_model_path = model_path.split("/")[-2]
             target_path = f"./best_model_path/{dataset_name}/{model_name}/{tmp_model_path}"
+            '''
             shutil.copytree(model_path, target_path)
             print(f"copy {model_path} to {target_path} done")
+            '''
             model_path_fold_first.append(target_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
         if eval_test:
@@ -497,21 +499,21 @@ class WandbUtils:
         if len(all_res) < 5:
             print("Failure running exists, please check!!!")
             return
-        '''
-        repeated_aucs = np.unique(all_res["testauc"].values)
-        repeated_accs = np.unique(all_res["testacc"].values)
+        # repeated_aucs = np.unique(all_res["testauc"].values)
+        # repeated_accs = np.unique(all_res["testacc"].values)
         repeated_window_aucs = np.unique(all_res["window_testauc"].values)
         repeated_window_accs = np.unique(all_res["window_testacc"].values)
-        repeated_auc_mean, repeated_auc_std = np.mean(repeated_aucs), np.std(repeated_aucs, ddof=0)
-        repeated_acc_mean, repeated_acc_std = np.mean(repeated_accs), np.std(repeated_accs, ddof=0)
+        # repeated_auc_mean, repeated_auc_std = np.mean(repeated_aucs), np.std(repeated_aucs, ddof=0)
+        # repeated_acc_mean, repeated_acc_std = np.mean(repeated_accs), np.std(repeated_accs, ddof=0)
         repeated_winauc_mean, repeated_winauc_std = np.mean(repeated_window_aucs), np.std(repeated_window_aucs, ddof=0)
         repeated_winacc_mean, repeated_winacc_std = np.mean(repeated_window_accs), np.std(repeated_window_accs, ddof=0)
         key = dataset_name + "_" + model_name
         if print_std:
-            print(key + "_repeated:", "%.4f"%repeated_auc_mean + "±" + "%.4f"%repeated_auc_std + "," + "%.4f"%repeated_acc_mean + "±" + "%.4f"%repeated_acc_std + "," + "%.4f"%repeated_winauc_mean + "±" + "%.4f"%repeated_winauc_std + "," + "%.4f"%repeated_winacc_mean + "±" + "%.4f"%repeated_winacc_std) 
+            # print(key + "_repeated:", "%.4f"%repeated_auc_mean + "±" + "%.4f"%repeated_auc_std + "," + "%.4f"%repeated_acc_mean + "±" + "%.4f"%repeated_acc_std)
+            print(key + "_winrepeated:", "%.4f"%repeated_winauc_mean + "±" + "%.4f"%repeated_winauc_std + "," + "%.4f"%repeated_winacc_mean + "±" + "%.4f"%repeated_winacc_std) 
         else:
-            print(key + "_repeated:", "%.4f"%repeated_auc_mean + "," + "%.4f"%repeated_acc_mean + "," + "%.4f"%repeated_winauc_mean + "," + "%.4f"%repeated_winacc_mean)
-        '''
+            # print(key + "_repeated:", "%.4f"%repeated_auc_mean + "," + "%.4f"%repeated_acc_mean)
+            print(key + "_winrepeated:", "%.4f"%repeated_winauc_mean + "," + "%.4f"%repeated_winacc_mean)
         try: 
             # question_aucs = np.unique(all_res["oriaucconcepts"].values)
             # question_accs = np.unique(all_res["oriaccconcepts"].values)

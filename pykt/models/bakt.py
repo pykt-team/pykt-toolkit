@@ -21,7 +21,7 @@ class Dim(IntEnum):
 class BAKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
-            seq_len=200, 
+            loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
             kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         """
@@ -56,7 +56,7 @@ class BAKT(nn.Module):
             # n_question+1 ,d_model
             self.q_embed = nn.Embedding(self.n_question, embed_l)
             if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l)
+                    self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l)
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
@@ -70,7 +70,9 @@ class BAKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
-        
+
+        self.c_weight = nn.Linear(d_model, d_model)
+
         self.reset()
 
     def reset(self):
@@ -136,7 +138,7 @@ class BAKT(nn.Module):
             if qtest:
                 return preds, concat_q
             else:
-                return preds
+                return preds, q_data, pid_embed_data, q_embed_data
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,

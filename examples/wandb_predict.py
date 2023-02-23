@@ -113,7 +113,7 @@ def main(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bz", type=int, default=32)
+    parser.add_argument("--bz", type=int, default=16)
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--save", type=str, default="False")
     parser.add_argument("--fusion_type", type=str, default="late_fusion")

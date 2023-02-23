@@ -14,7 +14,7 @@ from .que_pretrain_dataloader import KTPretrainQueDataset
 from pykt.config import que_type_models
 
 def init_test_datasets(data_config, model_name, batch_size):
-    print(f"model_name is {model_name}")
+    print(f"model_name is {model_name}, init_test_datasets!")
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget", "bakt_time"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
