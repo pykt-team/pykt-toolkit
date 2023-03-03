@@ -22,6 +22,7 @@ from .iekt import IEKT
 from .cdkt import CDKT
 from .bakt import BAKT
 from .bakt_time import BAKTTime
+from .bakt_simplex import BAKTSimpleX
 from .qdkt import QDKT
 from .qikt import QIKT
 from .akt_peiyou import AKTPeiyou
@@ -53,6 +54,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = CAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt":
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "bakt_simplex":
+        model = BAKTSimpleX(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -137,8 +140,10 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt_time":
         model = BAKTTime(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "bakt":
-        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    # elif model_name == "bakt":
+    #     model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    # elif model_name == "bakt_simplex":
+    #     model = BAKTSimpleX(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt_peiyou":
         dpretrain = {
             "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],

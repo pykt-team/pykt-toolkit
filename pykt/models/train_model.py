@@ -17,7 +17,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time", "bakt_peiyou"]:
+    if model_name in ["bakt_simplex"]:
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        
+        loss1 = binary_cross_entropy(y.double(), t.double())
+        # print(f"loss1: {loss1}")
+        loss = model.loss1*loss1+model.loss2*ys[1]
+    elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_peiyou"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -93,6 +100,9 @@ def model_forward(model, data, epoch):
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
+    elif model_name in ["bakt_simplex"]:
+        y, y2 = model(dcur, train=True)
+        ys = [y[:,1:], y2]
     elif model_name in ["bakt", "bakt_peiyou"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]

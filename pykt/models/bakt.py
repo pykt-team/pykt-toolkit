@@ -102,6 +102,7 @@ class BAKT(nn.Module):
         # Batch First
         if emb_type.startswith("qid"):
             q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+        pid_embed_data = None
         if self.n_pid > 0 and emb_type.find("norasch") == -1: # have problem id
             if emb_type.find("aktrasch") == -1:
                 q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化

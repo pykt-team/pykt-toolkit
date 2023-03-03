@@ -469,10 +469,10 @@ class WandbUtils:
             model_path = model_path.rstrip(f"{emb_type}_model.ckpt")
             tmp_model_path = model_path.split("/")[-2]
             target_path = f"./best_model_path/{dataset_name}/{model_name}/{tmp_model_path}"
-            '''
+
             shutil.copytree(model_path, target_path)
             print(f"copy {model_path} to {target_path} done")
-            '''
+
             model_path_fold_first.append(target_path)
         ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
         if eval_test:
@@ -497,7 +497,7 @@ class WandbUtils:
         all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
         if len(all_res) < 5:
-            print("Failure running exists, please check!!!")
+            print(f"Failure running exists, please check!!! all_res: {len(all_res)}")
             return
         # repeated_aucs = np.unique(all_res["testauc"].values)
         # repeated_accs = np.unique(all_res["testacc"].values)

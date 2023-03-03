@@ -1,17 +1,17 @@
-program: ./wandb_bakt_train.py
+program: ./wandb_bakt_peiyou_train.py
 method: bayes
 metric:
     goal: maximize
     name: validauc
 parameters:
     model_name:
-        values: ["bakt"]
+        values: ["bakt_peiyou"]
     dataset_name:
         values: ["xes"]
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["models/bakt_tiaocan"]
+        values: ["models/bakt_peiyou_tiaocan"]
     d_model:
         values: [64, 256]
     d_ff:
@@ -30,15 +30,5 @@ parameters:
         values: [1, 2, 4]
     seed:
         values: [42, 3407]
-    insert_ratio:
-        values: [0.1,0.2,0.3,0.4,0.5]
-    crop_ratio:
-        values: [0.2,0.4,0.6,0.8]
-    mask_ratio:
-        values: [0.1,0.2,0.3,0.4,0.5]
-    reorder_ratio:
-        values: [0.1,0.2,0.3,0.4,0.5]
-    K:
-        values: [20,40,50,80,100,120,140,160,180]
     fold:
         values: [0, 1, 2, 3, 4]

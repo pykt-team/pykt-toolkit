@@ -71,7 +71,7 @@ def main(params):
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["bakt", "bakt_peiyou", "bakt_time"]:
+        if model_name in ["bakt", "bakt_peiyou", "bakt_time", "bakt_simplex"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -80,7 +80,10 @@ def main(params):
         if model_name in ["akt_peiyou", "iekt_peiyou"]:
             train_config["batch_size"] = 64
         model_config = copy.deepcopy(params)
-        for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
+        for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed",
+                "insert_ratio", "crop_ratio", "mask_ratio", "reorder_ratio", "aug", "K"]:
+            if key not in model_config:
+                continue
             del model_config[key]
         if 'batch_size' in params:
             train_config["batch_size"] = params['batch_size']
@@ -97,9 +100,21 @@ def main(params):
 
     print("Start init data")
     print(dataset_name, model_name, data_config, fold, batch_size)
+
+    aug = False
+    if "aug" in params:
+        aug = params["aug"]
+    print(f"aug: {aug}")
+    if aug:
+        data_config[dataset_name]["insert"] = params["insert_ratio"]
+        data_config[dataset_name]["crop"] = params["crop_ratio"]
+        data_config[dataset_name]["mask"] = params["mask_ratio"]
+        data_config[dataset_name]["reorder"] = params["reorder_ratio"]
+        data_config[dataset_name]["K"] = params["K"]
+        data_config[dataset_name]["aug"] = True
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size, aug=False)
+    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -120,7 +135,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
+    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time", "bakt_simplex"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
