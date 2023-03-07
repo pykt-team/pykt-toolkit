@@ -1,20 +1,13 @@
 import math
-import copy
-import pandas as pd
-import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import (
     Module,
     Embedding,
     Linear,
-    ReLU,
     Dropout,
     ModuleList,
-    Softplus,
     Sequential,
-    Sigmoid,
-    BCEWithLogitsLoss,
 )
 import torch.nn.functional as F
 from torch.nn.modules.activation import GELU
@@ -293,8 +286,10 @@ class CL4KT(Module):
         return loss, len(pred[mask]), true[mask].sum().item()
 
     def get_interaction_embed(self, skills, responses):
+        
         masked_responses = responses * (responses > -1).long()
-        interactions = skills + self.num_skills * masked_responses
+        interactions = (skills + self.num_skills * masked_responses).long()
+        # print(f"interactions are {interactions},{interactions.dtype}")
         return self.interaction_embed(interactions)
 
 

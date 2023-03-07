@@ -123,6 +123,8 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in que_type_models and model_name != "lpkt":
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
+            elif model_name == "cl4kt":
+                y = model(data)['pred']
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":

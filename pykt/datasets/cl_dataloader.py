@@ -58,6 +58,9 @@ class CL4KTDataset(KTDataset):
         #get full sequence
         q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
         qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+        masks = dcur["masks"]
+        pad_mask = torch.tensor([True]).to(masks.device)
+        attention_mask = torch.cat((pad_mask, masks), dim=-1)
         # print(f"q shape is {q.shape}")
         # print(f"qshft shape is {qshft.shape}")
         cq = torch.cat((q[0:1], qshft), dim=-1)
@@ -66,6 +69,7 @@ class CL4KTDataset(KTDataset):
         dcur["questions"] = cq
         dcur["skills"] = cc
         dcur["responses"] = cr
+        dcur["attention_mask"] = attention_mask
        
         if not self.qtest:
             return dcur
@@ -132,7 +136,7 @@ class SimCLRDatasetWrapper(Dataset):
         q_seq = original_data["questions"]
         s_seq = original_data["skills"]
         r_seq = original_data["responses"]
-        attention_mask = original_data["masks"]
+        attention_mask = original_data["attention_mask"]
 
         if self.eval_mode:
             # If in evaluation mode, return the original data

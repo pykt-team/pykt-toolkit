@@ -31,7 +31,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes","cl4kt"]:
+    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -159,6 +159,7 @@ def model_forward(model, data):
     elif model_name in ['cl4kt']:
         result = model(data)
         y,cl_loss = result['pred'],result['cl_loss']
+        ys.append(y)
         kt_loss = cal_loss(model, ys, r, rshft, sm, preloss)
         loss = kt_loss + model.reg_cl * cl_loss
         
