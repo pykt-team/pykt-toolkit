@@ -24,7 +24,7 @@ class BAKTSimpleX(nn.Module):
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
             kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", 
             emb_path="", pretrain_dim=768,
-            m = 0.2, w=0.2
+            m = 0.2, w=0.2, topk=5
             ):
         super().__init__()
         """
@@ -44,6 +44,7 @@ class BAKTSimpleX(nn.Module):
         self.loss1 = loss1
         self.loss2 = loss2
         self.start = start
+        self.topk = topk
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
@@ -168,7 +169,8 @@ class BAKTSimpleX(nn.Module):
         lossn = 0
         for i in range(self.start, scores.shape[1]-1):
             curs = scores[:,i,:]
-            curtop = curs.topk(self.start, largest = True, sorted = True)
+            topknum = min(self.start, self.topk)
+            curtop = curs.topk(self.topk, largest = True, sorted = True)
             indexs = curtop.indices
             # values = curtop.values
             # print(indexs.tolist())
@@ -225,52 +227,52 @@ class BAKTSimpleX(nn.Module):
         return loss#torch.sum(torch.tensor(losses)) / lossnes
 
             # print(first, second)
-        losses = []
-        for i in range(self.start, scores.shape[1]-1):
-            curs = scores[:,i,:]
-            curtop = curs.topk(self.start, largest = True, sorted = True)
-        #     print(curtop)
-            indexs = curtop.indices
-            values = curtop.values
-        #     print(values.tolist())
-            # print(indexs.tolist())
-            for j in range(0, scores.shape[0]):
-                if sm[j][i-1] == 0:
-                    continue
-                curidxs = indexs[j].tolist()
-                curtrues = trues[j][curidxs]
-                curpreds = preds[j][curidxs]
-        #         print(curtrues, curidxs)
-                # print(curtrues)
-                # print(curpreds)
-                # import copy
-                newp = curpreds#copy.deepcopy(curpreds)
+        # losses = []
+        # for i in range(self.start, scores.shape[1]-1):
+        #     curs = scores[:,i,:]
+        #     curtop = curs.topk(self.start, largest = True, sorted = True)
+        # #     print(curtop)
+        #     indexs = curtop.indices
+        #     values = curtop.values
+        # #     print(values.tolist())
+        #     # print(indexs.tolist())
+        #     for j in range(0, scores.shape[0]):
+        #         if sm[j][i-1] == 0:
+        #             continue
+        #         curidxs = indexs[j].tolist()
+        #         curtrues = trues[j][curidxs]
+        #         curpreds = preds[j][curidxs]
+        # #         print(curtrues, curidxs)
+        #         # print(curtrues)
+        #         # print(curpreds)
+        #         # import copy
+        #         newp = curpreds#copy.deepcopy(curpreds)
 
-                newp[curtrues==0]=1-newp[curtrues==0] # 预测正确的概率
-                # print(f"newp: {newp}")
+        #         newp[curtrues==0]=1-newp[curtrues==0] # 预测正确的概率
+        #         # print(f"newp: {newp}")
                 
-                # 预测正确的作为正例，预测错误的作为负例，根据newp值0.5阈值判断
-                predtrues = newp[newp>=0.5]
-                predfalses = newp[newp<0.5]
-                if predtrues.shape[0] == 0 or predfalses.shape[0] == 0:
-                    continue
-                # 正例的预测，准确率越高，loss越小
-                first = torch.sum(1 - predtrues) / predtrues.shape[0]
+        #         # 预测正确的作为正例，预测错误的作为负例，根据newp值0.5阈值判断
+        #         predtrues = newp[newp>=0.5]
+        #         predfalses = newp[newp<0.5]
+        #         if predtrues.shape[0] == 0 or predfalses.shape[0] == 0:
+        #             continue
+        #         # 正例的预测，准确率越高，loss越小
+        #         first = torch.sum(1 - predtrues) / predtrues.shape[0]
                 
-                # w, m = 0.2, 0.2
-                # 错误的预测，错误率越高，loss越大
-                tmp = 1 - predfalses - self.m
-                tmp[tmp<0] = 0
-        #         print(tmp)
-                second = self.w * torch.sum(tmp, dim=0) / predfalses.shape[0] 
-                # print(f"first: {first}, second: {second}")
-                loss = first + second
-                losses.append(loss)#.item())
+        #         # w, m = 0.2, 0.2
+        #         # 错误的预测，错误率越高，loss越大
+        #         tmp = 1 - predfalses - self.m
+        #         tmp[tmp<0] = 0
+        # #         print(tmp)
+        #         second = self.w * torch.sum(tmp, dim=0) / predfalses.shape[0] 
+        #         # print(f"first: {first}, second: {second}")
+        #         loss = first + second
+        #         losses.append(loss)#.item())
         
-        loss = sum(losses) / len(losses)#torch.mean(torch.tensor(loss))
-        print(loss)
-        assert False
-        return loss
+        # loss = sum(losses) / len(losses)#torch.mean(torch.tensor(loss))
+        # print(loss)
+        # assert False
+        # return loss
 
 
     def cal_ccl_loss_cosine2(self, scores, q_embed_data, sm):
