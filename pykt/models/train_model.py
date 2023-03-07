@@ -22,8 +22,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
         t = torch.masked_select(rshft, sm)
         
         loss1 = binary_cross_entropy(y.double(), t.double())
-        # print(f"loss1: {loss1}")
+        # loss = 0*loss1+model.loss2*ys[1]
+        # loss = loss1
+        # print(f"loss1: {loss1}, loss2: {ys[1]}, x1: {model.loss1}, x2: {model.loss2}")
+        # loss2 = torch.sigmoid(torch.randn(1)).to(device)
         loss = model.loss1*loss1+model.loss2*ys[1]
+        # print(f"loss1: {loss1}, loss2: {ys[1]}, loss: {loss}, x1: {model.loss1}, x2: {model.loss2}")
     elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_peiyou"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)

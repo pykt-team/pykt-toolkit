@@ -98,18 +98,314 @@ class BAKTSimpleX(nn.Module):
             qa_embed_data = self.qa_embed(target)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def cal_ccl_loss(self, scores):
+
+    def cal_ccl_loss_weili(self, scores, output, sm, t=0.2):
+        res = 0
+        losses = []
+        for j in range(0, scores.shape[0]):
+            curoutput = output[j,:,:]
+            seq_len = curoutput.shape[0] 
+            curscores = scores[j,:,:]
+            score_copy = curscores.clone()
+            sort_score, index = torch.sort(score_copy, descending=True)
+            # print(f"output: {output.shape}, index: {index.shape}")
+            eye = torch.eye(seq_len)
+            positive = eye[index[:, 0]]
+    
+            #positive = torch.load("/share_v1/sunweili/pykt-toolkit-dev/examples/tmp.pt").to(device)
+            #相似度矩阵
+            similarity_matrix = F.cosine_similarity(curoutput.unsqueeze(0), curoutput.unsqueeze(1), dim=-1).to(device)
+            #print(similarity_matrix)
+            mask = positive.long().to(device)
+            #这步得到它的不同类的矩阵，不同类的位置为1
+            #mask_no_sim = torch.ones_like(mask) - mask
+            
+            similarity_matrix = torch.exp(similarity_matrix / t)
+            similarity_matrix = torch.tril(similarity_matrix, diagonal=-1)  # 只保留下三角
+            #这步产生了相同类别的相似度矩阵，标签相同的位置保存它们的相似度，其他位置都是0
+            # print(f"similarity_matrix: {similarity_matrix}")
+            # assert False
+            sim = mask * similarity_matrix    # seqlen x seqlen
+            # print(f"sim: {sim[2]}, sum: {sim[2].sum()}")
+            # print(f"matrix: {similarity_matrix[2]}, sum: {similarity_matrix[2].sum()}")
+            # i = 2
+            # print(sim[i].sum() / similarity_matrix[i].sum())
+            # print(-torch.log(sim[i].sum() / similarity_matrix[i].sum()))
+            # assert False
+            # if j == 2:
+            #     assert False
+            loss = 0.0
+            for i in range(1, seq_len):
+                # print(f"i: {i}")
+                # print(f"j: {j}, scores[j]: {scores[j][i]}")
+                # print(f"sim[i]: {sim[i]}")
+                # print(f"similarity_matrix[i]: {similarity_matrix[i]}")
+
+                loss_i = sim[i].sum() / similarity_matrix[i].sum()
+                loss_i = -torch.log(loss_i)# / i)  #求-log
+                # print(f"bz:{j}, index:{i}, loss: {loss_i}")
+                losses.append(loss_i)
+                loss += loss_i
+            #     if i == 5:
+            #         assert False
+            # assert False
+                
+            loss = loss / seq_len
+            res += loss
+            # print(f"loss: {loss}")
+        # assert False
+        res = torch.mean(torch.tensor(losses))
+        # res = res / scores.shape[0]
+        return res
+
+
+
+    def cal_ccl_loss_topkattn(self, scores, sm, trues, preds):
         # scores: bz * seqlen * seqlen
+        # negres = []
+        # posres = []
+        losses = torch.tensor([])
+        lossn = 0
+        for i in range(self.start, scores.shape[1]-1):
+            curs = scores[:,i,:]
+            curtop = curs.topk(self.start, largest = True, sorted = True)
+            indexs = curtop.indices
+            # values = curtop.values
+            # print(indexs.tolist())
+            # print(trues.shape, indexs.shape)
+            curtrues = torch.gather(trues, dim=1, index=indexs)
+            curpreds = torch.gather(preds, dim=1, index=indexs)
+            
+            curpreds[curtrues==0]=1-curpreds[curtrues==0]
+            
+            newp = curpreds
+            predtrues = newp * (newp>=0.5).long()
+            predfalses = newp * (newp<0.5).long()
+
+            pnum = torch.count_nonzero(predtrues, dim=1)+1
+            first = 1 - torch.sum(predtrues, dim=1) / pnum
+            ######
+            nnum = torch.count_nonzero(predfalses, dim=1)+1
+            predfalses = 1-predfalses-self.m
+            predfalses[predfalses>=1-self.m] = 0
+            # print(predfalses)
+            predfalses = torch.sum(predfalses, dim=1) / nnum 
+            second = self.w * predfalses
+
+            # print(first)
+            # print(second)
+            # assert False
+
+            loss = first + second
+            # print(loss)
+            
+            # loss = torch.nan_to_num(loss, 0)
+            # print(loss)
+            
+            loss = torch.masked_select(loss, sm[:,i-1])
+            # print(loss)
+            # assert False
+            lossn += torch.count_nonzero(loss)
+            # print(f"lossn: {lossn}, loss: {loss}")
+            # assert False
+            if losses.shape[0] == 0:
+                losses = loss
+            else:
+                losses = torch.cat([losses, loss])#.extend(loss)#.tolist())
+
+        # print(f"losses: {losses}")
+        # print(f"sum losses: {torch.sum(losses)}")
+        # print(loss.requires_grad)
+        loss = torch.sum(losses) / lossn
+        # loss.requires_grad_(True) 
+        # print(loss.requires_grad)
+        # # loss = sum(losses) / lossn
+        # print(f"loss: {loss}")
+        # assert False
+        return loss#torch.sum(torch.tensor(losses)) / lossnes
+
+            # print(first, second)
+        losses = []
+        for i in range(self.start, scores.shape[1]-1):
+            curs = scores[:,i,:]
+            curtop = curs.topk(self.start, largest = True, sorted = True)
+        #     print(curtop)
+            indexs = curtop.indices
+            values = curtop.values
+        #     print(values.tolist())
+            # print(indexs.tolist())
+            for j in range(0, scores.shape[0]):
+                if sm[j][i-1] == 0:
+                    continue
+                curidxs = indexs[j].tolist()
+                curtrues = trues[j][curidxs]
+                curpreds = preds[j][curidxs]
+        #         print(curtrues, curidxs)
+                # print(curtrues)
+                # print(curpreds)
+                # import copy
+                newp = curpreds#copy.deepcopy(curpreds)
+
+                newp[curtrues==0]=1-newp[curtrues==0] # 预测正确的概率
+                # print(f"newp: {newp}")
+                
+                # 预测正确的作为正例，预测错误的作为负例，根据newp值0.5阈值判断
+                predtrues = newp[newp>=0.5]
+                predfalses = newp[newp<0.5]
+                if predtrues.shape[0] == 0 or predfalses.shape[0] == 0:
+                    continue
+                # 正例的预测，准确率越高，loss越小
+                first = torch.sum(1 - predtrues) / predtrues.shape[0]
+                
+                # w, m = 0.2, 0.2
+                # 错误的预测，错误率越高，loss越大
+                tmp = 1 - predfalses - self.m
+                tmp[tmp<0] = 0
+        #         print(tmp)
+                second = self.w * torch.sum(tmp, dim=0) / predfalses.shape[0] 
+                # print(f"first: {first}, second: {second}")
+                loss = first + second
+                losses.append(loss)#.item())
+        
+        loss = sum(losses) / len(losses)#torch.mean(torch.tensor(loss))
+        print(loss)
+        assert False
+        return loss
+
+
+    def cal_ccl_loss_cosine2(self, scores, q_embed_data, sm):
+        # print(f"random loss!")
+        # loss = torch.rand(scores.shape[0], scores.shape[1]).to(device)
+        # loss = torch.masked_select(loss[:,1:], sm)
+        # loss = torch.sum(loss) / loss.shape[0]
+        loss = torch.sigmoid(torch.randn(1)).to(device)
+        return loss
+
+    def cal_ccl_loss_cosine(self, scores, q_embed_data, sm):
+        # scores: bz * seqlen * seqlen
+        # embedding cosine 
+        # from torch.functional import F
+        tal = 0.2
+        coses = torch.cosine_similarity(q_embed_data.unsqueeze(1), q_embed_data.unsqueeze(2), dim=-1)
+        coses = torch.exp(coses/tal)
+        coses = torch.tril(coses,diagonal=-1) # 下三角不为0，对角线和上三角为0
+        # print(f"q_embed_data: {q_embed_data.shape}, coses: {coses.shape}, start: {self.start}")
+        # print(f"coses: {coses[0,2,:]}")
+        # print(f"scores: {scores[0,2,:]}")
+        # assert False
+
+
+        # negres = []
+        # posres = []
+
+        losses = []
+        res = []
+        for j in range(self.start, scores.shape[1]):
+            # pos
+            premax = torch.max(scores[:,j,:], dim=1).indices
+            bzindex = torch.arange(0,scores.shape[0],1).to(device)
+            curcospos = coses[:,j,:][bzindex, premax]
+            # print(f"j: {j}, coses[:,j,:]: {coses[:,j,:]}")
+            # print(f"curcospos: {curcospos}")
+            
+
+            # all
+            cur = coses[:,j,:]
+            addnum = torch.sum(cur, dim=1)
+            # print(f"curpos: {curcospos}, addnum: {addnum}")
+
+            curloss = -1 * torch.log(curcospos / addnum)
+            curloss = torch.masked_select(curloss, sm[:,j-1])
+
+            # for i in range(0, scores.shape[0]):
+            #     print(f"bz: {i}, index: {j}, curloss: {curloss[i]}")
+
+            # if j == 3:
+            #     assert False
+            
+            losses.extend(curloss)
+            # res.append(curloss.sum() / curloss.shape[0])
+            # print(f"loss1: {curloss.sum() / curloss.shape[0]}, loss2: {torch.mean(curloss)}")
+            # assert False
+            # res.append(torch.mean(curloss))
+
+        # loss = torch.mean(torch.tensor(losses))
+        # print(f"loss1torch: {torch.mean(torch.tensor(losses))}, loss2: {sum(losses) / len(losses)}")
+        print(f"losses: {losses}")
+        loss = sum(losses) / len(losses)
+        # print(loss)
+
+        # loss = sum(res) / len(res)
+        # print(f"loss1: {loss}, loss2: {torch.mean(torch.tensor(res))}")
+        # loss = torch.mean(torch.tensor(res))
+        print(loss)
+        assert False
+        return loss
+
+    def cal_ccl_loss_cosine1(self, scores, q_embed_data, sm):
+        # scores: bz * seqlen * seqlen
+        # embedding cosine 
+        # from torch.functional import F
+        # tal = 2
+        coses = torch.cosine_similarity(q_embed_data.unsqueeze(1), q_embed_data.unsqueeze(2), dim=-1)
+        coses = torch.exp(coses)#*tal)
+        coses = torch.tril(coses,diagonal=-1) # 下三角不为0，对角线和上三角为0
+        # print(f"q_embed_data: {q_embed_data.shape}, coses: {coses.shape}, start: {self.start}")
+        # print(f"coses: {coses}")
+        # assert False
+
         negres = []
         posres = []
         if self.start >= scores.shape[1]:
             return 0
         for j in range(self.start, scores.shape[1]):
+            # pos
+            # print(scores[:,j,:])
+            # print(coses[:,j,:])
+            
+            premax = torch.max(scores[:,j,:], dim=1).indices
+            bzindex = torch.arange(0,scores.shape[0],1).to(device)
+            curcospos = coses[:,j,:][bzindex, premax]
+            # print(curcospos.shape)
+            posres.append(curcospos.tolist())
+
+            # neg
+            curcospos = curcospos - self.m
+            cur = coses[:,j,:] - self.m
+            cur[cur<0] = 0
+            addnum = torch.sum(cur, dim=1)
+            # print("addnum: ", addnum)
+            final = (addnum - curcospos) / (j - 1)
+            negres.append(final.tolist())
+
+            # print(f"pos: {curcospos+self.m}, neg: {final}")
+
+            # assert False
+        # print(f"sm: {sm.shape}, {sm[:,self.start-1:].shape}")
+        negres = torch.tensor(negres).transpose(0,1).to(device)
+        negres = torch.masked_select(negres, sm[:,self.start-1:])
+        posres = torch.tensor(posres).transpose(0,1).to(device)
+        posres = torch.masked_select(posres, sm[:,self.start-1:])
+
+        # print(f"negres: {negres.shape}, posres: {posres.shape}")
+        
+        loss = (1-posres) + negres * self.w
+        loss = torch.sum(loss)/ loss.shape[0]
+        # print(loss)
+        # assert False
+        return loss
+
+    def cal_ccl_loss(self, scores, sm):
+        # scores: bz * seqlen * seqlen
+        # negreses = []
+        # posreses = []
+        losses = []
+        for j in range(self.start, scores.shape[1]):
             premax = torch.max(scores[:,j,:], dim=1).values
-            posres.append(premax.tolist())
+            # posres.append(premax)
+
             premax = premax - self.m
             # print("premax: ", premax)
-            
             # print(scores[:,j,:])
             cur = scores[:,j,:] - self.m
             cur[cur<0] = 0
@@ -118,35 +414,21 @@ class BAKTSimpleX(nn.Module):
             # print("addnum: ", addnum)
         
             final = (addnum - premax) / (j - 1)
-            negres.append(final.tolist())
+            # negres.append(final)
+
+            posres = torch.masked_select(premax, sm[:,j-1])
+            negres = torch.masked_select(final, sm[:,j-1])
+
+            curloss = (1-posres) + negres * self.w
+            losses.extend(curloss)
             # print("final: ", final)
             # print("-="*10)
-        negres = torch.tensor(negres).transpose(0,1)
-        posres = torch.tensor(posres).transpose(0,1)
 
-        # print(f"negres: {negres.shape}, posres: {posres.shape}")
-        loss = (1-posres) + negres * self.w
-        loss = torch.sum(loss)/ (loss.shape[0]*loss.shape[1])
+        # print(f"losses: {losses}")
+        loss = sum(losses) / len(losses)
         # print(loss)
+        # assert False
         return loss
-
-        # bz, seqlen = scores[0], scores[1]
-        # pad = torch.zeros([bz, seqlen, 1])
-        # news = torch.cat([pad, scores], dim=2)
-
-        # cur = news - self.m
-        # cur[cur<0] = 0
-        # cumsum = torch.cumsum(cur, dim=2)[:, :, :-1]
-
-        # cummax = torch.cummax(cur, dim=2)[:, :, :-1]
-
-        # negnum = torch.arange(seqlen).unsqueeze(0).repeat(bz * seqlen,1).reshape_as(scores) - 1
-        # negnum[nugnum<=0] = 1
-
-        # negpart = (cumsum - cummax) / negnum * self.w
-
-
-
 
     def forward(self, dcur, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -154,6 +436,8 @@ class BAKTSimpleX(nn.Module):
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
+
+        sm = dcur["smasks"]
 
         emb_type = self.emb_type
 
@@ -195,7 +479,12 @@ class BAKTSimpleX(nn.Module):
             m = nn.Sigmoid()
             preds = m(output)
 
-        y2 = self.cal_ccl_loss(scores)
+        # y2 = self.cal_ccl_loss(scores, sm)
+        y2 = self.cal_ccl_loss_topkattn(scores, sm, target, preds)
+        # if self.start == -1:
+        #     y2 = self.cal_ccl_loss_weili(scores, d_output, sm)
+        # else:
+        #     y2 = self.cal_ccl_loss_cosine(scores, d_output, sm)
 
         if train:
             return preds, y2
@@ -372,7 +661,10 @@ class MultiHeadAttention(nn.Module):
             .view(bs, -1, self.d_model)
         # scores = scores.transpose(1, 2).contiguous()\
         #     .view(bs, -1, self.d_model)
-        scores = torch.sum(scores, dim=1) / 4
+        # print(scores.shape)
+        # print(scores)
+        # assert False
+        scores = torch.sum(scores, dim=1) / self.h
 
         output = self.out_proj(concat)
 
@@ -386,18 +678,19 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad):
     # d_k: 每一个头的dim
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
+    # print(f"ori scores: {scores}")
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
 
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-    # print(f"before zero pad scores: {scores.shape}")
+    # print(f"before zero pad scores: {scores}")
     # print(zero_pad)
     if zero_pad:
         pad_zero = torch.zeros(bs, head, 1, seqlen).to(device)
         scores = torch.cat([pad_zero, scores[:, :, 1:, :]], dim=2) # 第一行score置0
     # print(f"after zero pad scores: {scores}")
-    scores = dropout(scores)
-    output = torch.matmul(scores, v)
+    nscores = dropout(scores)
+    output = torch.matmul(nscores, v)
     # import sys
     # sys.exit()
     return output, scores
