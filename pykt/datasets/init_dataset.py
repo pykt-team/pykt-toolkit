@@ -10,7 +10,7 @@ from .lpkt_dataloader import LPKTDataset
 from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from pykt.config import que_type_models
-
+from .cl_dataloader import CL4KTDataset,SimCLRDatasetWrapper
 
 
 def init_test_datasets(data_config, model_name, batch_size):
@@ -45,6 +45,13 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             test_question_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
+            
+    elif model_name in ["cl4kt"]:
+        test_dataset = CL4KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1},data_config=data_config)
+        test_window_dataset = CL4KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1},data_config=data_config)
+        if "test_question_file" in data_config:
+            test_question_dataset = CL4KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, qtest=True,data_config=data_config)
+            test_question_window_dataset = CL4KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, qtest=True,data_config=data_config)
     else:
         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
@@ -71,6 +78,8 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     return max_rgap, max_sgap, max_pcount
 
 def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
+    if "model_config" in data_config:
+        model_config = data_config['model_config']
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -98,10 +107,24 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     elif model_name in ["atdkt"]:
         curvalid = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curtrain = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, data_config=data_config)
+    elif model_name in ["cl4kt"]:
+        curvalid = CL4KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i}, data_config=data_config)
+        curtrain = CL4KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, data_config=data_config)
+        curtrain = SimCLRDatasetWrapper(
+                        curtrain,
+                        seq_len=200,
+                        mask_prob=model_config['mask_prob'],
+                        crop_prob=model_config['crop_prob'],
+                        permute_prob=model_config['permute_prob'],
+                        replace_prob=model_config['replace_prob'],   
+                        negative_prob=model_config['negative_prob'],
+                        eval_mode=False)
     else:
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+    
+    
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
@@ -111,16 +134,6 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
             # test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
             #                                 data_config["input_type"], {-1})
             max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, test_dataset)
-    #     elif model_name == "lpkt":
-    #         test_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), at2idx, it2idx, data_config["input_type"], {-1})
-    #         # test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), at2idx, it2idx, data_config["input_type"], {-1})
-    #     elif model_name in que_type_models:
-    #         test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
-    #                         input_type=data_config["input_type"], folds=[-1], 
-    #                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-    #     else:
-    #         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-    #         # test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
     except:
         pass
     
@@ -133,7 +146,4 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         print(f"num_it:{len(it2idx)}")
         data_config["num_at"] = len(at2idx) + 1
         data_config["num_it"] = len(it2idx) + 1
-    # test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    # # test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
-    # test_window_loader = None
     return train_loader, valid_loader#, test_loader, test_window_loader

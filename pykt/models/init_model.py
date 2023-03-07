@@ -24,6 +24,7 @@ from .simplekt import simpleKT
 from .bakt_time import BAKTTime
 from .qdkt import QDKT
 from .qikt import QIKT
+from .cl4kt import CL4KT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -98,6 +99,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = BAKTTime(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "simplekt":
         model = simpleKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "cl4kt":
+        model = CL4KT(data_config["num_c"], data_config["num_q"],200,**model_config,emb_type=emb_type).to(device)
     else:
         print("The wrong model name was used...")
         return None

@@ -67,8 +67,11 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
+    
+    data_config['model_config'] = model_config
     train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
-
+    del data_config['model_config']
+    
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
     print(f"params: {params}, params_str: {params_str}")

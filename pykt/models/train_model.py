@@ -31,7 +31,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes","cl4kt"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -59,6 +59,10 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         t = torch.masked_select(rshft, sm)
         criterion = nn.BCELoss(reduction='none')        
         loss = criterion(y, t).sum()
+    elif model_name == "cl4kt":
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        loss = binary_cross_entropy(y.double(), t.double())
     
     return loss
 
@@ -152,7 +156,12 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in que_type_models and model_name != "lpkt":
         y,loss = model.train_one_step(data)
-    
+    elif model_name in ['cl4kt']:
+        result = model(data)
+        y,cl_loss = result['pred'],result['cl_loss']
+        kt_loss = cal_loss(model, ys, r, rshft, sm, preloss)
+        loss = kt_loss + model.reg_cl * cl_loss
+        
     if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
