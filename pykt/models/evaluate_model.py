@@ -445,6 +445,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 h = torch.cat((start_hemb, h), dim=1)
                 # e_data = torch.cat((start_hemb, e_data), dim=1)
                 y = y[:, 1:]
+            elif model_name == "cl4kt":
+                y = model(dcurori)['pred']
 
             concepty = torch.masked_select(y, sm).detach().cpu()
             conceptt = torch.masked_select(rshft, sm).detach().cpu()

@@ -99,7 +99,7 @@ class CL4KTTransformerLayer(Module):
 
         bert_mask = torch.ones_like(src_mask).bool()
 
-        if mask == 0:
+        if mask == 0:#
             query2, attn = self.masked_attn_head(query, key, values, mask=src_mask)
         elif mask == 1:
             query2, attn = self.masked_attn_head(query, key, values, mask=src_mask)
@@ -196,9 +196,9 @@ class AKTTransformerLayer(Module):
 
         src_mask = (torch.from_numpy(nopeek_mask) == 0).to(device)
 
-        if mask == 0:
+        if mask == 0:#can not see itself
             query2, attn = self.masked_attn_head(query, key, values, mask=src_mask)
-        elif mask == 1:
+        elif mask == 1:#can see itself
             query2, attn = self.masked_attn_head(query, key, values, mask=src_mask)
         else:  # mask == 2
             raise NotImplementedError
@@ -503,30 +503,3 @@ class Dim(IntEnum):
     batch = 0
     seq = 1
     feature = 2
-
-
-class BERTEmbeddings(nn.Module):
-    def __init__(self, num_skills, hidden_size, seq_len, dropout, padding_idx=0):
-        super(BERTEmbeddings, self).__init__()
-        self.item_embeddings = Embedding(
-            num_skills, hidden_size, padding_idx=padding_idx
-        )
-        self.positional_embeddings = Embedding(seq_len, hidden_size)
-
-        self.LayerNorm = LayerNorm(hidden_size, eps=1e-12)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, input_ids):
-        seq_length = input_ids.size(1)
-        position_ids = torch.arange(
-            seq_length, dtype=torch.long, device=input_ids.device
-        )
-        position_ids = position_ids.unsqueeze(0).expand_as(input_ids)
-
-        item_embeddings = self.item_embeddings(input_ids)
-        position_embeddings = self.positional_embeddings(position_ids)
-        embeddings = item_embeddings + position_embeddings
-
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
