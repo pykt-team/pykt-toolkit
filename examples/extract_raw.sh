@@ -1,7 +1,8 @@
 
-dataset="assist2009,nips_task34,statics2011,poj,assist2015"
-models="bakt_qid_sparseattn,bakt_qid_disentangled_sparse_attn"
+dataset="nips_task34,statics2011,algebra2005,bridge2algebra2006"
+models="bakt_qid_disentangled_sparseattn"
 
+#,nips_task34,statics2011,algebra2005,bridge2algebra2006
 IFS=','
 for one_dataset in $dataset; do
   echo "Dataset is $one_dataset"
