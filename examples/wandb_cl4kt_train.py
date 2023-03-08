@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--fold", type=int, default=0)
     
-    parser.add_argument("--use_wandb", type=int, default=0)
+    parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
     
     #model config
