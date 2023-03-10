@@ -52,9 +52,8 @@ class CL4KT(Module):
         print(f"emb_type: {self.emb_type}")
         if self.emb_type in ["simplekt"]:
             if self.num_questions > 0:
-                self.difficult_param = nn.Embedding(self.num_questions+1, self.hidden_size) # 
-                self.q_embed_diff = nn.Embedding(self.num_skills+1, self.hidden_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-                self.qa_embed_diff = nn.Embedding(2 * self.num_skills + 1, self.hidden_size) # interaction emb, 同上
+                self.difficult_param = nn.Embedding(self.num_questions+2, self.hidden_size) # 
+                self.q_embed_diff = nn.Embedding(self.num_skills+2, self.hidden_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
                 self.qa_embed = nn.Embedding(2, self.hidden_size)
                 
     
@@ -132,12 +131,13 @@ class CL4KT(Module):
         # Define loss functions.
         self.cl_loss_fn = nn.CrossEntropyLoss(reduction="mean")
         self.loss_fn = nn.BCELoss(reduction="mean")
-        self.reset()
+        if self.emb_type in ["simplekt"]:
+            self.reset()
         
     def reset(self):
         # This is a function for initializing parameters that sets all elements to a specified constant value (in this case, 0).
         for p in self.parameters():
-            if p.size(0) == self.num_questions+1 and self.num_questions > 0:
+            if p.size(0) == self.num_questions+2 and self.num_questions > 0:
                 torch.nn.init.constant_(p, 0.)
 
 
@@ -165,24 +165,25 @@ class CL4KT(Module):
             attention_mask_i=attention_mask_j=attention_mask = batch["attention_mask"][-1]
             
             if self.emb_type in ["simplekt"]:
-                ques_i_embed,inter_i_embed = self.base_emb(q_id_i,q_i, r_i)
-                ques_j_embed,inter_j_embed = self.base_emb(q_id_j,q_j, r_j)
+                q_i_embed_data, qa_i_embed_data,q_i_pos_embed_data,qa_i_pos_embed_data = self.base_emb(q_id_i,q_i, r_i)
+                q_j_embed_data, qa_j_embed_data,q_j_pos_embed_data,qa_j_pos_embed_data = self.base_emb(q_id_j,q_j, r_j)
             else:
-                ques_i_embed = self.question_embed(q_i)
-                ques_j_embed = self.question_embed(q_j)
-                inter_i_embed = self.get_interaction_embed(q_i, r_i)
-                inter_j_embed = self.get_interaction_embed(q_j, r_j)
+                q_i_embed_data = self.question_embed(q_i)
+                q_j_embed_data = self.question_embed(q_j)
+                qa_i_embed_data = self.get_interaction_embed(q_i, r_i)
+                qa_j_embed_data = self.get_interaction_embed(q_j, r_j)
                 
                 
             if self.negative_prob > 0:
                 if self.emb_type in ["simplekt"]:
-                    _,inter_k_embed = self.base_emb(q_id, q, neg_r)
+                    _,inter_k_embed,_,_ = self.base_emb(q_id, q, neg_r)
                 else:
                     inter_k_embed = self.get_interaction_embed(q, neg_r)
 
             # mask=2 means bidirectional attention of BERT
-            ques_i_score, ques_j_score = ques_i_embed, ques_j_embed #[batch_size, seq_len, hidden_size]
-            inter_i_score, inter_j_score = inter_i_embed, inter_j_embed
+            
+            ques_i_score, ques_j_score = q_i_embed_data, q_j_embed_data #[batch_size, seq_len, hidden_size]
+            inter_i_score, inter_j_score = qa_i_embed_data, qa_j_embed_data
 
             # Apply transformers to question and interaction embeddings. Bidirectional attention.
             for block in self.question_encoder:
@@ -322,8 +323,7 @@ class CL4KT(Module):
             out_dict = {
                 "pred": output[:, 1:],
                 "true": r[:, 1:].float(),
-                # "cl_loss": question_cl_loss + interaction_cl_loss,
-                "cl_loss": 0,
+                "cl_loss": question_cl_loss + interaction_cl_loss,
                 "attn": attn,
             }
         else:
