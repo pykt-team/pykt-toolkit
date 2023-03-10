@@ -11,7 +11,7 @@ from torch.nn import (
 )
 import torch.nn.functional as F
 from torch.nn.modules.activation import GELU
-from .cl4kt_modules import CL4KTTransformerLayer
+from .cl4kt_modules import CL4KTTransformerLayer,CosinePositionalEmbedding
 
 if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -34,6 +34,7 @@ class CL4KT(Module):
         self.num_attn_heads = self.args["num_attn_heads"]
         self.kq_same = self.args["kq_same"]
         self.final_fc_dim = self.args["final_fc_dim"]
+        self.final_fc_dim2 = self.args["final_fc_dim2"]
         self.d_ff = self.args["d_ff"]
         self.l2 = self.args.get("l2",0)
         self.dropout = self.args["dropout"]
@@ -48,12 +49,15 @@ class CL4KT(Module):
         self.interaction_embed = Embedding(
             2 * (self.num_skills + 2), self.hidden_size, padding_idx=0
         )
-
-        if self.num_questions > 0:
-            self.difficult_param = nn.Embedding(self.num_questions+1, 1) # 题目难度
-            self.q_embed_diff = nn.Embedding(self.num_skills+1, self.hidden_size)
-           
-        
+        print(f"emb_type: {self.emb_type}")
+        if self.emb_type in ["simplekt"]:
+            if self.num_questions > 0:
+                self.difficult_param = nn.Embedding(self.num_questions+1, self.hidden_size) # 
+                self.q_embed_diff = nn.Embedding(self.num_skills+1, self.hidden_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
+                self.qa_embed_diff = nn.Embedding(2 * self.num_skills + 1, self.hidden_size) # interaction emb, 同上
+                self.qa_embed = nn.Embedding(2, self.hidden_size)
+                
+    
         # Define similarity measure and transformers.
         self.sim = Similarity(temp=self.args["temp"])
 
@@ -66,6 +70,7 @@ class CL4KT(Module):
                     n_heads=self.num_attn_heads,
                     dropout=self.dropout,
                     kq_same=self.kq_same,
+                    emb_type = self.emb_type
                 )
                 for _ in range(self.num_blocks)
             ]
@@ -80,6 +85,7 @@ class CL4KT(Module):
                     n_heads=self.num_attn_heads,
                     dropout=self.dropout,
                     kq_same=self.kq_same,
+                    emb_type = self.emb_type
                 )
                 for _ in range(self.num_blocks)
             ]
@@ -94,41 +100,85 @@ class CL4KT(Module):
                     n_heads=self.num_attn_heads,
                     dropout=self.dropout,
                     kq_same=self.kq_same,
+                    emb_type = self.emb_type
                 )
                 for _ in range(self.num_blocks)
             ]
         )
 
         # Define output layer.
-        self.out = Sequential(
+        
+        
+        if self.emb_type in ["simplekt"]: 
+            self.position_emb = CosinePositionalEmbedding(d_model=self.hidden_size, max_len=seq_len)
+            self.out = nn.Sequential(
+                nn.Linear(self.hidden_size + self.hidden_size, self.final_fc_dim), 
+                nn.ReLU(), 
+                nn.Dropout(self.dropout),
+                nn.Linear(self.final_fc_dim, self.final_fc_dim2), 
+                nn.ReLU(), 
+                nn.Dropout(self.dropout),
+                nn.Linear(self.final_fc_dim2, 1)
+            )
+        else:
+            self.out = Sequential(
             Linear(2 * self.hidden_size, self.final_fc_dim),
             GELU(),
             Dropout(self.dropout),
             Linear(self.final_fc_dim, self.final_fc_dim // 2),
             GELU(),
             Dropout(self.dropout),
-            Linear(self.final_fc_dim // 2, 1),
-        )
-        
+            Linear(self.final_fc_dim // 2, 1))
         # Define loss functions.
         self.cl_loss_fn = nn.CrossEntropyLoss(reduction="mean")
         self.loss_fn = nn.BCELoss(reduction="mean")
+        self.reset()
+        
+    def reset(self):
+        # This is a function for initializing parameters that sets all elements to a specified constant value (in this case, 0).
+        for p in self.parameters():
+            if p.size(0) == self.num_questions+1 and self.num_questions > 0:
+                torch.nn.init.constant_(p, 0.)
 
+
+    def base_emb(self,q,c,r):
+        q_embed_data = self.question_embed(c)
+        qa_embed_data = q_embed_data + self.qa_embed(r.long())
+        
+        if self.emb_type in ["simplekt"]:# add rasch        
+            if self.num_questions>0:
+                q_embed_diff_data = self.q_embed_diff(c)  
+                pid_embed_data = self.difficult_param(q)  # uq 当前problem的难度
+                q_embed_data = q_embed_data + pid_embed_data * q_embed_diff_data  
+                
+            # add position embedding
+            q_pos_embed_data = q_embed_data + self.position_emb(q_embed_data)
+            qa_pos_embed_data = qa_embed_data + self.position_emb(qa_embed_data)
+                
+        return q_embed_data, qa_embed_data,q_pos_embed_data,qa_pos_embed_data
+        
     def forward(self, batch):
         if self.training:
             q_i, q_j, q = batch["skills"]  # augmented q_i, augmented q_j and original q
             q_id_i, q_id_j, q_id = batch["questions"]  # augmented q_id_i, augmented q_id_j and original q_id
             r_i, r_j, r, neg_r = batch["responses"]  # augmented r_i, augmented r_j and original r
-            # attention_mask_i, attention_mask_j, attention_mask = batch["attention_mask"]
             attention_mask_i=attention_mask_j=attention_mask = batch["attention_mask"][-1]
-
-            ques_i_embed = self.question_embed(q_i)
-            ques_j_embed = self.question_embed(q_j)
-            inter_i_embed = self.get_interaction_embed(q_i, r_i)
-            inter_j_embed = self.get_interaction_embed(q_j, r_j)
+            
+            if self.emb_type in ["simplekt"]:
+                ques_i_embed,inter_i_embed = self.base_emb(q_id_i,q_i, r_i)
+                ques_j_embed,inter_j_embed = self.base_emb(q_id_j,q_j, r_j)
+            else:
+                ques_i_embed = self.question_embed(q_i)
+                ques_j_embed = self.question_embed(q_j)
+                inter_i_embed = self.get_interaction_embed(q_i, r_i)
+                inter_j_embed = self.get_interaction_embed(q_j, r_j)
+                
+                
             if self.negative_prob > 0:
-                # inter_k_embed = self.get_negative_interaction_embed(q, r) # hard negative
-                inter_k_embed = self.get_interaction_embed(q, neg_r)
+                if self.emb_type in ["simplekt"]:
+                    _,inter_k_embed = self.base_emb(q_id, q, neg_r)
+                else:
+                    inter_k_embed = self.get_interaction_embed(q, neg_r)
 
             # mask=2 means bidirectional attention of BERT
             ques_i_score, ques_j_score = ques_i_embed, ques_j_embed #[batch_size, seq_len, hidden_size]
@@ -236,35 +286,35 @@ class CL4KT(Module):
 
             interaction_cl_loss = self.cl_loss_fn(inter_cos_sim, inter_labels)
         else:
-            # print(f"batch is {batch}") 
-            # print(f"batch are {batch['skills']}")
+   
             q = batch["skills"]  # augmented q_i, augmented q_j and original q
             q_id = batch["questions"]
             r = batch["responses"]  # augmented r_i, augmented r_j and original r
-
             attention_mask = batch["attention_mask"]
+   
 
         # Generate final prediction
-        
-        q_embed = self.question_embed(q)
-        i_embed = self.get_interaction_embed(q, r)
-        if self.num_questions > 0:
-            q_embed_diff_data = self.q_embed_diff(q)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            pid_embed_data = self.difficult_param(q_id)  # uq 当前problem的难度
-            q_embed = q_embed + pid_embed_data * \
-                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
+        if self.emb_type in ["simplekt"]:
+            q_embed_data, qa_embed_data,q_pos_embed_data,qa_pos_embed_data = self.base_emb(q_id,q,r)
+            x, y = q_pos_embed_data, qa_pos_embed_data
 
-        x, y = q_embed, i_embed
-        for block in self.question_encoder:
-            x, _ = block(mask=1, query=x, key=x, values=x, apply_pos=True)
+        else:
+            q_embed_data = self.question_embed(q)
+            qa_embed_data = self.get_interaction_embed(q, r)
+            x, y = q_embed_data, qa_embed_data
+            
 
-        for block in self.interaction_encoder:
-            y, _ = block(mask=1, query=y, key=y, values=y, apply_pos=True)
+        if self.emb_type not in ["simplekt"]:
+            for block in self.question_encoder:
+                x, _ = block(mask=1, query=x, key=x, values=x, apply_pos=True)
+
+            for block in self.interaction_encoder:
+                y, _ = block(mask=1, query=y, key=y, values=y, apply_pos=True)
 
         for block in self.knoweldge_retriever:
             x, attn = block(mask=0, query=x, key=x, values=y, apply_pos=True)
 
-        retrieved_knowledge = torch.cat([x, q_embed], dim=-1)
+        retrieved_knowledge = torch.cat([x, q_embed_data], dim=-1)
 
         output = torch.sigmoid(self.out(retrieved_knowledge)).squeeze()
 
@@ -272,7 +322,8 @@ class CL4KT(Module):
             out_dict = {
                 "pred": output[:, 1:],
                 "true": r[:, 1:].float(),
-                "cl_loss": question_cl_loss + interaction_cl_loss,
+                # "cl_loss": question_cl_loss + interaction_cl_loss,
+                "cl_loss": 0,
                 "attn": attn,
             }
         else:
