@@ -48,7 +48,11 @@ class CL4KT(Module):
         self.interaction_embed = Embedding(
             2 * (self.num_skills + 2), self.hidden_size, padding_idx=0
         )
-        
+
+        if self.num_questions > 0:
+            self.difficult_param = nn.Embedding(self.num_questions+1, 1) # 题目难度
+            self.q_embed_diff = nn.Embedding(self.num_skills+1, self.hidden_size)
+           
         
         # Define similarity measure and transformers.
         self.sim = Similarity(temp=self.args["temp"])
@@ -113,6 +117,7 @@ class CL4KT(Module):
     def forward(self, batch):
         if self.training:
             q_i, q_j, q = batch["skills"]  # augmented q_i, augmented q_j and original q
+            q_id_i, q_id_j, q_id = batch["questions"]  # augmented q_id_i, augmented q_id_j and original q_id
             r_i, r_j, r, neg_r = batch["responses"]  # augmented r_i, augmented r_j and original r
             # attention_mask_i, attention_mask_j, attention_mask = batch["attention_mask"]
             attention_mask_i=attention_mask_j=attention_mask = batch["attention_mask"][-1]
@@ -126,7 +131,7 @@ class CL4KT(Module):
                 inter_k_embed = self.get_interaction_embed(q, neg_r)
 
             # mask=2 means bidirectional attention of BERT
-            ques_i_score, ques_j_score = ques_i_embed, ques_j_embed
+            ques_i_score, ques_j_score = ques_i_embed, ques_j_embed #[batch_size, seq_len, hidden_size]
             inter_i_score, inter_j_score = inter_i_embed, inter_j_embed
 
             # Apply transformers to question and interaction embeddings. Bidirectional attention.
@@ -169,11 +174,11 @@ class CL4KT(Module):
                         values=inter_k_embed,
                         apply_pos=False,
                     )
-
-            # Calculate pooled scores for question and interaction embeddings.
+            # Calculate pooled scores for question and interaction embeddings, pooling one sequence to one vector
             pooled_ques_i_score = (ques_i_score * attention_mask_i.unsqueeze(-1)).sum(
                 1
-            ) / attention_mask_i.sum(-1).unsqueeze(-1)
+            ) / attention_mask_i.sum(-1).unsqueeze(-1) #[batch_size, hidden_size]
+            
             pooled_ques_j_score = (ques_j_score * attention_mask_j.unsqueeze(-1)).sum(
                 1
             ) / attention_mask_j.sum(-1).unsqueeze(-1)
@@ -185,6 +190,8 @@ class CL4KT(Module):
             
             # Calculate loss for cosine similarity between pooled question embeddings.
             ques_labels = torch.arange(ques_cos_sim.size(0)).long().to(q_i.device)
+            # print(ques_cos_sim.size(), ques_labels.size())
+            # print(ques_labels)
             question_cl_loss = self.cl_loss_fn(ques_cos_sim, ques_labels)
          
             # Calculate pooled scores for interaction embeddings.
@@ -232,6 +239,7 @@ class CL4KT(Module):
             # print(f"batch is {batch}") 
             # print(f"batch are {batch['skills']}")
             q = batch["skills"]  # augmented q_i, augmented q_j and original q
+            q_id = batch["questions"]
             r = batch["responses"]  # augmented r_i, augmented r_j and original r
 
             attention_mask = batch["attention_mask"]
@@ -240,6 +248,11 @@ class CL4KT(Module):
         
         q_embed = self.question_embed(q)
         i_embed = self.get_interaction_embed(q, r)
+        if self.num_questions > 0:
+            q_embed_diff_data = self.q_embed_diff(q)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            pid_embed_data = self.difficult_param(q_id)  # uq 当前problem的难度
+            q_embed = q_embed + pid_embed_data * \
+                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
         x, y = q_embed, i_embed
         for block in self.question_encoder:
