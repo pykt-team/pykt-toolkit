@@ -36,7 +36,7 @@ class CL4KT(Module):
         self.final_fc_dim = self.args["final_fc_dim"]
         self.final_fc_dim2 = self.args["final_fc_dim2"]
         self.d_ff = self.args["d_ff"]
-        self.l2 = self.args.get("l2",0)
+        self.l2 = self.args.get("l2",1e-5)
         self.dropout = self.args["dropout"]
         self.reg_cl = self.args["reg_cl"]
         self.negative_prob = self.args["negative_prob"]
@@ -154,6 +154,9 @@ class CL4KT(Module):
             # add position embedding
             q_pos_embed_data = q_embed_data + self.position_emb(q_embed_data)
             qa_pos_embed_data = qa_embed_data + self.position_emb(qa_embed_data)
+        else:
+            q_pos_embed_data = None
+            qa_pos_embed_data = None
                 
         return q_embed_data, qa_embed_data,q_pos_embed_data,qa_pos_embed_data
         
