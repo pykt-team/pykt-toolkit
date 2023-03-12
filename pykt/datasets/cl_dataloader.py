@@ -149,7 +149,10 @@ class SimCLRDatasetWrapper(Dataset):
 
         else:
             # If not in evaluation mode, augment the data
-            q_seq_list = original_data["questions"].tolist()
+            if self.num_questions<=0:
+                q_seq_list = original_data["skills"].tolist()
+            else:
+                q_seq_list = original_data["questions"].tolist()
             s_seq_list = original_data["skills"].tolist()
             r_seq_list = original_data["responses"].tolist()
 
@@ -168,6 +171,7 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index,
+                num_questions = self.num_questions
             )
 
             t2 = augment_kt_seqs(
@@ -185,6 +189,7 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index + 1,
+                num_questions = self.num_questions
             )
             # Unpack the augmented data
             aug_q_seq_1, aug_s_seq_1, aug_r_seq_1, negative_r_seq, attention_mask_1 = t1

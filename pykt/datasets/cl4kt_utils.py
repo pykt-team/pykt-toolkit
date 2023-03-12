@@ -18,7 +18,9 @@ def augment_kt_seqs(
     seq_len,
     seed=None,
     skill_rel=None,
+    num_questions=-1
 ):
+    # print(f"num_questions is {num_questions}")
     # masking (random or PMI 등을 활용해서)
     # 구글 논문의 Correlated Feature Masking 등...
     rng = random.Random(seed)
@@ -28,27 +30,31 @@ def augment_kt_seqs(
     masked_s_seq = []
     masked_r_seq = []
     negative_r_seq = []
-
+    # print(f"q_seq is {q_seq}, s_seq is {s_seq}, r_seq is {r_seq}")
     if mask_prob > 0:
         for q, s, r in zip(q_seq, s_seq, r_seq):
             prob = rng.random()
             if prob < mask_prob and s != 0:
                 prob /= mask_prob
                 if prob < 0.8:
-                    masked_q_seq.append(q_mask_id)
+                    if num_questions!=0:
+                        masked_q_seq.append(q_mask_id)
                     masked_s_seq.append(s_mask_id)
                 elif prob < 0.9:
-                    masked_q_seq.append(
-                        rng.randint(1, q_mask_id - 1)
-                    )  # original BERT처럼 random한 확률로 다른 token으로 대체해줌
+                    if num_questions!=0:
+                        masked_q_seq.append(
+                            rng.randint(1, q_mask_id - 1)
+                        )  # original BERT처럼 random한 확률로 다른 token으로 대체해줌
                     masked_s_seq.append(
                         rng.randint(1, s_mask_id - 1)
                     )  # randint(start, end) [start, end] 둘다 포함
                 else:
-                    masked_q_seq.append(q)
+                    if num_questions!=0:
+                        masked_q_seq.append(q)
                     masked_s_seq.append(s)
             else:
-                masked_q_seq.append(q)
+                if num_questions!=0:
+                    masked_q_seq.append(q)
                 masked_s_seq.append(s)
             masked_r_seq.append(r)  # response는 나중에 hard negatives로 활용 (0->1, 1->0)
 
@@ -89,10 +95,10 @@ def augment_kt_seqs(
                 ):  # if the response is correct, then replace a skill with the easier one
                     masked_s_seq[i] = easier_skills[s]
 
-    true_seq_len = np.sum(np.asarray(q_seq) != 0)
+    true_seq_len = np.sum(np.asarray(s_seq) != 0)
     if permute_prob > 0:
         reorder_seq_len = math.floor(permute_prob * true_seq_len)
-        start_idx = (np.asarray(q_seq) != 0).argmax()
+        start_idx = (np.asarray(s_seq) != 0).argmax()
         while True:
             # print(f"seq_len - reorder_seq_len is {seq_len - reorder_seq_len}")
             # if seq_len - reorder_seq_len==0:
@@ -104,13 +110,14 @@ def augment_kt_seqs(
 
         # reorder (permute)
         perm = np.random.permutation(reorder_seq_len)
-        masked_q_seq = (
-            masked_q_seq[:start_pos]
-            + np.asarray(masked_q_seq[start_pos : start_pos + reorder_seq_len])[
-                perm
-            ].tolist()
-            + masked_q_seq[start_pos + reorder_seq_len :]
-        )
+        if num_questions!=0:
+            masked_q_seq = (
+                masked_q_seq[:start_pos]
+                + np.asarray(masked_q_seq[start_pos : start_pos + reorder_seq_len])[
+                    perm
+                ].tolist()
+                + masked_q_seq[start_pos + reorder_seq_len :]
+            )
         masked_s_seq = (
             masked_s_seq[:start_pos]
             + np.asarray(masked_s_seq[start_pos : start_pos + reorder_seq_len])[
@@ -136,8 +143,8 @@ def augment_kt_seqs(
             start_pos = rng.randint(start_idx, seq_len - crop_seq_len)
             if start_pos + crop_seq_len < seq_len:
                 break
-
-        masked_q_seq = masked_q_seq[start_pos : start_pos + crop_seq_len]
+        if num_questions!=0:
+            masked_q_seq = masked_q_seq[start_pos : start_pos + crop_seq_len]
         masked_s_seq = masked_s_seq[start_pos : start_pos + crop_seq_len]
         masked_r_seq = masked_r_seq[start_pos : start_pos + crop_seq_len]
 

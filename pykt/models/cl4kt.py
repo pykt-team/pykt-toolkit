@@ -54,7 +54,7 @@ class CL4KT(Module):
             if self.num_questions > 0:
                 self.difficult_param = nn.Embedding(self.num_questions+2, self.hidden_size) # 
                 self.q_embed_diff = nn.Embedding(self.num_skills+2, self.hidden_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-                self.qa_embed = nn.Embedding(2, self.hidden_size)
+            self.qa_embed = nn.Embedding(2, self.hidden_size)
                 
     
         # Define similarity measure and transformers.
@@ -146,7 +146,7 @@ class CL4KT(Module):
         qa_embed_data = q_embed_data + self.qa_embed(r.long())
         
         if self.emb_type in ["simplekt"]:# add rasch        
-            if self.num_questions>0:
+            if self.num_questions > 0:
                 q_embed_diff_data = self.q_embed_diff(c)  
                 pid_embed_data = self.difficult_param(q)  # uq 当前problem的难度
                 q_embed_data = q_embed_data + pid_embed_data * q_embed_diff_data  
