@@ -94,8 +94,12 @@ def augment_kt_seqs(
         reorder_seq_len = math.floor(permute_prob * true_seq_len)
         start_idx = (np.asarray(q_seq) != 0).argmax()
         while True:
+            # print(f"seq_len - reorder_seq_len is {seq_len - reorder_seq_len}")
+            # if seq_len - reorder_seq_len==0:
+                # break
             start_pos = rng.randint(start_idx, seq_len - reorder_seq_len)
-            if start_pos + reorder_seq_len < seq_len:
+            # print(f"start_pos is {start_pos}")
+            if start_pos + reorder_seq_len <= seq_len:
                 break
 
         # reorder (permute)
