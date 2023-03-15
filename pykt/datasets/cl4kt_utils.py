@@ -99,8 +99,6 @@ def augment_kt_seqs(
         start_idx = 0
         # print(f"start_idx is {start_idx}, s_seq is {s_seq}, reorder_seq_len is {reorder_seq_len}, true_seq_len is {true_seq_len}")
         while True:
-            if seq_len - reorder_seq_len==0:
-                break
             start_pos = rng.randint(start_idx, true_seq_len - reorder_seq_len)
             # print(f"start_pos is {start_pos}")
             if start_pos + reorder_seq_len <= true_seq_len:
