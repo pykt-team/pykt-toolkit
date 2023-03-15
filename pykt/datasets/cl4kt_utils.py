@@ -74,7 +74,7 @@ def augment_kt_seqs(
             else:
                 negative_r_seq.append(r)
 
-    # print(f"masked_q_seq is {masked_q_seq}, masked_s_seq is {masked_s_seq}, masked_r_seq is {masked_r_seq}")
+    # print(f"masked_q_seq is {masked_q_seq}, masked_s_seq is {masked_s_seq}, masked_r_seq is {masked_r_seq},negative_r_seq is {negative_r_seq}")
     """
     skill difficulty based replace
     """
@@ -92,7 +92,6 @@ def augment_kt_seqs(
                     r == 1 and s in easier_skills
                 ):  # if the response is correct, then replace a skill with the easier one
                     masked_s_seq[i] = easier_skills[s]
-
     true_seq_len = len(s_seq)
     if permute_prob > 0:
         reorder_seq_len = math.floor(permute_prob * true_seq_len)
@@ -140,14 +139,17 @@ def augment_kt_seqs(
                 break
         if num_questions!=0:
             masked_q_seq = masked_q_seq[start_pos : start_pos + crop_seq_len]
+        # print(f"start_pos is {start_pos}, crop_seq_len is {crop_seq_len},true_seq_len is {true_seq_len}")
         masked_s_seq = masked_s_seq[start_pos : start_pos + crop_seq_len]
         masked_r_seq = masked_r_seq[start_pos : start_pos + crop_seq_len]
-
+        
     pad_len = seq_len - len(masked_s_seq)
+    # print(f"pad_len is {pad_len}")
     attention_mask = [True] * len(masked_s_seq)+[False] * pad_len
     masked_q_seq = masked_q_seq+[0] * pad_len
     masked_s_seq = masked_s_seq+[0] * pad_len
     masked_r_seq = masked_r_seq+[0] * pad_len 
-    negative_r_seq = negative_r_seq+[0] * pad_len
+    negative_r_seq = negative_r_seq+[0] * (seq_len - len(negative_r_seq))
+   
     #attention_mask is not used in here
     return masked_q_seq, masked_s_seq, masked_r_seq, negative_r_seq, attention_mask

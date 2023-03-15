@@ -43,7 +43,7 @@ parameters:
     temp:
         values: [0.05,1,2]
     hard_negative_weight:
-        values: [1]
+        values: [0, 0.2, 0.4, 0.6,0.8, 1.0]
     seed:
         values: [42, 3407]
     fold:

@@ -260,7 +260,7 @@ class CL4KT(Module):
             # Calculate cosine similarity between pooled interaction embeddings.
             inter_cos_sim = self.sim(
                 pooled_inter_i_score.unsqueeze(1), pooled_inter_j_score.unsqueeze(0)
-            )
+            )#[batch_size, batch_size]
 
             if self.negative_prob > 0:
                 # Calculate pooled scores for hard negative interaction embeddings.
@@ -272,22 +272,28 @@ class CL4KT(Module):
                 neg_inter_cos_sim = self.sim(
                     pooled_inter_i_score.unsqueeze(1), pooled_inter_k_score.unsqueeze(0)
                 )
-                inter_cos_sim = torch.cat([inter_cos_sim, neg_inter_cos_sim], 1)
-
-            inter_labels = torch.arange(inter_cos_sim.size(0)).long().to(q_i.device)
-
+                inter_cos_sim = torch.cat([inter_cos_sim, neg_inter_cos_sim], 1)#[batch_size, batch_size*2]
+            # print(f"inter_cos_sim is {inter_cos_sim.shape}")
+            inter_labels = torch.arange(inter_cos_sim.size(0)).long().to(q_i.device)# [batch_size]
+            # print(f"inter_labels is {inter_labels.shape}")
             if self.negative_prob > 0:
                 weights = torch.tensor(
                     [
-                        [0.0] * (inter_cos_sim.size(-1) - neg_inter_cos_sim.size(-1))
+                        [0.0] * (inter_cos_sim.size(-1) - neg_inter_cos_sim.size(-1))#batch_size
                         + [0.0] * i
                         + [self.hard_negative_weight]
                         + [0.0] * (neg_inter_cos_sim.size(-1) - i - 1)
                         for i in range(neg_inter_cos_sim.size(-1))
                     ]
-                ).to(q_i.device)
+                ).to(q_i.device)# [batch_size, batch_size*2]
+                # print(f"weights are {weights.shape}")
                 inter_cos_sim = inter_cos_sim + weights
-
+            """ 
+            tensor([[0.0000, 0.0000, 0.0000, 0.0000, 0.5000, 0.0000, 0.0000, 0.0000],
+                    #[0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.5000, 0.0000, 0.0000],
+                    #[0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.5000, 0.0000],
+                    #[0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.5000]])
+            """
             interaction_cl_loss = self.cl_loss_fn(inter_cos_sim, inter_labels)
         else:
    
