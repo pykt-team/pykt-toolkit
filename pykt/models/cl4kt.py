@@ -335,6 +335,7 @@ class CL4KT(Module):
                 "cl_loss": question_cl_loss + interaction_cl_loss,
                 "attn": attn,
             }
+            # print(f"out_dict is {out_dict['cl_loss']}")
         else:
             out_dict = {
                 "pred": output[:, 1:],

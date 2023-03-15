@@ -162,8 +162,9 @@ def model_forward(model, data):
         ys.append(y)
         kt_loss = cal_loss(model, ys, r, rshft, sm, preloss)
         loss = kt_loss + model.reg_cl * cl_loss
+        # print(f"kt_loss:{kt_loss}, cl_loss:{cl_loss},loss:{loss}")
         
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
+    if model_name not in ["atkt", "atktfix","cl4kt"]+que_type_models or model_name == "lpkt":
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
@@ -182,6 +183,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             else:
                 model.train()
             loss = model_forward(model, data)
+            # print(f"loss is {loss}")
             opt.zero_grad()
             loss.backward()#compute gradients 
             opt.step()#update model’s parameters
