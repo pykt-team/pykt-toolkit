@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.1, help="dropout probability")
     parser.add_argument("--reg_cl",type=float,default=0,help="regularization parameter contrastive learning loss")
     parser.add_argument("--mask_prob", type=float, default=0, help="mask probability")
-    parser.add_argument("--crop_prob", type=float, default=0, help="crop probability, it has some bugs, please set to 0 for now")
+    parser.add_argument("--crop_prob", type=float, default=0, help="crop probability")
     parser.add_argument("--permute_prob", type=float, default=0, help="permute probability")
     parser.add_argument("--replace_prob", type=float, default=0, help="replace probability")
     parser.add_argument("--negative_prob",type=float,default=0,help="reverse responses probability for hard negative pairs")
