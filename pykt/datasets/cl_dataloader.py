@@ -157,15 +157,15 @@ class SimCLRDatasetWrapper(Dataset):
                 q_seq_list = original_data["questions"].cpu().numpy()#.tolist()
             s_seq_list = original_data["skills"].cpu().numpy()#.tolist()
             r_seq_list = original_data["responses"].cpu().numpy()#.tolist()
-            attention_mask = original_data["attention_mask"].cpu().numpy()
+            attention_mask_aug = original_data["attention_mask"].cpu().numpy()
             #
-            q_seq_list, s_seq_list, r_seq_list = q_seq_list[attention_mask].tolist(), s_seq_list[attention_mask].tolist(), r_seq_list[attention_mask].tolist()
+            q_seq_aug, s_seq_aug, r_seq_aug = q_seq_list[attention_mask_aug].tolist(), s_seq_list[attention_mask_aug].tolist(), r_seq_list[attention_mask_aug].tolist()
 
 
             t1 = augment_kt_seqs(
-                q_seq_list,
-                s_seq_list,
-                r_seq_list,
+                q_seq_aug,
+                s_seq_aug,
+                r_seq_aug,
                 self.mask_prob,
                 self.crop_prob,
                 self.permute_prob,
@@ -181,9 +181,9 @@ class SimCLRDatasetWrapper(Dataset):
             )
 
             t2 = augment_kt_seqs(
-                q_seq_list,
-                s_seq_list,
-                r_seq_list,
+                q_seq_aug,
+                s_seq_aug,
+                r_seq_aug,
                 self.mask_prob,
                 self.crop_prob,
                 self.permute_prob,
