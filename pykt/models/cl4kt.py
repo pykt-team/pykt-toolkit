@@ -165,7 +165,7 @@ class CL4KT(Module):
             q_i, q_j, q = batch["skills"]  # augmented q_i, augmented q_j and original q
             q_id_i, q_id_j, q_id = batch["questions"]  # augmented q_id_i, augmented q_id_j and original q_id
             r_i, r_j, r, neg_r = batch["responses"]  # augmented r_i, augmented r_j and original r
-            attention_mask_i=attention_mask_j=attention_mask = batch["attention_mask"][-1]
+            attention_mask_i,attention_mask_j,attention_mask = batch["attention_mask"]  # augmented attention_mask_i, augmented attention_mask_j and original attention_mask
             
             if self.emb_type in ["simplekt"]:
                 q_i_embed_data, qa_i_embed_data,q_i_pos_embed_data,qa_i_pos_embed_data = self.base_emb(q_id_i,q_i, r_i)

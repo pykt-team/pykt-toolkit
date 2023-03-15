@@ -28,10 +28,13 @@ class CL4KTDataset(KTDataset):
         # easier and harder skills
         skill_difficulty = {
             s: skill_correct[s] / float(skill_count[s]) for s in skill_correct
-        }
+        }#correct rate
+        
         ordered_skills = [
             item[0] for item in sorted(skill_difficulty.items(), key=lambda x: x[1])
         ]
+        self.skill_difficulty = skill_difficulty
+        self.ordered_skills = ordered_skills
         self.easier_skills = {}
         self.harder_skills = {}
         for i, s in enumerate(ordered_skills):
@@ -133,12 +136,11 @@ class SimCLRDatasetWrapper(Dataset):
         """
         # Get the original data
         original_data = self.ds[index]
-        q_seq = original_data["questions"]
-        s_seq = original_data["skills"]
-        r_seq = original_data["responses"]
-        attention_mask = original_data["attention_mask"]
-
         if self.eval_mode:
+            q_seq = original_data["questions"]
+            s_seq = original_data["skills"]
+            r_seq = original_data["responses"]
+            attention_mask = original_data["attention_mask"]
             # If in evaluation mode, return the original data
             return {
                 "questions": q_seq,
@@ -150,11 +152,15 @@ class SimCLRDatasetWrapper(Dataset):
         else:
             # If not in evaluation mode, augment the data
             if self.num_questions<=0:
-                q_seq_list = original_data["skills"].tolist()
+                q_seq_list = original_data["skills"].cpu().numpy()#.tolist()
             else:
-                q_seq_list = original_data["questions"].tolist()
-            s_seq_list = original_data["skills"].tolist()
-            r_seq_list = original_data["responses"].tolist()
+                q_seq_list = original_data["questions"].cpu().numpy()#.tolist()
+            s_seq_list = original_data["skills"].cpu().numpy()#.tolist()
+            r_seq_list = original_data["responses"].cpu().numpy()#.tolist()
+            attention_mask = original_data["attention_mask"].cpu().numpy()
+            #
+            q_seq_list, s_seq_list, r_seq_list = q_seq_list[attention_mask].tolist(), s_seq_list[attention_mask].tolist(), r_seq_list[attention_mask].tolist()
+
 
             t1 = augment_kt_seqs(
                 q_seq_list,
@@ -203,8 +209,8 @@ class SimCLRDatasetWrapper(Dataset):
             aug_r_seq_1 = torch.tensor(aug_r_seq_1, dtype=torch.long)
             aug_r_seq_2 = torch.tensor(aug_r_seq_2, dtype=torch.long)
             negative_r_seq = torch.tensor(negative_r_seq, dtype=torch.long)
-            attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.long)
-            attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.long)
+            attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.bool)
+            attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.bool)
 
             # Return the augmented data in a dictionary
             original_data['questions'] = (aug_q_seq_1, aug_q_seq_2, q_seq)
