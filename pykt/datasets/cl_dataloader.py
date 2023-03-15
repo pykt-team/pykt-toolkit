@@ -136,11 +136,11 @@ class SimCLRDatasetWrapper(Dataset):
         """
         # Get the original data
         original_data = self.ds[index]
+        q_seq = original_data["questions"]
+        s_seq = original_data["skills"]
+        r_seq = original_data["responses"]
+        attention_mask = original_data["attention_mask"]
         if self.eval_mode:
-            q_seq = original_data["questions"]
-            s_seq = original_data["skills"]
-            r_seq = original_data["responses"]
-            attention_mask = original_data["attention_mask"]
             # If in evaluation mode, return the original data
             return {
                 "questions": q_seq,
