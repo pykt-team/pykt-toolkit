@@ -69,10 +69,14 @@ class CL4KTDataset(KTDataset):
         cq = torch.cat((q[0:1], qshft), dim=-1)
         cc = torch.cat((c[0:1], cshft), dim=-1)
         cr = torch.cat((r[0:1], rshft), dim=-1)
-        dcur["questions"] = cq
+        
         dcur["skills"] = cc
         dcur["responses"] = cr
         dcur["attention_mask"] = attention_mask
+        if self.num_questions!=0:
+            dcur["questions"] = cq
+        else:
+            dcur["questions"] = cc
        
         if not self.qtest:
             return dcur
@@ -136,7 +140,10 @@ class SimCLRDatasetWrapper(Dataset):
         """
         # Get the original data
         original_data = self.ds[index]
-        q_seq = original_data["questions"]
+        if self.num_questions!=0:
+            q_seq = original_data["questions"]
+        else:
+            q_seq = original_data["skills"]
         s_seq = original_data["skills"]
         r_seq = original_data["responses"]
         attention_mask = original_data["attention_mask"]
@@ -213,7 +220,10 @@ class SimCLRDatasetWrapper(Dataset):
             attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.bool)
 
             # Return the augmented data in a dictionary
-            original_data['questions'] = (aug_q_seq_1, aug_q_seq_2, q_seq)
+            if self.num_questions!=0:
+                original_data['questions'] = (aug_q_seq_1, aug_q_seq_2, q_seq)
+            else:
+                original_data['questions'] = (aug_s_seq_1, aug_s_seq_2, s_seq)
             original_data['skills'] = (aug_s_seq_1, aug_s_seq_2, s_seq)
             original_data['responses'] = (aug_r_seq_1, aug_r_seq_2, r_seq, negative_r_seq)
             original_data['attention_mask'] = (attention_mask_1, attention_mask_2, attention_mask)
