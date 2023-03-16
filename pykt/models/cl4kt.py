@@ -302,7 +302,7 @@ class CL4KT(Module):
             r = batch["responses"]  # augmented r_i, augmented r_j and original r
             attention_mask = batch["attention_mask"]
    
-
+        # print(f"q is {q.shape}, q_id is {q_id.shape}, r is {r.shape}, attention_mask is {attention_mask.shape}")
         # Generate final prediction
         if self.emb_type in ["simplekt"]:
             q_embed_data, qa_embed_data,q_pos_embed_data,qa_pos_embed_data = self.base_emb(q_id,q,r)
@@ -326,8 +326,7 @@ class CL4KT(Module):
 
         retrieved_knowledge = torch.cat([x, q_embed_data], dim=-1)
 
-        output = torch.sigmoid(self.out(retrieved_knowledge)).squeeze()
-
+        output = torch.sigmoid(self.out(retrieved_knowledge)).squeeze(-1)
         if self.training:
             out_dict = {
                 "pred": output[:, 1:],
