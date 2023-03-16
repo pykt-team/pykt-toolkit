@@ -18,7 +18,8 @@ def augment_kt_seqs(
     seq_len,
     seed=None,
     skill_rel=None,
-    num_questions=-1
+    num_questions=-1,
+    random_action=False,
 ):  
     # Make sure the input is not contains padding
     rng = random.Random(seed)
@@ -28,7 +29,15 @@ def augment_kt_seqs(
     masked_r_seq = []
     negative_r_seq = []
     # print(f"q_seq is {q_seq}, s_seq is {s_seq}, r_seq is {r_seq}")
-    if mask_prob > 0:
+
+    all_action_list = ['mask','replace','permute','crop']
+    if random_action!=-1:
+        action_list = random.choices(all_action_list,k=random_action)
+    else:
+        action_list = all_action_list
+    # print(f"action_list is {action_list}")
+
+    if mask_prob > 0 and 'mask' in action_list:
         for q, s, r in zip(q_seq, s_seq, r_seq):
             prob = rng.random()
             if prob < mask_prob:
@@ -79,7 +88,7 @@ def augment_kt_seqs(
     skill difficulty based replace
     """
     # print(harder_skills)
-    if replace_prob > 0:
+    if replace_prob > 0 and 'replace' in action_list:
         for i, elem in enumerate(zip(masked_s_seq, masked_r_seq)):
             s, r = elem
             prob = rng.random()
@@ -93,7 +102,7 @@ def augment_kt_seqs(
                 ):  # if the response is correct, then replace a skill with the easier one
                     masked_s_seq[i] = easier_skills[s]
     true_seq_len = len(s_seq)
-    if permute_prob > 0:
+    if permute_prob > 0 and 'permute' in action_list:
         reorder_seq_len = math.floor(permute_prob * true_seq_len)
         start_idx = 0
         # print(f"start_idx is {start_idx}, s_seq is {s_seq}, reorder_seq_len is {reorder_seq_len}, true_seq_len is {true_seq_len}")
@@ -128,7 +137,7 @@ def augment_kt_seqs(
             + masked_r_seq[start_pos + reorder_seq_len :]
         )
 
-    if 0 < crop_prob < 1:
+    if 0 < crop_prob < 1 and 'crop' in action_list:
         crop_seq_len = math.floor(crop_prob * true_seq_len)
         if crop_seq_len == 0:
             crop_seq_len = 1

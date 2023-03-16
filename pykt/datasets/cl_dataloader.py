@@ -105,6 +105,7 @@ class SimCLRDatasetWrapper(Dataset):
         permute_prob: float,
         replace_prob: float,
         negative_prob: float,
+        random_action: int,
         eval_mode=False,
     ):
         super().__init__()
@@ -115,6 +116,7 @@ class SimCLRDatasetWrapper(Dataset):
         self.permute_prob = permute_prob
         self.replace_prob = replace_prob
         self.negative_prob = negative_prob
+        self.random_action = random_action
         self.eval_mode = eval_mode
 
         # Get some information from the original dataset
@@ -184,7 +186,8 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index,
-                num_questions = self.num_questions
+                num_questions = self.num_questions,
+                random_action = self.random_action
             )
 
             t2 = augment_kt_seqs(
@@ -202,7 +205,8 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index + 1,
-                num_questions = self.num_questions
+                num_questions = self.num_questions,
+                random_action = self.random_action
             )
             # Unpack the augmented data
             aug_q_seq_1, aug_s_seq_1, aug_r_seq_1, negative_r_seq, attention_mask_1 = t1

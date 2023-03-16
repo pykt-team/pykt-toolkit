@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--hard_negative_weight", type=float, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--cl_emb_use_pos", type=int, default=0, help="use position embedding for contrastive learning")
+    parser.add_argument("--random_action", type=int, default=-1, help="randomly choose actions for data augmentation")
     
     args = parser.parse_args()
     
