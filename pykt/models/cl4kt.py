@@ -41,6 +41,7 @@ class CL4KT(Module):
         self.reg_cl = self.args["reg_cl"]
         self.negative_prob = self.args["negative_prob"]
         self.hard_negative_weight = self.args["hard_negative_weight"]
+        self.cl_emb_use_pos = self.args["cl_emb_use_pos"] == 1
 
         # Define question and interaction embeddings.
         self.question_embed = Embedding(
@@ -183,26 +184,30 @@ class CL4KT(Module):
                 else:
                     inter_k_embed = self.get_interaction_embed(q, neg_r)
 
-            # mask=2 means bidirectional attention of BERT
             
-            ques_i_score, ques_j_score = q_i_embed_data, q_j_embed_data #[batch_size, seq_len, hidden_size]
-            inter_i_score, inter_j_score = qa_i_embed_data, qa_j_embed_data
+            if self.emb_type in ["simplekt"] and self.cl_emb_use_pos:
+                ques_i_score, ques_j_score = q_i_pos_embed_data, q_j_pos_embed_data 
+                inter_i_score, inter_j_score = qa_i_pos_embed_data, qa_j_pos_embed_data
+            else:
+                ques_i_score, ques_j_score = q_i_embed_data, q_j_embed_data #[batch_size, seq_len, hidden_size]
+                inter_i_score, inter_j_score = qa_i_embed_data, qa_j_embed_data
 
             # Apply transformers to question and interaction embeddings. Bidirectional attention.
+            # mask=2 means bidirectional attention of BERT
             for block in self.question_encoder:
                 ques_i_score, _ = block(
                     mask=2,
                     query=ques_i_score,
                     key=ques_i_score,
                     values=ques_i_score,
-                    apply_pos=False,
+                    apply_pos=self.cl_emb_use_pos,
                 )
                 ques_j_score, _ = block(
                     mask=2,
                     query=ques_j_score,
                     key=ques_j_score,
                     values=ques_j_score,
-                    apply_pos=False,
+                    apply_pos=self.cl_emb_use_pos,
                 )
 
             for block in self.interaction_encoder:
@@ -211,14 +216,14 @@ class CL4KT(Module):
                     query=inter_i_score,
                     key=inter_i_score,
                     values=inter_i_score,
-                    apply_pos=False,
+                    apply_pos=self.cl_emb_use_pos,
                 )
                 inter_j_score, _ = block(
                     mask=2,
                     query=inter_j_score,
                     key=inter_j_score,
                     values=inter_j_score,
-                    apply_pos=False,
+                    apply_pos=self.cl_emb_use_pos,
                 )
                 if self.negative_prob > 0:
                     inter_k_score, _ = block(
@@ -226,7 +231,7 @@ class CL4KT(Module):
                         query=inter_k_embed,
                         key=inter_k_embed,
                         values=inter_k_embed,
-                        apply_pos=False,
+                        apply_pos=self.cl_emb_use_pos,
                     )
             # Calculate pooled scores for question and interaction embeddings, pooling one sequence to one vector
             pooled_ques_i_score = (ques_i_score * attention_mask_i.unsqueeze(-1)).sum(
@@ -344,14 +349,6 @@ class CL4KT(Module):
             }
 
         return out_dict
-
-    def alignment_and_uniformity(self, out_dict):
-        return (
-            out_dict["question_alignment"],
-            out_dict["interaction_alignment"],
-            out_dict["question_uniformity"],
-            out_dict["interaction_uniformity"],
-        )
 
     def loss(self, feed_dict, out_dict):
         pred = out_dict["pred"].flatten()
