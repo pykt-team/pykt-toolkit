@@ -28,7 +28,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
         # loss2 = torch.sigmoid(torch.randn(1)).to(device)
         loss = model.loss1*loss1+model.loss2*ys[1]
         # print(f"loss1: {loss1}, loss2: {ys[1]}, loss: {loss}, x1: {model.loss1}, x2: {model.loss2}")
-    elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_peiyou"]:
+    elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_side", "bakt_peiyou"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -82,7 +82,7 @@ def model_forward(model, data, epoch):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget", "bakt_time"]:
+    if model_name in ["dkt_forget", "bakt_time", "bakt_side"]:
         dcur, dgaps = data
     else:
         dcur = data
@@ -110,7 +110,7 @@ def model_forward(model, data, epoch):
     elif model_name in ["bakt", "bakt_peiyou"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
-    elif model_name in ["bakt_time"]:
+    elif model_name in ["bakt_time", "bakt_side"]:
         y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["lpkt"]:

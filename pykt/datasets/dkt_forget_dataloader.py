@@ -37,22 +37,22 @@ class DktForgetDataset(Dataset):
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
             if self.qtest:
-                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.dqtest = \
+                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount, self.dqtest = \
                         self.__load_data__(self.sequence_path, folds)
-                save_data = [self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.dqtest]
+                save_data = [self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount, self.dqtest]
             else:
-                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount = \
+                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount = \
                         self.__load_data__(self.sequence_path, folds)
-                save_data = [self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount]
+                save_data = [self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount]
             pd.to_pickle(save_data, processed_data)
         else:
             print(f"Read data from processed file: {processed_data}")
             if self.qtest:
-                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.dqtest = pd.read_pickle(processed_data)
+                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount, self.dqtest = pd.read_pickle(processed_data)
             else:
-                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount = pd.read_pickle(processed_data)
+                self.dori, self.dgaps, self.max_rgap, self.max_sgap, self.max_pcount, self.max_prcount = pd.read_pickle(processed_data)
         print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}, \
-                max_rgap: {self.max_rgap}, max_sgap: {self.max_sgap}, max_pcount: {self.max_pcount}")
+                max_rgap: {self.max_rgap}, max_sgap: {self.max_sgap}, max_pcount: {self.max_pcount}, max_prcount: {self.max_prcount}")
 
     def __len__(self):
         """return the dataset length
@@ -176,8 +176,8 @@ class DktForgetDataset(Dataset):
         }
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         # repeated_gap, sequence_gap, past_counts = [], [], []
-        dgaps = {"rgaps": [], "sgaps": [], "pcounts": []}
-        max_rgap, max_sgap, max_pcount = 0, 0, 0
+        dgaps = {"rgaps": [], "sgaps": [], "pcounts": [], "prcounts": []}
+        max_rgap, max_sgap, max_pcount, max_prcount = 0, 0, 0, 0
 
         df = pd.read_csv(sequence_path)
         df = df[df["fold"].isin(folds)]
@@ -214,13 +214,15 @@ class DktForgetDataset(Dataset):
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
 
-            rgap, sgap, pcount = self.calC(row)
+            rgap, sgap, pcount, prcount = self.calC(row)
             dgaps["rgaps"].append(rgap)
             dgaps["sgaps"].append(sgap)
             dgaps["pcounts"].append(pcount)
+            dgaps["prcounts"].append(prcount)
             max_rgap = max(rgap) if max(rgap) > max_rgap else max_rgap
             max_sgap = max(sgap) if max(sgap) > max_sgap else max_sgap
             max_pcount = max(pcount) if max(pcount) > max_pcount else max_pcount
+            max_prcount = max(prcount) if max(prcount) > max_prcount else max_prcount
 
             if self.qtest:
                 dqtest["qidxs"].append([int(_) for _ in row["qidxs"].split(",")])
@@ -243,24 +245,26 @@ class DktForgetDataset(Dataset):
         if self.qtest:
             for key in dqtest:
                 dqtest[key] = LongTensor(dqtest[key])[:, 1:]
-            return dori, dgaps, max_rgap, max_sgap, max_pcount, dqtest
+            return dori, dgaps, max_rgap, max_sgap, max_pcount, max_prcount, dqtest
 
-        return dori, dgaps, max_rgap, max_sgap, max_pcount
+        return dori, dgaps, max_rgap, max_sgap, max_pcount, max_prcount
 
     def log2(self, t):
         import math
         return round(math.log(t+1, 2))
 
     def calC(self, row):
-        repeated_gap, sequence_gap, past_counts = [], [], []
+        repeated_gap, sequence_gap, past_counts, past_rcounts = [], [], [], []
         uid = row["uid"]
         # default: concepts
         skills = row["concepts"].split(",") if "concepts" in self.input_type else row["questions"].split(",")
         timestamps = row["timestamps"].split(",")
+        responses = row["responses"].split(",")
         dlastskill, dcount = dict(), dict()
+        drcount = dict()
         pret = None
-        for s, t in zip(skills, timestamps):
-            s, t = int(s), int(t)
+        for s, t, r in zip(skills, timestamps, responses):
+            s, t, r = int(s), int(t), int(r)
             if s not in dlastskill or s == -1:
                 curRepeatedGap = 0
             else:
@@ -278,5 +282,11 @@ class DktForgetDataset(Dataset):
             dcount.setdefault(s, 0)
             past_counts.append(self.log2(dcount[s]))
             dcount[s] += 1
-        return repeated_gap, sequence_gap, past_counts
+
+            drcount.setdefault(s, 0)
+            past_rcounts.append(self.log2(drcount[s]))
+            if r == 1:
+                drcount[s] += 1
+            
+        return repeated_gap, sequence_gap, past_counts, past_rcounts
             
