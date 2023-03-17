@@ -65,9 +65,9 @@ class timeGap2(nn.Module):
 
 class BAKTSide(nn.Module):
     def __init__(self, n_question, n_pid, num_rgap, num_sgap, num_pcount, num_prcount, 
-            d_model, n_blocks, dropout, d_ff=256, 
-            loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
+            use_rgap, use_sgap, use_pcount, use_prcount, use_pos,
+            d_model, n_blocks, dropout, d_ff=256, seq_len=200, 
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         """
         Input:
@@ -79,19 +79,23 @@ class BAKTSide(nn.Module):
         """
         self.model_name = "bakt_side"
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
+        ###
+        num_rgap = 0 if use_rgap == 0 else num_rgap
+        num_sgap = 0 if use_sgap == 0 else num_sgap
+        num_pcount = 0 if use_pcount == 0 else num_pcount
+        num_prcount = 0 if use_prcount == 0 else num_prcount
+        self.use_pos = use_pos
+        ###
         self.n_question = n_question
         self.dropout = dropout
         self.kq_same = kq_same
         self.n_pid = n_pid
-        self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
         embed_l = d_model
         if self.n_pid > 0:
             self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
-            # self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-            # self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
         
         if emb_type.startswith("qid"):
             # n_question+1 ,d_model
@@ -111,46 +115,25 @@ class BAKTSide(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
-        if emb_type.endswith("hasw"):
-            self.c_weight = nn.Linear(d_model, d_model)
-        else:
-            self.c_weight = nn.Linear(d_model, d_model)
-            self.t_weight = nn.Linear(d_model, d_model)
         
-            if emb_type.endswith("onlyrgap"):
-                self.time_emb = timeGap2(num_rgap, 0, 0, d_model)
-            elif emb_type.endswith("onlysgap"):
-                self.time_emb = timeGap2(0, num_sgap, 0, d_model)
-            elif emb_type.endswith("onlypcount"):
-                self.time_emb = timeGap2(0, 0, num_pcount, d_model)
-                
-            elif emb_type.endswith("rsgap"):
-                self.time_emb = timeGap2(num_rgap, num_sgap, 0, d_model)
-            elif emb_type.endswith("rpgap"):
-                self.time_emb = timeGap2(num_rgap, 0, num_pcount, d_model)
-            elif emb_type.endswith("spgap"):
-                self.time_emb = timeGap2(0, num_sgap, num_pcount, d_model)
-
-            elif self.emb_type.startswith("qidside"):
-                # self.time_emb = timeGap2(num_rgap, num_sgap, num_pcount, num_prcount, d_model)
-                self.time_emb = timeGap2(num_rgap, num_sgap, num_pcount, 0, d_model)
-                if self.emb_type.endswith("concat"):
-                    fea_num = 5
-                    middle = int(d_model*fea_num/2)
-                    self.clinear = nn.Sequential(
-                            nn.Linear(d_model*fea_num, middle), nn.ReLU(), nn.Dropout(self.dropout),
-                            nn.Linear(middle, d_model)
-                        )
-                elif self.emb_type.endswith("gate"):
-                    # fea_num = 5
-                    # self.gates = nn.ModuleList([nn.Linear(d_model, 1) for i in range(fea_num)])
-                    self.gates = nn.Linear(d_model, 1)
-
-            # self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
-            #                         dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
-            #                         kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
-
-        
+        # self.c_weight = nn.Linear(d_model, d_model)
+        # self.t_weight = nn.Linear(d_model, d_model)
+    
+        if self.emb_type.startswith("qidside"):
+            self.time_emb = timeGap2(num_rgap, num_sgap, num_pcount, num_prcount, d_model)
+            # self.time_emb = timeGap2(num_rgap, num_sgap, num_pcount, 0, d_model)
+            # if self.emb_type.endswith("concat"):
+            #     fea_num = 5
+            #     middle = int(d_model*fea_num/2)
+            #     self.clinear = nn.Sequential(
+            #             nn.Linear(d_model*fea_num, middle), nn.ReLU(), nn.Dropout(self.dropout),
+            #             nn.Linear(middle, d_model)
+            #         )
+            # el
+            if self.emb_type.endswith("gate"):
+                # fea_num = 5
+                # self.gates = nn.ModuleList([nn.Linear(d_model, 1) for i in range(fea_num)])
+                self.gates = nn.Linear(d_model, 1)
 
         self.position_emb = CosinePositionalEmbedding(d_model=d_model, max_len=seq_len)
         self.reset()
@@ -191,11 +174,11 @@ class BAKTSide(nn.Module):
             res = fusion_infs[0]
             for inf in fusion_infs[1:]:
                 res = res + inf
-        elif self.emb_type.endswith("concat"):
-            # for inf in fusion_infs:
-            #     print(f"inf: {inf.shape}")
-            inf = torch.cat(fusion_infs, dim=-1)
-            res = self.clinear(inf)
+        # elif self.emb_type.endswith("concat"):
+        #     # for inf in fusion_infs:
+        #     #     print(f"inf: {inf.shape}")
+        #     inf = torch.cat(fusion_infs, dim=-1)
+        #     res = self.clinear(inf)
         elif self.emb_type.endswith("gate"):
             # for idx in range(len(fusion_infs)):
             #     weight = self.gates[idx](fusion_infs[idx]).unsqueeze(-2)
@@ -220,8 +203,6 @@ class BAKTSide(nn.Module):
             # assert False
 
         return res
-            
-
 
     def forward(self, dcur, dgaps, qtest=False, train=False):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
@@ -235,36 +216,24 @@ class BAKTSide(nn.Module):
         # Batch First
         q_embed_data, qa_embed_data = self.base_emb(q_data, target)
         
-        if self.n_pid > 0: # have problem id
-            # q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-            # q_embed_data = q_embed_data + pid_embed_data * q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
         ###
         fusion_infs = self.getside_info(dgaps)
         fusion_infs.append(q_embed_data)
-        fusion_infs.append(pid_embed_data)
+        if self.n_pid > 0: # have problem id
+            pid_embed_data = self.difficult_param(pid_data)  # 题目embedding
+            fusion_infs.append(pid_embed_data)
+            # qa_embed_data = qa_embed_data + pid_embed_data
         # position information
-        pemb = self.position_emb(q_embed_data).repeat(q_embed_data.shape[0], 1, 1)
-        fusion_infs.append(pemb)
-        # qa_embed_data = qa_embed_data + pid_embed_data
+        if self.use_pos:
+            pemb = self.position_emb(q_embed_data).repeat(q_embed_data.shape[0], 1, 1)
+            fusion_infs.append(pemb)
+        
         # fusion func
         fusion_side = self.fusion_fuc(fusion_infs)
-        ###
-        baseinf = self.fusion_fuc(fusion_infs[0:-1])
-        # qa_embed_data = qa_embed_data + self.qa_embed(target)
-        # print(f"fusion_side: {fusion_side.shape}, qa_embed_data: {qa_embed_data.shape}")
-        d_output = self.model(fusion_side, qa_embed_data)
-        if emb_type.endswith("hasw"):
-            w = torch.sigmoid(self.c_weight(d_output))
-            d_output = w * d_output
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-        else:
-            # concat_q = torch.cat([d_output, fusion_side], dim=-1)
-            # cat new
-            
-            concat_q = torch.cat([d_output, baseinf], dim=-1)
+        baseinf = self.fusion_fuc(fusion_infs[0:-1]) if self.use_pos else fusion_side
 
+        d_output = self.model(fusion_side, qa_embed_data)
+        concat_q = torch.cat([d_output, baseinf], dim=-1)
 
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
