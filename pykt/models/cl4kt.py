@@ -41,7 +41,8 @@ class CL4KT(Module):
         self.reg_cl = self.args["reg_cl"]
         self.negative_prob = self.args["negative_prob"]
         self.hard_negative_weight = self.args["hard_negative_weight"]
-        self.cl_emb_use_pos = self.args["cl_emb_use_pos"] == 1
+        
+        self.cl_emb_use_pos = self.args.get("cl_emb_use_pos",0) == 1
 
         # Define question and interaction embeddings.
         self.question_embed = Embedding(
