@@ -133,7 +133,14 @@ class BAKTSide(nn.Module):
             if self.emb_type.endswith("gate"):
                 # fea_num = 5
                 # self.gates = nn.ModuleList([nn.Linear(d_model, 1) for i in range(fea_num)])
-                self.gates = nn.Linear(d_model, 1)
+                self.gate1 = nn.Linear(d_model, 1)
+                # self.gate2 = nn.Linear(d_model, 1)
+
+                # self.out = nn.Sequential(
+                #     nn.Linear(d_model, final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                #     nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(), nn.Dropout(self.dropout),
+                #     nn.Linear(final_fc_dim2, 1)
+                # )
 
         self.position_emb = CosinePositionalEmbedding(d_model=d_model, max_len=seq_len)
         self.reset()
@@ -168,7 +175,7 @@ class BAKTSide(nn.Module):
 
         return tembs
 
-    def fusion_fuc(self, fusion_infs):
+    def fusion_fuc(self, fusion_infs, gate_num=1):
         res = None
         if self.emb_type.endswith("add"):
             res = fusion_infs[0]
@@ -196,7 +203,10 @@ class BAKTSide(nn.Module):
                 newinfs.append(curinf)
             res = torch.cat(newinfs, dim=2)
             # bz * seqlen * m * h
-            weights = torch.sigmoid(self.gates(res)).transpose(-2, -1)
+            if gate_num == 1:
+                weights = torch.sigmoid(self.gate1(res)).transpose(-2, -1)
+            # else:
+            #     weights = torch.sigmoid(self.gate2(res)).transpose(-2, -1)
             # print(f"res: {res.shape}, weights: {weights.shape}")
             res = torch.matmul(weights, res).squeeze(-2)
             # print(f"newemb: {newemb.shape}, fusion0: {fusion_infs[0].shape}")
@@ -229,13 +239,16 @@ class BAKTSide(nn.Module):
             fusion_infs.append(pemb)
         
         # fusion func
-        fusion_side = self.fusion_fuc(fusion_infs)
-        baseinf = self.fusion_fuc(fusion_infs[0:-1]) if self.use_pos else fusion_side
-
+        fusion_side = self.fusion_fuc(fusion_infs, gate_num=1)
         d_output = self.model(fusion_side, qa_embed_data)
-        concat_q = torch.cat([d_output, baseinf], dim=-1)
 
+        # finalemb = self.fusion_fuc([d_output] + fusion_infs[0:-1], gate_num=2) if self.use_pos else self.fusion_fuc([d_output] + fusion_infs, gate_num=2)
+        # output = self.out(finalemb).squeeze(-1)
+
+        baseinf = self.fusion_fuc(fusion_infs[0:-1]) if self.use_pos else fusion_side
+        concat_q = torch.cat([d_output, baseinf], dim=-1)
         output = self.out(concat_q).squeeze(-1)
+
         m = nn.Sigmoid()
         preds = m(output)
 
