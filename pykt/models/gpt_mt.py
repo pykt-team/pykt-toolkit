@@ -118,8 +118,10 @@ class GPTNet(nn.Module):
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = LayerNorm(config.emb_size, bias=config.bias),
         ))
-        self.que_emb = QueEmb(num_q=config.num_q,num_c=config.num_c,emb_size=config.emb_size,emb_type=config.emb_type,model_name=config.model_name,device=config.device,
-                             emb_path=config.emb_path,pretrain_dim=config.pretrain_dim)
+        
+        self.que_emb_list = nn.ModuleList([QueEmb(num_q=dataset_config['num_q'],num_c=dataset_config['num_c'],emb_size=config.emb_size,emb_type=config.emb_type,model_name=config.model_name,device=config.device,
+                             emb_path=config.emb_path,pretrain_dim=config.pretrain_dim) for dataset_config in self.config.dataconfig_list])
+        
         self.emb_pooling = nn.Linear(config.emb_size*2, config.emb_size)
         
         self.r_emb = nn.Embedding(2, config.emb_size)
@@ -166,7 +168,10 @@ class GPTNet(nn.Module):
         pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, emb_size)
 
         # Get the embeddings
-        q_emb_full = self.emb_pooling(self.que_emb(q,c)) + pos_emb
+        que_emb_index = self.config.source_list.index(data['source'][0])
+        raw_que_emb = self.que_emb_list[que_emb_index](q,c)
+        
+        q_emb_full = self.emb_pooling(raw_que_emb) + pos_emb
 
         q_shift = q_emb_full[:,1:]
         q_emb = q_emb_full[:,:-1]
@@ -205,12 +210,29 @@ class GPTConfig:
     pretrain_dim: int = 768
     device: str = 'cpu'
     seed: int = 0
-    model_name = "gpt"
+    model_name: str = "gpt_mt"
+    dataconfig_list: list = None  # Added attribute
+    source_list: list = None      # Added attribute
 
 
-class GPT(QueBaseModel):
-    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8):
-        self.config = GPTConfig(n_layer=n_layer,n_head=n_head,dropout=dropout,bias=True,seq_len=seq_len,num_q=num_q,num_c=num_c,emb_size=emb_size,emb_type=emb_type,emb_path=emb_path,pretrain_dim=pretrain_dim,device=device,seed=seed)
+class GPTMT(QueBaseModel):
+    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8,dataconfig_list=None,source_list=None):
+        self.config = GPTConfig(n_layer=n_layer,
+                                n_head=n_head,
+                                dropout=dropout,
+                                bias=True,
+                                seq_len=seq_len,
+                                num_q=num_q,
+                                num_c=num_c,
+                                emb_size=emb_size,
+                                emb_type=emb_type,
+                                emb_path=emb_path,
+                                pretrain_dim=pretrain_dim,
+                                device=device,
+                                seed=seed,
+                                dataconfig_list=dataconfig_list,
+                                source_list=source_list
+                                )
 
         model_name = self.config.model_name
         debug_print(f"emb_type is {emb_type}",fuc_name=model_name)

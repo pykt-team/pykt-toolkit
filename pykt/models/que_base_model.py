@@ -254,6 +254,8 @@ class QueBaseModel(nn.Module):
         data_new['tshft'] = dcur["shft_tseqs"]
         data_new['m'] = dcur["masks"]
         data_new['sm'] = dcur["smasks"]
+        if 'source' in dcur:
+            data_new['source'] = dcur['source']
         return data_new
 
     def train(self,train_dataset, valid_dataset,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,save_dir="tmp",save_model=False,patient=10,shuffle=True,process=True):
