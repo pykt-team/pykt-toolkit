@@ -28,10 +28,13 @@ class CL4KTDataset(KTDataset):
         # easier and harder skills
         skill_difficulty = {
             s: skill_correct[s] / float(skill_count[s]) for s in skill_correct
-        }
+        }#correct rate
+        
         ordered_skills = [
             item[0] for item in sorted(skill_difficulty.items(), key=lambda x: x[1])
         ]
+        self.skill_difficulty = skill_difficulty
+        self.ordered_skills = ordered_skills
         self.easier_skills = {}
         self.harder_skills = {}
         for i, s in enumerate(ordered_skills):
@@ -58,14 +61,22 @@ class CL4KTDataset(KTDataset):
         #get full sequence
         q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
         qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+        masks = dcur["masks"]
+        pad_mask = torch.tensor([True]).to(masks.device)
+        attention_mask = torch.cat((pad_mask, masks), dim=-1)
         # print(f"q shape is {q.shape}")
         # print(f"qshft shape is {qshft.shape}")
         cq = torch.cat((q[0:1], qshft), dim=-1)
         cc = torch.cat((c[0:1], cshft), dim=-1)
         cr = torch.cat((r[0:1], rshft), dim=-1)
-        dcur["questions"] = cq
+        
         dcur["skills"] = cc
         dcur["responses"] = cr
+        dcur["attention_mask"] = attention_mask
+        if self.num_questions!=0:
+            dcur["questions"] = cq
+        else:
+            dcur["questions"] = cc
        
         if not self.qtest:
             return dcur
@@ -94,6 +105,7 @@ class SimCLRDatasetWrapper(Dataset):
         permute_prob: float,
         replace_prob: float,
         negative_prob: float,
+        random_action: int,
         eval_mode=False,
     ):
         super().__init__()
@@ -104,6 +116,7 @@ class SimCLRDatasetWrapper(Dataset):
         self.permute_prob = permute_prob
         self.replace_prob = replace_prob
         self.negative_prob = negative_prob
+        self.random_action = random_action
         self.eval_mode = eval_mode
 
         # Get some information from the original dataset
@@ -129,11 +142,13 @@ class SimCLRDatasetWrapper(Dataset):
         """
         # Get the original data
         original_data = self.ds[index]
-        q_seq = original_data["questions"]
+        if self.num_questions!=0:
+            q_seq = original_data["questions"]
+        else:
+            q_seq = original_data["skills"]
         s_seq = original_data["skills"]
         r_seq = original_data["responses"]
-        attention_mask = original_data["masks"]
-
+        attention_mask = original_data["attention_mask"]
         if self.eval_mode:
             # If in evaluation mode, return the original data
             return {
@@ -145,14 +160,21 @@ class SimCLRDatasetWrapper(Dataset):
 
         else:
             # If not in evaluation mode, augment the data
-            q_seq_list = original_data["questions"].tolist()
-            s_seq_list = original_data["skills"].tolist()
-            r_seq_list = original_data["responses"].tolist()
+            if self.num_questions<=0:
+                q_seq_list = original_data["skills"].cpu().numpy()#.tolist()
+            else:
+                q_seq_list = original_data["questions"].cpu().numpy()#.tolist()
+            s_seq_list = original_data["skills"].cpu().numpy()#.tolist()
+            r_seq_list = original_data["responses"].cpu().numpy()#.tolist()
+            attention_mask_aug = original_data["attention_mask"].cpu().numpy()
+            #
+            q_seq_aug, s_seq_aug, r_seq_aug = q_seq_list[attention_mask_aug].tolist(), s_seq_list[attention_mask_aug].tolist(), r_seq_list[attention_mask_aug].tolist()
+
 
             t1 = augment_kt_seqs(
-                q_seq_list,
-                s_seq_list,
-                r_seq_list,
+                q_seq_aug,
+                s_seq_aug,
+                r_seq_aug,
                 self.mask_prob,
                 self.crop_prob,
                 self.permute_prob,
@@ -164,12 +186,14 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index,
+                num_questions = self.num_questions,
+                random_action = self.random_action
             )
 
             t2 = augment_kt_seqs(
-                q_seq_list,
-                s_seq_list,
-                r_seq_list,
+                q_seq_aug,
+                s_seq_aug,
+                r_seq_aug,
                 self.mask_prob,
                 self.crop_prob,
                 self.permute_prob,
@@ -181,6 +205,8 @@ class SimCLRDatasetWrapper(Dataset):
                 self.s_mask_id,
                 self.seq_len,
                 seed=index + 1,
+                num_questions = self.num_questions,
+                random_action = self.random_action
             )
             # Unpack the augmented data
             aug_q_seq_1, aug_s_seq_1, aug_r_seq_1, negative_r_seq, attention_mask_1 = t1
@@ -194,11 +220,14 @@ class SimCLRDatasetWrapper(Dataset):
             aug_r_seq_1 = torch.tensor(aug_r_seq_1, dtype=torch.long)
             aug_r_seq_2 = torch.tensor(aug_r_seq_2, dtype=torch.long)
             negative_r_seq = torch.tensor(negative_r_seq, dtype=torch.long)
-            attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.long)
-            attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.long)
+            attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.bool)
+            attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.bool)
 
             # Return the augmented data in a dictionary
-            original_data['questions'] = (aug_q_seq_1, aug_q_seq_2, q_seq)
+            if self.num_questions!=0:
+                original_data['questions'] = (aug_q_seq_1, aug_q_seq_2, q_seq)
+            else:
+                original_data['questions'] = (aug_s_seq_1, aug_s_seq_2, s_seq)
             original_data['skills'] = (aug_s_seq_1, aug_s_seq_2, s_seq)
             original_data['responses'] = (aug_r_seq_1, aug_r_seq_2, r_seq, negative_r_seq)
             original_data['attention_mask'] = (attention_mask_1, attention_mask_2, attention_mask)

@@ -94,11 +94,11 @@ class KTQueDataset(Dataset):
         # print("tseqs", dcur["tseqs"])
         return dcur
 
-    def get_skill_multi_hot(self, this_skills):
-        skill_emb = [0] * self.concept_num
-        for s in this_skills:
-            skill_emb[s] = 1
-        return skill_emb
+    # def get_skill_multi_hot(self, this_skills):
+    #     skill_emb = [0] * self.concept_num
+    #     for s in this_skills:
+    #         skill_emb[s] = 1
+    #     return skill_emb
 
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """
@@ -161,3 +161,29 @@ class KTQueDataset(Dataset):
         print(f"interaction_num: {interaction_num}")
         # print("load data tseqs: ", dori["tseqs"])
         return dori
+
+
+class KTQueMultiDataset(Dataset):
+    def __init__(self, file_path_list,source_list, input_type, folds,concept_num,max_concepts, qtest=False):
+        super().__init__()
+        self.all_data = []
+        for file_path,source in zip(file_path_list,source_list):
+            data = KTQueDataset(file_path, input_type, folds,concept_num,max_concepts, qtest)
+            for item in data:
+                item['source'] = source
+                max_len,dataset_max_concepts = item['cseqs'].shape
+                pad = LongTensor([-1] * (max_concepts-dataset_max_concepts)).unsqueeze(0).repeat(max_len,1)
+                item['cseqs'] = torch.cat([item['cseqs'],pad],dim=-1)
+                item['shft_cseqs'] = torch.cat([item['shft_cseqs'],pad],dim=-1)                
+                self.all_data.append(item)
+    def __getitem__(self, index):
+        dcur = self.all_data[index]
+        return dcur
+    
+    def __len__(self):
+        """return the dataset length
+
+        Returns:
+            int: the length of the dataset
+        """
+        return len(self.all_data)

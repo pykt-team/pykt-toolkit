@@ -119,6 +119,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
                         permute_prob=model_config['permute_prob'],
                         replace_prob=model_config['replace_prob'],   
                         negative_prob=model_config['negative_prob'],
+                        random_action = model_config['random_action'],
                         eval_mode=False)
     else:
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
