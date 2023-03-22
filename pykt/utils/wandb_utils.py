@@ -273,11 +273,12 @@ class WandbUtils:
             print("-"*60+'\n')
         return report
 
-    def stop_sweep(self,cmd):
-        cmd = cmd.replace("cancel","stop")
+    def stop_sweep(self,cmd,stop_type="cancel"):
+        if stop_type == "stop":
+            cmd = cmd.replace("cancel","stop")
         debug_print(f"{cmd} excute")
         os.system(cmd)
-        print(f"We will stop the sweep, by {cmd}")
+        print(f"We will {stop_type} the sweep, by {cmd}")
 
     
     def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
