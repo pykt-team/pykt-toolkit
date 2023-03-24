@@ -12,6 +12,7 @@ emb_type_list = ["qc_merge","qid","qaid","qcid_merge"]
 emb_type_map = {"akt-iekt":"qc_merge",
                 "iekt-qid":"qc_merge",
                 "gpt-qid":"qc_merge",
+                "gpt_mt-qid":"qc_merge",
                 "iekt-qc_merge":"qc_merge",
                 "iekt_ce-qid":"qc_merge",
                 "dkt_que-qid":"qaid_qc",

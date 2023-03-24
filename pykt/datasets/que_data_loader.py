@@ -177,6 +177,7 @@ class KTQueMultiDataset(Dataset):
                 item['shft_cseqs'] = torch.cat([item['shft_cseqs'],pad],dim=-1)                
                 self.all_data.append(item)
     def __getitem__(self, index):
+        print("index: ", index)
         dcur = self.all_data[index]
         return dcur
     
