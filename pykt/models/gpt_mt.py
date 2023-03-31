@@ -18,6 +18,7 @@ import numpy as np
 from sklearn import metrics
 import random
 from scipy.special import softmax
+from enum import IntEnum
 
 # @torch.jit.script # good to enable when not using torch.compile, disable when using (our default)
 def new_gelu(x):
@@ -26,6 +27,28 @@ def new_gelu(x):
     Reference: Gaussian Error Linear Units (GELU) paper: https://arxiv.org/abs/1606.08415
     """
     return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * torch.pow(x, 3.0))))
+
+class Dim(IntEnum):
+    batch = 0
+    seq = 1
+    feature = 2
+
+class CosinePositionalEmbedding(nn.Module):
+    def __init__(self, d_model, max_len=512):
+        super().__init__()
+        # Compute the positional encodings once in log space.
+        pe = 0.1 * torch.randn(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1).float()
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+                             -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.weight = nn.Parameter(pe, requires_grad=False)
+
+    def forward(self, x):
+        return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
@@ -42,17 +65,17 @@ class CausalSelfAttention(nn.Module):
 
     def __init__(self, config):
         super().__init__()
+        emb_size = config.emb_size
+        dropout = config.dropout
         assert config.emb_size % config.n_head == 0
         # key, query, value projections for all heads, but in a batch
-        # self.c_attn = nn.Linear(config.emb_size, 3 * config.emb_size, bias=config.bias)
         # output projection
-        self.c_proj = nn.Linear(config.emb_size, config.emb_size, bias=config.bias)
+        
+        self.c_proj = nn.Linear(emb_size, emb_size, bias=config.bias)
         # regularization
-        self.attn_dropout = nn.Dropout(config.dropout)
-        self.resid_dropout = nn.Dropout(config.dropout)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.resid_dropout = nn.Dropout(dropout)
         self.n_head = config.n_head
-        self.emb_size = config.emb_size
-        self.dropout = config.dropout
 
      
         self.mask = torch.tril(torch.ones(config.seq_len-1, config.seq_len-1)).view(1, 1, config.seq_len-1, config.seq_len-1)
@@ -83,9 +106,11 @@ class MLP(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config.emb_size, 4 * config.emb_size, bias=config.bias)
-        self.c_proj  = nn.Linear(4 * config.emb_size, config.emb_size, bias=config.bias)
-        self.dropout = nn.Dropout(config.dropout)
+        emb_size = config.emb_size
+        dropout = config.dropout
+        self.c_fc    = nn.Linear(emb_size, 4 * emb_size, bias=config.bias)
+        self.c_proj  = nn.Linear(4 * emb_size, emb_size, bias=config.bias)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         x = self.c_fc(x)
@@ -110,6 +135,26 @@ class Block(nn.Module):
         return x
 
 
+class OutputLayer(nn.Module):
+    '''
+    classifier decoder implemented with mlp
+    '''
+    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
+        super().__init__()
+
+        self.lins = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim)
+            for _ in range(n_layer)
+        ])
+        self.dropout = nn.Dropout(p = dpo)
+        self.out = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        for lin in self.lins:
+            x = F.relu(lin(x))
+        return self.out(self.dropout(x))
+
+
 class GPTNet(nn.Module):
 
     def __init__(self, config):
@@ -117,43 +162,50 @@ class GPTNet(nn.Module):
         self.config = config
         self.model_name = config.model_name
         self.emb_type = config.emb_type
+        emb_size = config.emb_size
+        mlp_layer_num = config.mlp_layer_num
+        dropout = config.dropout
+
         self.transformer = nn.ModuleDict(dict(
-            wpe = nn.Embedding(config.seq_len, config.emb_size),
-            drop = nn.Dropout(config.dropout),
+            # wpe = nn.Embedding(config.seq_len, emb_size),
+            wpe = CosinePositionalEmbedding(d_model=emb_size, max_len=config.seq_len),
+            drop = nn.Dropout(dropout),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
-            ln_f = LayerNorm(config.emb_size, bias=config.bias),
+            ln_f = LayerNorm(emb_size, bias=config.bias),
         ))
-        
+
+       
+
         self.que_emb_list = nn.ModuleList([QueEmb(num_q=dataset_config['num_q'],
                                                   num_c=dataset_config['num_c'],
-                                                  emb_size=config.emb_size,
+                                                  emb_size=emb_size,
                                                   emb_type=config.emb_type,
                                                   model_name=config.model_name,
                                                   device=config.device,
                                                   emb_path=config.emb_path,
                                                   pretrain_dim=config.pretrain_dim) for dataset_config in self.config.dataconfig_list])
         
-        self.emb_pooling = nn.Linear(config.emb_size*2, config.emb_size)
+        self.emb_pooling = nn.Linear(emb_size*2, emb_size)
+        self.concept_lstm_layer = nn.LSTM(emb_size*2, emb_size, batch_first=True)
         
-        self.r_emb = nn.Embedding(2, config.emb_size)
+        self.r_emb = nn.Embedding(2, emb_size)
 
+       
         if config.share_output:
             print("Share output layer")
-            self.out_layer = nn.Sequential(
-                nn.Linear(config.emb_size*2, config.emb_size, bias=config.bias),
-                nn.ReLU(),
-                nn.Dropout(config.dropout),
-                nn.Linear(config.emb_size, 1, bias=config.bias)
-                )
+            self.out_layer_q_next = OutputLayer(mlp_layer_num, emb_size*2, 1, dropout)
+            if "c_pred_next" in self.config.aux_tasks:
+                self.out_layer_c_next = OutputLayer(mlp_layer_num, emb_size*2, 1, dropout)
+            if "c_pred_all" in self.config.aux_tasks:
+                 self.out_layer_c_all = OutputLayer(mlp_layer_num, emb_size, config.num_c, dropout)
         else:
             print("Not share output layer")
-            self.out_layer = nn.ModuleList([nn.Sequential(
-                nn.Linear(config.emb_size*2, config.emb_size, bias=config.bias),
-                nn.ReLU(),
-                nn.Dropout(config.dropout),
-                nn.Linear(config.emb_size, 1, bias=config.bias)
-                ) for _ in self.config.dataconfig_list])
-        
+            self.out_layer_q_next = nn.ModuleList([OutputLayer(conmlp_layer_num, emb_size*2,1, dropout) for _ in self.config.dataconfig_list])
+            if "c_pred_next" in self.config.aux_tasks:
+                self.out_layer_c_next = nn.ModuleList([OutputLayer(mlp_layer_num, emb_size*2, 1, dropout)  for _ in self.config.dataconfig_list])
+            if "c_pred_all" in self.config.aux_tasks:
+                self.out_layer_c_all = nn.ModuleList([OutputLayer(mlp_layer_num, emb_size, config.num_c, dropout)  for _ in self.config.dataconfig_list])
+            
         # init all weights
         self.apply(self._init_weights)
         # apply special scaled init to the residual projections, per GPT-2 paper
@@ -163,6 +215,18 @@ class GPTNet(nn.Module):
 
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
+
+
+    def get_avg_fusion_concepts(self,y_concept,cshft):
+        """获取知识点 fusion 的预测结果
+        """
+        max_num_concept = cshft.shape[-1]
+        concept_mask = torch.where(cshft.long()==-1,False,True)
+        concept_index = F.one_hot(torch.where(cshft!=-1,cshft,0),self.config.num_c)
+        concept_sum = (y_concept.unsqueeze(2).repeat(1,1,max_num_concept,1)*concept_index).sum(-1)
+        concept_sum = concept_sum*concept_mask#remove mask
+        y_concept = concept_sum.sum(-1)/torch.where(concept_mask.sum(-1)!=0,concept_mask.sum(-1),1)
+        return y_concept
 
     def get_num_params(self, non_embedding=True):
         """
@@ -183,45 +247,89 @@ class GPTNet(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-
-    def forward(self, q, c ,r,data=None):
-        pos = torch.arange(0, self.config.seq_len, dtype=torch.long, device=q.device).unsqueeze(0) # shape (1, t)
-        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, emb_size)
-
-        # Get the embeddings
-        que_emb_index = self.config.source_list.index(data['source'])
-        
-        # print(f"que_emb_index: {que_emb_index},source: {data['source'][0]}")
-        # print(f"q shape: {q.shape},c shape: {c.shape},r shape: {r.shape},q is {q}")
-        # print(f"data['source'] is {data['source']}")
-        
-        raw_que_emb = self.que_emb_list[que_emb_index](q,c)
-        # print(f"raw_que_emb shape: {raw_que_emb.shape},pos_emb shape: {pos_emb.shape}")
-        q_emb_full = self.emb_pooling(raw_que_emb) + pos_emb
-
-        q_shift = q_emb_full[:,1:]
-        q_emb = q_emb_full[:,:-1]
-        
-        r_emb = self.r_emb(r)[:,:-1]
-        inter_emb = q_emb + r_emb
-
-        
+    
+    def get_attention(self, q_emb, q_shift, inter_emb, que_emb_index, concat_q = True):
         # forward the GPT model itself
         x = q_emb
         for block in self.transformer.h:
             x = block(x,x,inter_emb)
         x = self.transformer.ln_f(x)
         # print(f"x shape: {x.shape}")
-        x = torch.cat([q_shift,x],dim=-1)
-        if self.config.share_output:
-            logits = self.out_layer(x).squeeze(-1)
-        else:
-            logits = self.out_layer[que_emb_index](x).squeeze(-1)
-        
-        y = torch.sigmoid(logits)
-        # print(f"y shape: {y.shape},logits shape: {logits.shape}")
+        if concat_q:
+            x = torch.cat([q_shift,x],dim=-1)
+        return x
 
-        outputs = {"y":y,"logits":logits}
+    def get_output(self, x, que_emb_index,output_type='q_pred_next',data=None):
+        if output_type == 'q_pred_next':
+            if self.config.share_output:
+                logits = self.out_layer_q_next(x).squeeze(-1)
+            else:
+                logits = self.out_layer_q_next[que_emb_index](x).squeeze(-1)
+            y = torch.sigmoid(logits)
+        elif output_type == 'c_pred_next':
+            if self.config.share_output:
+                logits = self.out_layer_c_next(x).squeeze(-1)
+            else:
+                logits = self.out_layer_c_next[que_emb_index](x).squeeze(-1)
+            y = torch.sigmoid(logits)
+        elif output_type == 'c_pred_all':
+            if self.config.share_output:
+                logits = self.out_layer_c_all(x).squeeze(-1)
+            else:
+                logits = self.out_layer_c_all[que_emb_index](x).squeeze(-1)
+            # self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
+            y = torch.sigmoid(logits)
+            # print(f"y shape is {y.shape}, logits shape is {logits.shape}, data['cshft'] shape {data['cshft'].shape}")
+            y = self.get_avg_fusion_concepts(y,data['cshft'])
+            # print(f"y shape new is {y.shape}")
+        # outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
+        # outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(y_concept_all,data['cshft'])
+        else:
+            raise NotImplementedError
+
+        
+        return logits,y
+
+
+    def forward(self, q, c ,r,data=None):
+        pos_emb = self.transformer.wpe(q) # position embeddings of shape (1, t, emb_size)
+
+        # Get the embeddings
+        que_emb_index = self.config.source_list.index(data['source'])
+        if self.emb_type in ['qid']:
+            raw_emb_qc = self.que_emb_list[que_emb_index](q,c)
+        else:
+            _,_,raw_emb_qc,raw_emb_q,raw_emb_c = self.que_emb_list[que_emb_index](q,c,r)#[bs,emb_size*4],[bs,emb_size*2],[bs,emb_size*1],[bs,emb_size*1]
+            emb_c_all = (raw_emb_c + pos_emb)[:,:-1]
+        q_emb_all = self.emb_pooling(raw_emb_qc) + pos_emb
+        q_shift = q_emb_all[:,1:]
+        q_emb = q_emb_all[:,:-1]
+        r_emb = self.r_emb(r)[:,:-1]
+
+        inter_emb = q_emb + r_emb
+
+        h_qc = self.get_attention(q_emb,q_shift,inter_emb,que_emb_index)
+        logits_qc,y_qc = self.get_output(h_qc,que_emb_index,output_type='q_pred_next',data=data)
+        
+        num_y = 1
+        total_y = y_qc
+        if "c_pred_next" in self.config.aux_tasks:
+            h_c = self.get_attention(emb_c_all,q_shift,inter_emb,que_emb_index)
+            logits_c,y_c = self.get_output(h_c,que_emb_index,output_type='c_pred_next',data=data)
+            total_y = total_y + y_c
+            num_y += 1
+        
+        if "c_pred_all" in self.config.aux_tasks:
+            # print(f"raw_emb_c shape: {raw_emb_c.shape}")
+            # torch.
+            h_c = self.get_attention(emb_c_all,q_shift,inter_emb,que_emb_index,concat_q=False)
+            # print(f"c_pred_all h_c shape is {h_c.shape}")
+            logits_c_all,y_c_all = self.get_output(h_c,que_emb_index,output_type='c_pred_all',data=data)
+            total_y = total_y + y_c_all
+            num_y += 1
+
+        y = total_y/num_y
+        outputs = {"y":y,"logits":logits_qc}
         return outputs
     
     
@@ -236,7 +344,7 @@ class GPTConfig:
     num_q: int=0
     num_c: int=0
     emb_size: int=256
-    emb_type: str = 'qid'
+    emb_type: str = 'iekt'
     emb_path: str = ""
     pretrain_dim: int = 768
     device: str = 'cpu'
@@ -245,12 +353,15 @@ class GPTConfig:
     share_output: bool = False
     model_name: str = "gpt_mt"
     source_weight_t: float = 1
+    mlp_layer_num: int = 1
     dataconfig_list: list = None  # Added attribute
     source_list: list = None      # Added attribute
+    aux_tasks: list = None 
+
 
 
 class GPTMT(QueBaseModel):
-    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='qid', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8,dataconfig_list=None,source_list=None,return_dict=False,source_weight_t=1,share_output=False):
+    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='iekt', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8,dataconfig_list=None,source_list=None,return_dict=False,source_weight_t=1,share_output=False,aux_tasks=[],mlp_layer_num=1,model_name="gpt_mt"):
         self.config = GPTConfig(n_layer=n_layer,
                                 n_head=n_head,
                                 dropout=dropout,
@@ -268,7 +379,9 @@ class GPTMT(QueBaseModel):
                                 source_list=source_list,
                                 return_dict=return_dict,
                                 source_weight_t = source_weight_t,
-                                share_output=share_output
+                                share_output=share_output,
+                                aux_tasks=aux_tasks,
+                                mlp_layer_num = mlp_layer_num
                                 )
 
         model_name = self.config.model_name
@@ -330,23 +443,34 @@ class GPTMT(QueBaseModel):
 
             tmp_auc_list = []
             tmp_acc_list = []
-                  
+                
+            model_result_data = {}
             for valid_dataset,source in zip(valid_dataset_list,source_list):
                 if source not in all_auc_dict:
                     all_auc_dict[source] = []
                     all_acc_dict[source] = []
-                
+
                 eval_result = self.evaluate(valid_dataset,batch_size=valid_batch_size,source=source)
                 auc, acc = eval_result['auc'],eval_result['acc']
                 all_auc_dict[source].append(auc)
                 all_acc_dict[source].append(acc)
                 tmp_auc_list.append(auc)
                 tmp_acc_list.append(acc)
+
+                # Get the best epoch
+                source_best_epoch = all_auc_dict[source].index(max(all_auc_dict[source]))
+                source_auc = all_auc_dict[source][source_best_epoch]
+                source_acc = all_acc_dict[source][source_best_epoch]
+                
+                model_result_data['best_epoch_'+source] = source_best_epoch+1
+                model_result_data['best_auc_'+source] = source_auc
+                model_result_data['best_acc_'+source] = source_acc
+                print(f"            {source}'s eval AUC is {auc:.4f}, ACC is {acc:.4f}, best epoch: {source_best_epoch+1}, best auc: {source_auc:.4}, best acc: {source_acc:.4}")
                 # 
                 # print(f"{source}'s eval_result is {eval_result}")
             weights = 1 - np.array(tmp_auc_list)
             weights = softmax(weights/self.config.source_weight_t)*len(tmp_auc_list)
-            print(f"weights is {weights}, source_weight_t is {self.config.source_weight_t}")
+            print(f"            weights is {weights}, source_weight_t is {self.config.source_weight_t}")
 
             auc = np.mean(tmp_auc_list)
             acc = np.mean(tmp_acc_list)
@@ -358,20 +482,10 @@ class GPTMT(QueBaseModel):
                 best_epoch = i
                 testauc, testacc = -1, -1
                 window_testauc, window_testacc = -1, -1
-                validauc, validacc = auc, acc
+            validauc, validacc = auc, acc
             print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
             print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
             
-            model_result_data = {}
-            for source in source_list:
-                best_epoch = all_auc_dict[source].index(max(all_auc_dict[source]))
-                source_auc = all_auc_dict[source][best_epoch]
-                source_acc = all_acc_dict[source][best_epoch]
-                print(f"            {source} best epoch: {best_epoch}, best auc: {source_auc:.4}, best acc: {source_acc:.4}")
-                model_result_data['best_epoch_'+source] = best_epoch
-                model_result_data['best_auc_'+source] = source_auc
-                model_result_data['best_acc_'+source] = source_acc
-
             if i - best_epoch >= patient:
                 break
         if self.config.return_dict:

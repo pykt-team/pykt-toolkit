@@ -12,6 +12,7 @@ from sklearn import metrics
 from pykt.utils import set_seed
 from torch.utils.data import DataLoader
 import uuid
+import copy
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -24,8 +25,10 @@ def main(params):
     
     set_seed(params["seed"])#set seed
     params['share_output'] = params['share_output']==1
+    params['aux_tasks'] = params['aux_tasks'].split(',')
 
-    source_list = params['source_list'].split(',')
+    params['source_list'] = params['source_list'].split(',')
+    source_list = params['source_list']
     data_config = json.load(open('../configs/data_config.json'))
     all_folds = set(data_config['assist2009']["folds"])
     
@@ -64,21 +67,17 @@ def main(params):
         json.dump(params, f)
     print(f"params are {params}")
 
+    model_args = copy.deepcopy(params)
+    for key in ['batch_size','num_epochs','patient','use_wandb','add_uuid','fold','save_dir','learning_rate']:
+        del model_args[key]
     # define model
     model = GPT(num_q=max_q_num, 
                 num_c=max_c_num, 
-                emb_size=params['emb_size'], 
-                dropout=params['dropout'],
-                emb_type=params['emb_type'], 
-                n_head=params['n_head'], 
-                seed=params['seed'], 
-                n_layer=params['n_layer'],
                 device=device, 
                 return_dict=True,
                 dataconfig_list=config_list,
-                source_weight_t=params['source_weight_t'],
-                share_output=params['share_output'],
-                source_list=source_list)
+                **model_args
+                )
 
     model = model.to(device)
     model.compile(optimizer='adam', lr=params['learning_rate'])
@@ -105,24 +104,32 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=200)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--patient", type=int, default=10)
-
-    parser.add_argument("--source_weight_t", type=float, default=1)
-    parser.add_argument("--emb_type", type=str, default="qid")
+    parser.add_argument("--use_wandb", type=int, default=1)
+    parser.add_argument("--add_uuid", type=int, default=1)
     parser.add_argument("--save_dir", type=str, default="saved_model")
+    parser.add_argument("--fold", type=int, default=0)
+    parser.add_argument("--learning_rate", type=float, default=1e-4)
+
+    #input to model
+    parser.add_argument("--source_weight_t", type=float, default=1)
+    parser.add_argument("--emb_type", type=str, default="iekt")
     parser.add_argument("--emb_size", type=int, default=128)
     parser.add_argument("--n_head", type=int, default=8)
     parser.add_argument("--n_layer", type=int, default=4)
     parser.add_argument("--seed", type=int, default=3407)
-    parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--dropout", type=float, default=0.2)
-    parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--share_output", type=int, default=1)
+    parser.add_argument("--aux_tasks", type=str, default='')
+    parser.add_argument("--mlp_layer_num", type=int, default=1)
+    
 
     
-    parser.add_argument("--use_wandb", type=int, default=1)
-    parser.add_argument("--add_uuid", type=int, default=1)
+   
    
     args = parser.parse_args()
 
     params = vars(args)
     main(params)
+
+
+# python wandb_gpt_mt_train.py --dropout=0.05 --emb_size=64 --emb_type=qid --fold=0 --learning_rate=0.001 --model_name=gpt_mt --n_head=8 --n_layer=12 --save_dir=models/gpt_mt --seed=42 --share_output=1 --source_list=assist2009,nips_task34,bridge2algebra2006,algebra2005 --source_weight_t=1

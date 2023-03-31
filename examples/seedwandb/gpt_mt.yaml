@@ -9,9 +9,9 @@ parameters:
     source_list:
         values: ["assist2009,nips_task34,bridge2algebra2006,algebra2005"]
     emb_type:
-        values: ["qid"]
+        values: ["iekt"]
     save_dir:
-        values: ["models/akt_tiaocan"]
+        values: ["models/gpt_mt"]
     emb_size:
         values: [64, 256]
     dropout:

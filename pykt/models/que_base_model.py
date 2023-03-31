@@ -293,7 +293,7 @@ class QueBaseModel(nn.Module):
                 best_epoch = i
                 testauc, testacc = -1, -1
                 window_testauc, window_testacc = -1, -1
-                validauc, validacc = auc, acc
+            validauc, validacc = auc, acc
             print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {self.model.emb_type}, model: {self.model.model_name}, save_dir: {self.save_dir}")
             print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
 
