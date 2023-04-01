@@ -154,6 +154,41 @@ class OutputLayer(nn.Module):
             x = F.relu(lin(x))
         return self.out(self.dropout(x))
 
+class MultiLabelClassifier(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.sigmoid = nn.Sigmoid()
+        self.loss_fct = nn.BCEWithLogitsLoss()
+        self.mlp = OutputLayer(config.mlp_layer_num, config.emb_size*2, config.num_c, config.dropout)
+        self.num_c = config.num_c
+  
+    def forward(self, x, label=None):
+        # x: [batch_size, seq_len, emb_size]
+        num_c = self.num_c
+        y = self.mlp(x)
+        loss = None
+        if label is not None:
+            input_one_hot = F.one_hot(
+                torch.where(label != -1, label, 0), num_c)
+            mask = label != -1
+            # 将mask扩展到与input_one_hot相同的形状
+            mask_expanded = mask.unsqueeze(-1).expand_as(input_one_hot)
+            # input_one_hot*mask_flatten
+            label = (input_one_hot*mask_expanded).sum(axis=2).double()
+
+            y_flatten = y.view(-1, num_c)
+            label_flatten = label.view(-1, num_c)
+            keep_index = label_flatten.sum(axis=-1) != 0
+            
+            y_flatten = y_flatten[keep_index]
+            label_flatten = label_flatten[keep_index]
+            loss = self.loss_fct(y_flatten, label_flatten)
+            
+        y = self.sigmoid(y)
+        return y, loss
+    
+
 
 class GPTNet(nn.Module):
 
@@ -167,14 +202,12 @@ class GPTNet(nn.Module):
         dropout = config.dropout
 
         self.transformer = nn.ModuleDict(dict(
-            # wpe = nn.Embedding(config.seq_len, emb_size),
             wpe = CosinePositionalEmbedding(d_model=emb_size, max_len=config.seq_len),
             drop = nn.Dropout(dropout),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = LayerNorm(emb_size, bias=config.bias),
         ))
 
-       
 
         self.que_emb_list = nn.ModuleList([QueEmb(num_q=dataset_config['num_q'],
                                                   num_c=dataset_config['num_c'],
@@ -200,11 +233,14 @@ class GPTNet(nn.Module):
                  self.out_layer_c_all = OutputLayer(mlp_layer_num, emb_size, config.num_c, dropout)
         else:
             print("Not share output layer")
-            self.out_layer_q_next = nn.ModuleList([OutputLayer(conmlp_layer_num, emb_size*2,1, dropout) for _ in self.config.dataconfig_list])
+            self.out_layer_q_next = nn.ModuleList([OutputLayer(mlp_layer_num, emb_size*2,1, dropout) for _ in self.config.dataconfig_list])
             if "c_pred_next" in self.config.aux_tasks:
                 self.out_layer_c_next = nn.ModuleList([OutputLayer(mlp_layer_num, emb_size*2, 1, dropout)  for _ in self.config.dataconfig_list])
             if "c_pred_all" in self.config.aux_tasks:
                 self.out_layer_c_all = nn.ModuleList([OutputLayer(mlp_layer_num, emb_size, config.num_c, dropout)  for _ in self.config.dataconfig_list])
+            
+        if "pred_c" in self.config.aux_tasks:
+            self.concept_classifier = MultiLabelClassifier(self.config)
             
         # init all weights
         self.apply(self._init_weights)
@@ -254,7 +290,6 @@ class GPTNet(nn.Module):
         for block in self.transformer.h:
             x = block(x,x,inter_emb)
         x = self.transformer.ln_f(x)
-        # print(f"x shape: {x.shape}")
         if concat_q:
             x = torch.cat([q_shift,x],dim=-1)
         return x
@@ -281,9 +316,7 @@ class GPTNet(nn.Module):
             y = torch.sigmoid(logits)
             # print(f"y shape is {y.shape}, logits shape is {logits.shape}, data['cshft'] shape {data['cshft'].shape}")
             y = self.get_avg_fusion_concepts(y,data['cshft'])
-            # print(f"y shape new is {y.shape}")
-        # outputs["y_concept_next"+add_name] = self.get_avg_fusion_concepts(y_concept_next,data['cshft'])
-        # outputs["y_concept_all"+add_name] = self.get_avg_fusion_concepts(y_concept_all,data['cshft'])
+       
         else:
             raise NotImplementedError
 
@@ -310,6 +343,7 @@ class GPTNet(nn.Module):
 
         h_qc = self.get_attention(q_emb,q_shift,inter_emb,que_emb_index)
         logits_qc,y_qc = self.get_output(h_qc,que_emb_index,output_type='q_pred_next',data=data)
+    
         
         num_y = 1
         total_y = y_qc
@@ -320,16 +354,17 @@ class GPTNet(nn.Module):
             num_y += 1
         
         if "c_pred_all" in self.config.aux_tasks:
-            # print(f"raw_emb_c shape: {raw_emb_c.shape}")
-            # torch.
             h_c = self.get_attention(emb_c_all,q_shift,inter_emb,que_emb_index,concat_q=False)
-            # print(f"c_pred_all h_c shape is {h_c.shape}")
             logits_c_all,y_c_all = self.get_output(h_c,que_emb_index,output_type='c_pred_all',data=data)
             total_y = total_y + y_c_all
             num_y += 1
 
         y = total_y/num_y
         outputs = {"y":y,"logits":logits_qc}
+        if "pred_c" in self.config.aux_tasks:
+            y_pred_c,y_perd_c_loss = self.concept_classifier(h_qc,data['c'])
+            outputs['y_perd_c_loss'] = y_perd_c_loss
+            outputs['y_pred_c'] = y_pred_c
         return outputs
     
     
@@ -397,6 +432,8 @@ class GPTMT(QueBaseModel):
     def train_one_step(self,data,process=True,return_all=False):
         outputs,data_new = self.predict_one_step(data,return_details=True,process=process)
         loss = self.get_loss(outputs['y'],data_new['rshft'],data_new['sm'])
+        if "pred_c" in self.config.aux_tasks:
+            loss += outputs['y_perd_c_loss']
         return outputs['y'],loss#y_question没用
 
     def predict_one_step(self,data,return_details=False,process=True,return_raw=False):
@@ -407,6 +444,25 @@ class GPTMT(QueBaseModel):
         else:
             return outputs['y']
         
+    def evaluate_pred_c(self,y_list,data_list):
+        all_label_index = np.arange(1, self.config.num_c+1, 1)
+        correct_num = 0
+        error_num = 0
+        for y,data in zip(y_list,data_list):
+            for b_i in range(y.shape[0]):
+                for s_i in range(y.shape[1]):
+                    pred_i = y[b_i, s_i].detach().cpu().numpy()
+                    label_i = data['c'][b_i, s_i].detach().cpu().numpy()
+                    y_pred = all_label_index[pred_i > 0.5].tolist()
+                    y_label = [x for x in label_i.tolist() if x != -1]
+                    if y_pred == y_label:
+                        correct_num += 1
+                    else:
+                        error_num += 1
+        acc = correct_num/(correct_num+error_num)
+        print(f"acc is {acc:.4f},correct_num={correct_num},error_num={error_num}")
+        return acc
+    
     def train(self,train_dataset_list, valid_dataset_list,source_list,batch_size=16,valid_batch_size=None,num_epochs=32, test_loader=None, test_window_loader=None,save_dir="tmp",save_model=False,patient=10,shuffle=True,process=True):
         self.save_dir = save_dir
         os.makedirs(self.save_dir,exist_ok=True)
@@ -496,29 +552,45 @@ class GPTMT(QueBaseModel):
         else:
             return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch
 
-    def evaluate(self,dataset,batch_size,acc_threshold=0.5,source=None):
-        ps,ts = self.predict(dataset,batch_size=batch_size,source=source)
+    def evaluate(self,dataset,batch_size,acc_threshold=0.5,source=None,return_details=True):
+        ps,ts,result_list,data_list = self.predict(dataset,batch_size=batch_size,source=source,return_details=return_details)
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= acc_threshold else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
         eval_result = {"auc":auc,"acc":acc}
+        
+        if "pred_c" in self.config.aux_tasks:
+            y_list = [x['y_pred_c'] for x in result_list]
+            pred_c_acc = self.evaluate_pred_c(y_list, data_list)
+            eval_result['pred_c_acc'] = pred_c_acc
         return eval_result
     
-    def predict(self,dataset,batch_size,return_ts=False,process=True,source=None):
+    def predict(self,dataset,batch_size,return_ts=False,process=True,source=None,return_details=False):
         test_loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
         self.model.eval()
+        if return_details:
+            result_list,data_list = [],[]
         with torch.no_grad():
             y_trues = []
             y_scores = []
             for data in test_loader:
                 new_data = self.batch_to_device(data,process=process)
                 data['source'] = source
-                y = self.predict_one_step(data)
+                y = self.predict_one_step(data,return_details)
+                if return_details:
+                    outputs,data_new = y
+                    y = outputs['y']
+                    result_list.append(outputs)
+                    data_list.append(new_data)
                 y = torch.masked_select(y, new_data['sm']).detach().cpu()
                 t = torch.masked_select(new_data['rshft'], new_data['sm']).detach().cpu()
                 y_trues.append(t.numpy())
                 y_scores.append(y.numpy())
+               
         ts = np.concatenate(y_trues, axis=0)
         ps = np.concatenate(y_scores, axis=0)
         print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
-        return ps,ts
+        if return_details:
+            return ps,ts,result_list,data_list
+        else:
+            return ps,ts
