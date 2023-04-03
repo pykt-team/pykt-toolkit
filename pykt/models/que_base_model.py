@@ -231,7 +231,7 @@ class QueBaseModel(nn.Module):
 
     def load_model(self,save_dir):
         net = torch.load(os.path.join(save_dir, self.emb_type+"_model.ckpt"))
-        self.model.load_state_dict(net)
+        self.model.load_state_dict(net,strict=False)
     
     def batch_to_device(self,data,process=True):
         if not process:

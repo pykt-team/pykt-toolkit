@@ -20,6 +20,8 @@ def augment_kt_seqs(
     skill_rel=None,
     num_questions=-1,
     random_action=False,
+    q_c_map = {},
+    c_q_map = {}
 ):  
     # Make sure the input is not contains padding
     rng = random.Random(seed)
@@ -48,12 +50,17 @@ def augment_kt_seqs(
                     masked_s_seq.append(s_mask_id)
                 elif prob < 0.9:
                     if num_questions!=0:
-                        masked_q_seq.append(
-                            rng.randint(1, q_mask_id - 1)
-                        )  # original BERT처럼 random한 확률로 다른 token으로 대체해줌
-                    masked_s_seq.append(
-                        rng.randint(1, s_mask_id - 1)
-                    )  # randint(start, end) [start, end] 둘다 포함
+                        while True:
+                            choose_q = rng.randint(1, q_mask_id - 1)
+                            if choose_q in q_c_map:
+                                break
+                        masked_q_seq.append(choose_q)
+                        choose_c = q_c_map[choose_q]
+                        masked_s_seq.append(choose_c)
+                    else:
+                        masked_s_seq.append(
+                            rng.randint(1, s_mask_id - 1)
+                        )
                 else:
                     if num_questions!=0:
                         masked_q_seq.append(q)
@@ -89,18 +96,20 @@ def augment_kt_seqs(
     """
     # print(harder_skills)
     if replace_prob > 0 and 'replace' in action_list:
-        for i, elem in enumerate(zip(masked_s_seq, masked_r_seq)):
-            s, r = elem
+        for i, elem in enumerate(zip(masked_q_seq, masked_s_seq, masked_r_seq)):
+            q, s, r = elem
             prob = rng.random()
             if prob < replace_prob and s != s_mask_id:
                 if (
                     r == 0 and s in harder_skills
                 ):  # if the response is wrong, then replace a skill with the harder one
                     masked_s_seq[i] = harder_skills[s]
+                    masked_q_seq[i] = random.choice(c_q_map[harder_skills[s]])
                 elif (
                     r == 1 and s in easier_skills
                 ):  # if the response is correct, then replace a skill with the easier one
                     masked_s_seq[i] = easier_skills[s]
+                    masked_q_seq[i] = random.choice(c_q_map[easier_skills[s]])
     true_seq_len = len(s_seq)
     if permute_prob > 0 and 'permute' in action_list:
         reorder_seq_len = math.floor(permute_prob * true_seq_len)
@@ -139,8 +148,7 @@ def augment_kt_seqs(
 
     if 0 < crop_prob < 1 and 'crop' in action_list:
         crop_seq_len = math.floor(crop_prob * true_seq_len)
-        if crop_seq_len == 0:
-            crop_seq_len = 1
+        crop_seq_len = max(crop_seq_len, 3)#crop_seq_len should be at least 3
         start_idx = 0
         while True:
             start_pos = rng.randint(start_idx, true_seq_len - crop_seq_len)#Return random integer in range [a, b]

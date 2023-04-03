@@ -48,9 +48,12 @@ class CL4KT(Module):
         self.question_embed = Embedding(
             self.num_skills + 2, self.hidden_size, padding_idx=0
         )
+
         self.interaction_embed = Embedding(
             2 * (self.num_skills + 2), self.hidden_size, padding_idx=0
         )
+
+    
         print(f"emb_type: {self.emb_type}")
         if self.emb_type in ["simplekt"]:
             if self.num_questions > 0:
@@ -320,12 +323,12 @@ class CL4KT(Module):
             x, y = q_embed_data, qa_embed_data
             
 
-        if self.emb_type not in ["simplekt"]:
-            for block in self.question_encoder:
-                x, _ = block(mask=1, query=x, key=x, values=x, apply_pos=True)
+        # if self.emb_type not in ["simplekt"]:
+        for block in self.question_encoder:
+            x, _ = block(mask=1, query=x, key=x, values=x, apply_pos=True)
 
-            for block in self.interaction_encoder:
-                y, _ = block(mask=1, query=y, key=y, values=y, apply_pos=True)
+        for block in self.interaction_encoder:
+            y, _ = block(mask=1, query=y, key=y, values=y, apply_pos=True)
 
         for block in self.knoweldge_retriever:
             x, attn = block(mask=0, query=x, key=x, values=y, apply_pos=True)

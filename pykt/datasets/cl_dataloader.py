@@ -17,13 +17,21 @@ class CL4KTDataset(KTDataset):
         # count the number of correct responses for each skill
         skill_correct = defaultdict(int)
         skill_count = defaultdict(int)
-        
-        for s_list, r_list in zip(self.dori['cseqs'].cpu().numpy(),self.dori['rseqs'].cpu().numpy()):
-            for s, r in zip(s_list, r_list):
+        self.q_c_map = {}
+        self.c_q_map = {}
+        for q_list, s_list, r_list in zip(self.dori['qseqs'].cpu().numpy(), self.dori['cseqs'].cpu().numpy(),self.dori['rseqs'].cpu().numpy()):
+            for q, s, r in zip(q_list, s_list, r_list):
                 if s==-1:
                     break
                 skill_correct[s] += r
                 skill_count[s] += 1
+                self.q_c_map[q] = s
+                if s not in self.c_q_map:
+                    self.c_q_map[s] = []
+                
+                if q not in self.c_q_map[s]:
+                    self.c_q_map[s].append(q)
+                
         
         # easier and harder skills
         skill_difficulty = {
@@ -47,6 +55,9 @@ class CL4KTDataset(KTDataset):
             else:
                 self.easier_skills[s] = ordered_skills[i + 1]
                 self.harder_skills[s] = ordered_skills[i - 1]
+
+        
+
         
         
     def get_father(self, index):
@@ -126,6 +137,8 @@ class SimCLRDatasetWrapper(Dataset):
         self.s_mask_id = self.num_skills + 1
         self.easier_skills = self.ds.easier_skills
         self.harder_skills = self.ds.harder_skills
+        self.q_c_map = self.ds.q_c_map
+        self.c_q_map = self.ds.c_q_map
 
     def __len__(self):
         return len(self.ds)
@@ -187,7 +200,9 @@ class SimCLRDatasetWrapper(Dataset):
                 self.seq_len,
                 seed=index,
                 num_questions = self.num_questions,
-                random_action = self.random_action
+                random_action = self.random_action,
+                q_c_map = self.q_c_map,
+                c_q_map = self.c_q_map
             )
 
             t2 = augment_kt_seqs(
@@ -206,7 +221,9 @@ class SimCLRDatasetWrapper(Dataset):
                 self.seq_len,
                 seed=index + 1,
                 num_questions = self.num_questions,
-                random_action = self.random_action
+                random_action = self.random_action,
+                q_c_map = self.q_c_map,
+                c_q_map = self.c_q_map
             )
             # Unpack the augmented data
             aug_q_seq_1, aug_s_seq_1, aug_r_seq_1, negative_r_seq, attention_mask_1 = t1
