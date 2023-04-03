@@ -38,7 +38,7 @@ def main(params):
         curconfig = copy.deepcopy(json.load(fin))
         data_config = curconfig[dataset_name]
         data_config["dataset_name"] = dataset_name
-        if model_name in ["dkt_forget", "bakt_time", "bakt_side"]:
+        if model_name in ["dkt_forget", "bakt_time", "bakt_side",  "bakt_side_model"]:
             data_config["num_rgap"] = config["data_config"]["num_rgap"]
             data_config["num_sgap"] = config["data_config"]["num_sgap"]
             data_config["num_pcount"] = config["data_config"]["num_pcount"]

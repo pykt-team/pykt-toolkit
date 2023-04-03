@@ -105,7 +105,7 @@ class BAKTSide(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
-        self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+        self.model = Architecture(emb_type=emb_type, n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
         self.out = nn.Sequential(
@@ -261,7 +261,7 @@ class BAKTSide(nn.Module):
                 return preds
 
 class Architecture(nn.Module):
-    def __init__(self, n_question,  n_blocks, d_model, d_feature,
+    def __init__(self, emb_type, n_question,  n_blocks, d_model, d_feature,
                  d_ff, n_heads, dropout, kq_same, model_type, seq_len):
         super().__init__()
         """
@@ -270,6 +270,7 @@ class Architecture(nn.Module):
             d_feature : dimension of input in each of the multi-head attention part.
             n_head : number of heads. n_heads*d_feature = d_model
         """
+        self.emb_type = emb_type
         self.d_model = d_model
         self.model_type = model_type
 
@@ -279,11 +280,20 @@ class Architecture(nn.Module):
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
                 for _ in range(n_blocks)
             ])
+        
         # self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
+    # def forward(self, fusion_fuc, fusion_infs, q_embed_data, qa_embed_data):
     def forward(self, q_embed_data, qa_embed_data):
         # target shape  bs, seqlen
+        
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
+        # curfusion_infs = []
+        # for inf in fusion_infs:
+        #     curfusion_infs.append(inf.clone())
+        # # print(f"first shape: {len(curfusion_infs)}")
+        # curfusion_infs.append(q_embed_data)
+        # curfusion_side = fusion_fuc(curfusion_infs, gate_num=1)
 
         # q_posemb = self.position_emb(q_embed_data)
         # q_embed_data = q_embed_data + q_posemb
@@ -295,14 +305,22 @@ class Architecture(nn.Module):
 
         y = qa_embed_data
         seqlen, batch_size = y.size(1), y.size(0)
-        x = q_embed_data
+        x = q_embed_data #curfusion_side
 
         # encoder
         
         for block in self.blocks_2:
             x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+            # curfusion_infs = []
+            # for inf in fusion_infs:
+            #     curfusion_infs.append(inf.clone())
+            # # print(f"second shape: {len(curfusion_infs)}")
+            # curfusion_infs.append(x)
+            # curfusion_side = fusion_fuc(curfusion_infs, gate_num=1)
+            # x = curfusion_side
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
+        # assert False
         return x
 
 class TransformerLayer(nn.Module):
