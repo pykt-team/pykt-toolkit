@@ -160,6 +160,24 @@ class QueEmb(nn.Module):
 
         return xemb
 
+class QueEmbOnlyOne(QueEmb):
+    def __init__(self,num_q,num_c,emb_size,model_name,device='cpu',emb_type='qid',emb_path="", pretrain_dim=768):
+        super().__init__(num_q,num_c,emb_size,model_name,device,emb_type,emb_path,pretrain_dim)
+
+        self.c_convert = nn.Linear(self.emb_size,2*self.emb_size)
+
+    def forward(self,q,c,r=None):
+        emb_type = self.emb_type
+        if emb_type == "iekt":
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            # print(f"emb_c shape is {emb_c.shape}")
+            xemb = self.c_convert(emb_c)
+            emb_q = emb_c
+            emb_qc = xemb
+            emb_qca = None
+            return xemb,emb_qca,emb_qc,emb_q,emb_c
+        
+
 from pykt.utils import set_seed
 class QueBaseModel(nn.Module):
     def __init__(self,model_name,emb_type,emb_path,pretrain_dim,device,seed=0):

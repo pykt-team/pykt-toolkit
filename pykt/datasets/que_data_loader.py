@@ -26,8 +26,8 @@ class KTQueDataset(Dataset):
         self.input_type = input_type
         self.concept_num = concept_num
         self.max_concepts = max_concepts
-        if "questions" not in input_type or "concepts" not in input_type:
-            raise("The input types must contain both questions and concepts")
+        # if "questions" not in input_type or "concepts" not in input_type:
+            # raise("The input types must contain both questions and concepts")
 
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
@@ -94,11 +94,6 @@ class KTQueDataset(Dataset):
         # print("tseqs", dcur["tseqs"])
         return dcur
 
-    # def get_skill_multi_hot(self, this_skills):
-    #     skill_emb = [0] * self.concept_num
-    #     for s in this_skills:
-    #         skill_emb[s] = 1
-    #     return skill_emb
 
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """

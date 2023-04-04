@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from .que_base_model import QueBaseModel,QueEmb
+from .que_base_model import QueBaseModel,QueEmb,QueEmbOnlyOne
 from pykt.utils import debug_print
 from torch.utils.data import DataLoader
 import os
@@ -208,15 +208,22 @@ class GPTNet(nn.Module):
             ln_f = LayerNorm(emb_size, bias=config.bias),
         ))
 
+        que_emb_raw_list = []
+        for dataset_config in self.config.dataconfig_list:
+            if dataset_config['num_q'] != 0:
+                que_class = QueEmb
+            else:
+                que_class = QueEmbOnlyOne
+            que_emb_raw_list.append(que_class(num_q=dataset_config['num_q'],
+                                           num_c=dataset_config['num_c'],
+                                           emb_size=emb_size,
+                                           emb_type=config.emb_type,
+                                           model_name=config.model_name,
+                                           device=config.device,
+                                           emb_path=config.emb_path,
+                                           pretrain_dim=config.pretrain_dim))
 
-        self.que_emb_list = nn.ModuleList([QueEmb(num_q=dataset_config['num_q'],
-                                                  num_c=dataset_config['num_c'],
-                                                  emb_size=emb_size,
-                                                  emb_type=config.emb_type,
-                                                  model_name=config.model_name,
-                                                  device=config.device,
-                                                  emb_path=config.emb_path,
-                                                  pretrain_dim=config.pretrain_dim) for dataset_config in self.config.dataconfig_list])
+        self.que_emb_list = nn.ModuleList(que_emb_raw_list)
         
         self.emb_pooling = nn.Linear(emb_size*2, emb_size)
         self.concept_lstm_layer = nn.LSTM(emb_size*2, emb_size, batch_first=True)
@@ -325,7 +332,10 @@ class GPTNet(nn.Module):
 
 
     def forward(self, q, c ,r,data=None):
-        pos_emb = self.transformer.wpe(q) # position embeddings of shape (1, t, emb_size)
+        if self.config.num_q!=0:
+            pos_emb = self.transformer.wpe(q) # position embeddings of shape (1, t, emb_size)
+        else:
+            pos_emb = self.transformer.wpe(c)
 
         # Get the embeddings
         que_emb_index = self.config.source_list.index(data['source'])

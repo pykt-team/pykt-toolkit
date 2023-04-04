@@ -43,13 +43,14 @@ def main(params):
     valid_dataset_list = []
 
     i = params['fold']
-    for source, data_config in zip(source_list, config_list):
-        train_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+    train_file_key = "train_valid_file_quelevel" 
+    for source, data_config in zip(source_list, config_list):        
+        train_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config[train_file_key]),
                                     input_type=data_config["input_type"], folds=all_folds - {
                                         i},
                                     concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
 
-        valid_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+        valid_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config[train_file_key]),
                                     input_type=data_config["input_type"], folds={
                                         i},
                                     concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
