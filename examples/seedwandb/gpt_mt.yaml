@@ -7,7 +7,7 @@ parameters:
     model_name:
         values: ["gpt_mt"]
     source_list:
-        values: ["assist2009,nips_task34,bridge2algebra2006,algebra2005"]
+        values: ["assist2009,nips_task34,bridge2algebra2006,algebra2005,statics2011,poj,assist2015"]
     emb_type:
         values: ["iekt"]
     save_dir:
