@@ -324,7 +324,7 @@ class WandbUtils:
         
         return check_result_list
 
-    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False):
+    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False,keep_states=["RUNNING", "PENDING",'CANCELED','FINISHED']):
         sweep_key_list = []
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
@@ -338,6 +338,8 @@ class WandbUtils:
 
         for i, key in enumerate(sweep_key_list):
             info = results[i]
+            if info['state'] not in keep_states:
+                continue
             info.update({'sweep_pattern':sweep_pattern,"key":key,
                     'agent_name': f"{self.user}/{self.project_name}/{self.sweep_dict[key]}"})
             info_list.append(info)
