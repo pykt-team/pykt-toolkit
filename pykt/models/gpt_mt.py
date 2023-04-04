@@ -332,13 +332,15 @@ class GPTNet(nn.Module):
 
 
     def forward(self, q, c ,r,data=None):
-        if self.config.num_q!=0:
+        que_emb_index = self.config.source_list.index(data['source'])
+        data_config = self.config.dataconfig_list[que_emb_index]
+        if data_config['num_q']!=0:
             pos_emb = self.transformer.wpe(q) # position embeddings of shape (1, t, emb_size)
         else:
             pos_emb = self.transformer.wpe(c)
 
         # Get the embeddings
-        que_emb_index = self.config.source_list.index(data['source'])
+        
         if self.emb_type in ['qid']:
             raw_emb_qc = self.que_emb_list[que_emb_index](q,c)
         else:
