@@ -122,6 +122,8 @@ if __name__ == "__main__":
     parser.add_argument("--share_output", type=int, default=1)
     parser.add_argument("--aux_tasks", type=str, default='')
     parser.add_argument("--mlp_layer_num", type=int, default=1)
+    parser.add_argument("--first_train_dataset", type=str, default='assist2009')
+    parser.add_argument("--first_train_epochs", type=int, default=1)
     
 
     

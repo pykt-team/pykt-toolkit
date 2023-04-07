@@ -32,5 +32,9 @@ parameters:
         values: [1, 2]
     aux_tasks:
         values: ["c_pred_next,c_pred_all,pred_c","c_pred_next","c_pred_all","pred_c","c_pred_next,c_pred_all","c_pred_next,pred_c","c_pred_all,pred_c"]
+    first_train_epochs:
+        values: [1,2,4,5,10]
+    first_train_dataset:
+        values: ["assist2009","nips_task34","bridge2algebra2006","algebra2005","statics2011","poj","assist2015"]
     fold:
         values: [0, 1, 2, 3, 4]

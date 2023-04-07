@@ -404,11 +404,13 @@ class GPTConfig:
     dataconfig_list: list = None  # Added attribute
     source_list: list = None      # Added attribute
     aux_tasks: list = None 
+    first_train_epochs: int = 1
+    first_train_dataset: str = "assist2009"
 
 
 
 class GPTMT(QueBaseModel):
-    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='iekt', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8,dataconfig_list=None,source_list=None,return_dict=False,source_weight_t=1,share_output=False,aux_tasks=[],mlp_layer_num=1,model_name="gpt_mt"):
+    def __init__(self, num_q, num_c, emb_size,seq_len=200,dropout=0.1, emb_type='iekt', emb_path="", pretrain_dim=768,device='cpu',seed=0,n_head=8,n_layer=8,dataconfig_list=None,source_list=None,return_dict=False,source_weight_t=1,share_output=False,aux_tasks=[],mlp_layer_num=1,model_name="gpt_mt",first_train_epochs=1,first_train_dataset="assist2009"):
         self.config = GPTConfig(n_layer=n_layer,
                                 n_head=n_head,
                                 dropout=dropout,
@@ -428,7 +430,9 @@ class GPTMT(QueBaseModel):
                                 source_weight_t = source_weight_t,
                                 share_output=share_output,
                                 aux_tasks=aux_tasks,
-                                mlp_layer_num = mlp_layer_num
+                                mlp_layer_num = mlp_layer_num,
+                                first_train_epochs=first_train_epochs,
+                                first_train_dataset=first_train_dataset,
                                 )
 
         model_name = self.config.model_name
@@ -482,15 +486,38 @@ class GPTMT(QueBaseModel):
         if valid_batch_size is None:
             valid_batch_size = batch_size
 
+        if self.config.first_train_epochs!=0:
+            first_data_list = []
+                
+
         data_list = []
         for train_dataset,valid_dataset,source in zip(train_dataset_list,valid_dataset_list,source_list):
             train_loader = DataLoader(train_dataset, batch_size=batch_size,shuffle=shuffle)
             for data in train_loader:
                 data['source'] = source
                 data_list.append(data)
+                if self.config.first_train_epochs!=0 and source == self.config.first_train_dataset:
+                    first_data_list.append(data)
         random.shuffle(data_list)
-            # data_loder_list.append(train_loader)
-        
+        if self.config.first_train_epochs!=0:
+            random.shuffle(first_data_list)
+
+        # first train
+        for i in range(1, self.config.first_train_epochs + 1):
+            loss_list = []
+            print(f"number of first_data_list is {len(first_data_list)}")
+            for data in first_data_list:
+                # data['source'] = source
+                self.model.train()
+                y,loss = self.train_one_step(data,process=process)
+                self.opt.zero_grad()
+                loss.backward()
+                self.opt.step()
+                loss_list.append(loss.detach().cpu().numpy())
+            loss_mean = np.mean(loss_list)
+            print(f"Finish {self.config.first_train_dataset} first train epoch {i},train loss is {loss_mean:.4f}")
+  
+        # official train
         max_auc, best_epoch = 0, -1
         train_step = 0
         weights = np.ones(len(source_list))
