@@ -31,7 +31,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -71,8 +71,12 @@ def model_forward(model, data):
         dcur, dgaps = data
     else:
         dcur = data
-    q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
-    qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
+    if model_name in ["dimkt"]:
+        q, c, r, t,sd,qd = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"],dcur["sdseqs"],dcur["qdseqs"]
+        qshft, cshft, rshft, tshft,sdshft,qdshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"],dcur["shft_sdseqs"],dcur["shft_qdseqs"]
+    else:
+        q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]  
+        qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
     m, sm = dcur["masks"], dcur["smasks"]
 
     ys, preloss = [], []
@@ -152,7 +156,10 @@ def model_forward(model, data):
         ys.append(y[:, 1:])
     elif model_name in que_type_models and model_name != "lpkt":
         y,loss = model.train_one_step(data)
-    
+    elif model_name == "dimkt":
+        y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
+        ys.append(y) 
+
     if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
