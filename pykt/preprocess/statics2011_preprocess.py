@@ -30,7 +30,7 @@ def read_data_from_csv(read_file, write_file):
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(_df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
-    int
+    
     user_inters = []
     for u, curdf in _df.groupby("Anon Student Id"):
         curdf = curdf.sort_values(by=["First Transaction Time", "tmp_index"])
@@ -42,20 +42,11 @@ def read_data_from_csv(read_file, write_file):
         seq_len = len(seq_ans)                
         seq_problems = ["NA"]
         seq_use_time = ["NA"]
-        seq_skill_difficult = ["NA"]
-        seq_question_difficult = ["NA"]
 
         assert seq_len == len(seq_skills) == len(seq_ans) ==  len(seq_start_time) 
 
         user_inters.append(
-            [[u, str(seq_len)], 
-            seq_problems, 
-            seq_skills, 
-            format_list2str(seq_ans), 
-            seq_start_time, 
-            seq_use_time,
-            format_list2str(seq_skill_difficult),
-            format_list2str(seq_question_difficult)])
+            [[u, str(seq_len)], seq_problems, seq_skills, format_list2str(seq_ans), seq_start_time, seq_use_time])
 
     write_txt(write_file, user_inters)
 

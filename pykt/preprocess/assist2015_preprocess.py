@@ -32,20 +32,11 @@ def read_data_from_csv(read_file, write_file):
         seq_problems = ["NA"]
         seq_start_time = ["NA"]
         seq_response_cost = ["NA"]
-        seq_skill_difficult = ["NA"]
-        seq_question_difficult = ["NA"]
+
         assert seq_len == len(seq_skills) == len(seq_ans)
 
         user_inters.append(
-            [[str(user), 
-            str(seq_len)], 
-            seq_problems, 
-            seq_skills, 
-            seq_ans, 
-            seq_start_time, 
-            seq_response_cost,
-            seq_skill_difficult,
-            seq_question_difficult])
+            [[str(user), str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_response_cost])
 
     write_txt(write_file, user_inters)
 

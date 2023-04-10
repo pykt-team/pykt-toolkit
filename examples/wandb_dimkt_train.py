@@ -10,7 +10,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", type=float, default=0.0005)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--fold", type=int, default=0)
-    parser.add_argument("--num_epochs", type=int, default=100)
+    parser.add_argument("--num_epochs", type=int, default=1000)#max epochs
     parser.add_argument("--weight_decay", type=float, default=0.0001)
     #model params
     parser.add_argument("--dropout", type=float, default=0.2)

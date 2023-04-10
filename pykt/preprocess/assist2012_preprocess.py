@@ -1,8 +1,7 @@
 # _*_ coding:utf-8 _*_
+
 import pandas as pd
-import numpy as np
-from tqdm import tqdm
-from pykt.preprocess.utils import sta_infos, write_txt,format_list2str,change2timestamp,skill_difficult,question_difficult
+from .utils import sta_infos, write_txt,format_list2str,change2timestamp
 #ref https://sites.google.com/site/assistmentsdata/datasets/2012-13-school-data-with-affect
 
 KEYS = ["user_id", "skill_id", "problem_id"]
@@ -25,11 +24,10 @@ def read_data_from_csv(read_file, write_file):
     # add timestamp and duration
     df['start_timestamp'] = df['start_time'].apply(lambda x:change2timestamp(x,hasf='.' in x))
 
+
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
-    df = skill_difficult(df,'skill_id','correct')
-    df = question_difficult(df,'problem_id','correct')
 
     user_inters = []
     for user, group in df.groupby(['user_id'], sort=False):
@@ -39,10 +37,6 @@ def read_data_from_csv(read_file, write_file):
         seq_response_cost = group['ms_first_response'].tolist()
         seq_start_time = group['start_timestamp'].tolist()
         seq_problems = group['problem_id'].tolist()
-        
-        seq_skill_difficult = group['skill_difficult'].tolist()
-        seq_question_difficult = group['question_difficult'].tolist()
-        
         seq_len = len(group)
         user_inters.append(
             [[str(user), str(seq_len)],
@@ -50,11 +44,10 @@ def read_data_from_csv(read_file, write_file):
             format_list2str(seq_skills),
             format_list2str(seq_ans),
             format_list2str(seq_start_time),
-            format_list2str(seq_response_cost),
-            format_list2str(seq_skill_difficult),
-            format_list2str(seq_question_difficult)])
+            format_list2str(seq_response_cost)])
 
     write_txt(write_file, user_inters)
+
     print("\n".join(stares))
 
     return

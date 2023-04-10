@@ -1,8 +1,7 @@
 # _*_ coding:utf-8 _*_
-import numpy as np
-from tqdm import tqdm
+
 import pandas as pd
-from .utils import sta_infos, write_txt, format_list2str,skill_difficult,question_difficult
+from .utils import sta_infos, write_txt, format_list2str
 
 KEYS = ["user_id", "skill_id", "problem_id"]
 
@@ -10,20 +9,15 @@ def read_data_from_csv(read_file, write_file):
     stares = []
 
     df = pd.read_csv(read_file, encoding = 'utf-8', dtype=str)
-    df['correct'] = df['correct'].apply(int)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
     df['tmp_index'] = range(len(df))
     _df = df.dropna(subset=["user_id","problem_id", "skill_id", "correct", "order_id"])
-   
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(_df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
-
-    _df = skill_difficult(_df,'skill_id','correct')
-    _df = question_difficult(_df,'problem_id','correct')
 
     ui_df = _df.groupby(['user_id'], sort=False)
 
@@ -38,19 +32,10 @@ def read_data_from_csv(read_file, write_file):
         seq_start_time = ['NA']
         seq_response_cost = ['NA']
 
-        seq_skill_difficult = tmp_inter['skill_difficult'].tolist()
-        seq_question_difficult = tmp_inter['question_difficult'].tolist()
         assert seq_len == len(seq_problems) == len(seq_skills) == len(seq_ans)
 
         user_inters.append(
-            [[str(user), str(seq_len)], 
-            format_list2str(seq_problems),
-            format_list2str(seq_skills), 
-            format_list2str(seq_ans), 
-            seq_start_time, 
-            seq_response_cost,
-            format_list2str(seq_skill_difficult),
-            format_list2str(seq_question_difficult)])
+            [[str(user), str(seq_len)], format_list2str(seq_problems), format_list2str(seq_skills), format_list2str(seq_ans), seq_start_time, seq_response_cost])
 
     write_txt(write_file, user_inters)
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from .utils import sta_infos, write_txt,format_list2str, replace_text,skill_difficult,question_difficult
+from .utils import sta_infos, write_txt, replace_text
 
 def load_q2c(qname):
     df = pd.read_csv(qname, encoding = "utf-8",low_memory=False).dropna(subset=["name", "topic"])
@@ -31,8 +31,6 @@ def read_data_from_csv(read_file, write_file, dq2c):
     usedf = df[["index", "user_id", "exercise", "time_done", "time_taken_attempts", "correct", "count_attempts", "topic"]]
     usedf = usedf.dropna(subset=["user_id", "exercise", "time_done", "correct"])
     usedf = usedf[usedf["correct"].isin([False, True])]
-    usedf['correct'] = usedf['correct'].apply(int)
-
     usedf["time_taken_attempts"] = (usedf["time_taken_attempts"].fillna(-100)).astype(str) # only hint! False correct
     usedf.loc[:, "time_taken_attempts"] = usedf["time_taken_attempts"].astype(str).apply(lambda x: int(x.split("&")[0])*1000).astype(str)
     
@@ -41,15 +39,6 @@ def read_data_from_csv(read_file, write_file, dq2c):
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(usedf, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
-    usedf.rename(columns={'topic':'skill_id'},inplace=True)
-    usedf.rename(columns={'exercise':'problem_id'},inplace=True)
-
-    usedf = skill_difficult(usedf,'skill_id','correct')
-    usedf = question_difficult(usedf,'problem_id','correct')
-    
-    usedf.rename(columns={'skill_id':'topic'},inplace=True)
-    usedf.rename(columns={'problem_id':'exercise'},inplace=True)
-    
     data = []
     uids = usedf.user_id.unique()
     problems = usedf.exercise.unique()
@@ -67,20 +56,9 @@ def read_data_from_csv(read_file, write_file, dq2c):
         rs = curdf["correct"].astype(int).astype(str).tolist()
         ts = curdf["time_done"].tolist()
         uts = curdf["time_taken_attempts"].tolist()
-        seq_skill_difficult = curdf['skill_difficult'].tolist()
-        seq_question_difficult = curdf['question_difficult'].tolist()
-        
         seq_len = len(rs)
         uc = [str(uid), str(seq_len)]
-        
-        data.append([uc, 
-        questions, 
-        concepts, 
-        rs, 
-        ts, 
-        uts,
-        format_list2str(seq_skill_difficult),
-        format_list2str(seq_question_difficult)])
+        data.append([uc, questions, concepts, rs, ts, uts])
         if len(data) % 1000 == 0:
             print(len(data))
     write_txt(write_file, data)

@@ -1,7 +1,7 @@
 import pandas as pd
 import random
 import os
-from .utils import sta_infos, write_txt,skill_difficult,question_difficult,format_list2str
+from .utils import sta_infos, write_txt
 
 KEYS = ["user_id", "tags", "question_id"]
 
@@ -50,15 +50,6 @@ def read_data_from_csv(read_file, write_file):
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(co, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
-    co.rename(columns={'tags':'skill_id'},inplace=True)
-    co.rename(columns={'question_id':'problem_id'},inplace=True)
-
-    co = skill_difficult(co,'skill_id','correct')
-    co = question_difficult(co,'problem_id','correct')
-    
-    co.rename(columns={'skill_id':'tags'},inplace=True)
-    co.rename(columns={'problem_id':'question_id'},inplace=True)
-
     co.to_csv(os.path.join(read_file, 'ednet_sample_process.csv'), index=False)
     
     ui_df = co.groupby(['user_id'], sort=False)
@@ -73,20 +64,11 @@ def read_data_from_csv(read_file, write_file):
         seq_problems = tmp_inter['question_id'].astype(str)
         seq_start_time = tmp_inter['timestamp'].astype(str)
         seq_response_cost = tmp_inter['elapsed_time'].astype(str)
-        seq_skill_difficult = tmp_inter['skill_difficult'].tolist()
-        seq_question_difficult = tmp_inter['question_difficult'].tolist()
-        
+
         assert seq_len == len(seq_problems) == len(seq_ans)
 
         user_inters.append(
-            [[str(user), str(seq_len)], 
-            seq_problems, 
-            seq_skills, 
-            seq_ans, 
-            seq_start_time, 
-            seq_response_cost,
-            format_list2str(seq_skill_difficult),
-            format_list2str(seq_question_difficult)])
+            [[str(user), str(seq_len)], seq_problems, seq_skills, seq_ans, seq_start_time, seq_response_cost])
 
     write_txt(write_file, user_inters)
     print("\n".join(stares))

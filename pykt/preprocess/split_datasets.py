@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import json, copy
 
-ALL_KEYS = ["fold", "uid", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs","skill_difficult","question_difficult"]
+ALL_KEYS = ["fold", "uid", "questions", "concepts", "responses", "timestamps", "usetimes", "selectmasks", "is_repeat", "qidxs", "rest", "orirow","cidxs"]
 ONE_KEYS = ["fold", "uid"]
 
 def read_data(fname, min_seq_len=3, response_set=[0,1]):
@@ -17,31 +17,31 @@ def read_data(fname, min_seq_len=3, response_set=[0,1]):
         dcur = dict()
         while i < len(lines):
             line = lines[i].strip()
-            if i % 8 == 0: # stuid
+            if i % 6 == 0: # stuid
                 effective_keys.add("uid")
                 tmps = line.split(",")
                 stuid, seq_len = tmps[0], int(tmps[1])
                 if seq_len < min_seq_len: # delete use seq len less than min_seq_len
-                    i += 8
+                    i += 6
                     dcur = dict()
                     delstu += 1
                     delnum += seq_len
                     continue    
                 dcur["uid"] = stuid    
                 goodnum += seq_len        
-            elif i % 8 == 1: # question ids / names
+            elif i % 6 == 1: # question ids / names
                 qs = []
                 if line.find("NA") == -1:
                     effective_keys.add("questions")
                     qs = line.split(",")
                 dcur["questions"] = qs
-            elif i % 8 == 2: # concept ids / names
+            elif i % 6 == 2: # concept ids / names
                 cs = []
                 if line.find("NA") == -1:
                     effective_keys.add("concepts")
                     cs = line.split(",")
                 dcur["concepts"] = cs
-            elif i % 8 == 3: # responses
+            elif i % 6 == 3: # responses
                 effective_keys.add("responses")
                 rs = []
                 if line.find("NA") == -1:
@@ -64,33 +64,19 @@ def read_data(fname, min_seq_len=3, response_set=[0,1]):
                         badr += 1
                         continue
                 dcur["responses"] = rs
-            elif i % 8 == 4: # timestamps
+            elif i % 6 == 4: # timestamps
                 ts = []
                 if line.find("NA") == -1:
                     effective_keys.add("timestamps")
                     ts = line.split(",")
                 dcur["timestamps"] = ts
-            elif i % 8 == 5: # usets
+            elif i % 6 == 5: # usets
                 usets = []
                 if line.find("NA") == -1:
                     effective_keys.add("usetimes")
                     usets = line.split(",")
                 dcur["usetimes"] = usets
                 
-                
-            elif i % 8 == 6:# skill difficult
-                sd = []
-                if line.find("NA") == -1:
-                    effective_keys.add("skill_difficult")
-                    sd = line.split(",")
-                dcur["skill_difficult"] = sd
-            elif i % 8 == 7:#question difficult
-                qd = []
-                if line.find("NA") == -1:
-                    effective_keys.add("question_difficult")
-                    qd = line.split(",")
-                dcur["question_difficult"] = qd
-
                 for key in effective_keys:
                     dres.setdefault(key, [])
                     if key != "uid":
@@ -531,7 +517,7 @@ def main(dname, fname, dataset_name, configf, min_seq_len = 3, maxlen = 200, kfo
 
     Args:
         dname (str): data folder path
-        fname (str): the data file used to split, needs 8 columns, format is: (NA indicates the dataset has no corresponding info)
+        fname (str): the data file used to split, needs 6 columns, format is: (NA indicates the dataset has no corresponding info)
             uid,seqlen: 50121,4
             quetion ids: NA
             concept ids: 7014,7014,7014,7014
