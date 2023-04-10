@@ -58,13 +58,8 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 dcur, dgaps = data
             else:
                 dcur = data
-            if model_name in ["dimkt"]:
-                q, c, r, sd,qd = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["sdseqs"],dcur["qdseqs"]
-                qshft, cshft, rshft, sdshft,qdshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_sdseqs"],dcur["shft_qdseqs"]
-                sd, qd, sdshft, qdshft = sd.to(device), qd.to(device), sdshft.to(device), qdshft.to(device)
-            else:
-                q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"] 
-                qshft, cshft, rshft= dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
+            q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
+            qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
             if model.model_name in que_type_models and model_name != "lpkt":
@@ -128,8 +123,6 @@ def evaluate(model, test_loader, model_name, save_path=""):
             elif model_name in que_type_models and model_name != "lpkt":
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
-            elif model_name == "dimkt":
-                y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
@@ -193,7 +186,7 @@ def late_fusion(dcur, curdf, fusion_type=["mean", "vote", "all"]):
 
     if "mean" in fusion_type:
         dcur.setdefault("late_mean", [])
-        dcur["late_mean"].append(round(float(curdf["preds"].mean()), 4))
+        dcur["late_mean"].append(round(curdf["preds"].mean().astype(float), 4))
     if "vote" in fusion_type:
         dcur.setdefault("late_vote", [])
         correctnum = list(curdf["preds"]>=0.5).count(True)
@@ -230,10 +223,10 @@ def effective_fusion(df, model, model_name, fusion_type):
             # print(f"model: {model_name} has no early fusion res!")
             pass
 
-        curr.append(int(curdf["response"].mean()))
-        dcur["late_trues"].append(int(curdf["response"].mean()))
+        curr.append(curdf["response"].mean().astype(int))
+        dcur["late_trues"].append(curdf["response"].mean().astype(int))
         dcur["qidxs"].append(ui[0])
-        dcur["row"].append(int(curdf["row"].mean()))
+        dcur["row"].append(curdf["row"].mean().astype(int))
         dcur["questions"].append(",".join([str(int(s)) for s in curdf["questions"].tolist()]))
         dcur["concepts"].append(",".join([str(int(s)) for s in curdf["concepts"].tolist()]))
         late_fusion(dcur, curdf)
@@ -377,13 +370,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             else:
                 dcurori, dqtest = data
 
-            if model_name in ["dimkt"]:
-                q, c, r ,sd, qd= dcurori["qseqs"], dcurori["cseqs"], dcurori["rseqs"],dcurori["sdseqs"],dcurori["qdseqs"]
-                qshft, cshft, rshft, sdshft, qdshft = dcurori["shft_qseqs"], dcurori["shft_cseqs"], dcurori["shft_rseqs"], dcurori["shft_sdseqs"],dcurori["shft_qdseqs"]
-                sd, qd, sdshft, qdshft = sd.to(device), qd.to(device), sdshft.to(device), qdshft.to(device)
-            else:    
-                q, c, r = dcurori["qseqs"], dcurori["cseqs"], dcurori["rseqs"]
-                qshft, cshft, rshft = dcurori["shft_qseqs"], dcurori["shft_cseqs"], dcurori["shft_rseqs"]
+            q, c, r = dcurori["qseqs"], dcurori["cseqs"], dcurori["rseqs"]
+            qshft, cshft, rshft = dcurori["shft_qseqs"], dcurori["shft_cseqs"], dcurori["shft_rseqs"]
             m, sm = dcurori["masks"], dcurori["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
             qidxs, rests, orirow = dqtest["qidxs"], dqtest["rests"], dqtest["orirow"]
@@ -455,8 +443,6 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 h = torch.cat((start_hemb, h), dim=1)
                 # e_data = torch.cat((start_hemb, e_data), dim=1)
                 y = y[:, 1:]
-            elif model_name == "dimkt":
-                y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
 
             concepty = torch.masked_select(y, sm).detach().cpu()
             conceptt = torch.masked_select(rshft, sm).detach().cpu()
