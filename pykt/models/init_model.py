@@ -28,9 +28,12 @@ from .bakt_side_model import BAKTSideModel
 from .qdkt import QDKT
 from .qikt import QIKT
 from .akt_peiyou import AKTPeiyou
+from .akt_peiyou_fusion_add import AKTPeiyouFusion
 from .iekt_peiyou import IEKTPeiyou
 from .qdkt_peiyou import QDKTPeiyou
+from .qdkt_peiyou_fusion import QDKTPeiyouFusion
 from .bakt_peiyou import BAKTPeiyou 
+from .bakt_peiyou_fusion_add import BAKTPeiyouFusion
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -127,7 +130,7 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
-    elif model_name == "qdkt_peiyou":
+    elif model_name in "qdkt_peiyou":
         dpretrain = {
             "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
             "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
@@ -135,6 +138,15 @@ def init_model(model_name, model_config, data_config, emb_type):
         }
         model = QDKTPeiyou(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=dpretrain,device=device).to(device)
+    elif model_name in "qdkt_peiyou_fusion":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = QDKTPeiyouFusion(num_q=data_config['num_q'], num_c=data_config['num_c'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=dpretrain,device=device).to(device)
+    
     elif model_name == "qikt":
         model = QIKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
@@ -157,6 +169,14 @@ def init_model(model_name, model_config, data_config, emb_type):
             "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
         }
         model = BAKTPeiyou(data_config["num_croutes"], data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, dpretrain=dpretrain).to(device)
+    elif model_name == "bakt_peiyou_fusion":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = BAKTPeiyouFusion(data_config["num_croutes"], data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, dpretrain=dpretrain).to(device)
+    
     elif model_name == "akt_peiyou":
         dpretrain = {
             "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
@@ -164,6 +184,14 @@ def init_model(model_name, model_config, data_config, emb_type):
             "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
         }
         model = AKTPeiyou(data_config["num_croutes"], data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, dpretrain=dpretrain).to(device)
+    elif model_name == "akt_peiyou_fusion":
+        dpretrain = {
+            "kc_embs": [os.path.join(data_config["dpath"], data_config["kc_embs"]), 768],
+            "ana_embs": [os.path.join(data_config["dpath"], data_config["ana_embs"]), 768],
+            "que_embs": [os.path.join(data_config["dpath"], data_config["que_embs"]), 768]
+        }
+        model = AKTPeiyouFusion(data_config["num_croutes"], data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, dpretrain=dpretrain).to(device)
+    
     else:
         print(f"The wrong model name: {model_name} was used...")
         return None

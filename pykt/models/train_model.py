@@ -28,7 +28,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
         # loss2 = torch.sigmoid(torch.randn(1)).to(device)
         loss = model.loss1*loss1+model.loss2*ys[1]
         # print(f"loss1: {loss1}, loss2: {ys[1]}, loss: {loss}, x1: {model.loss1}, x2: {model.loss2}")
-    elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_side", "bakt_side_model", "bakt_peiyou"]:
+    elif model_name in ["cdkt", "bakt", "bakt_time", "bakt_side", "bakt_side_model", "bakt_peiyou",  "bakt_peiyou_fusion"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -65,7 +65,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[], epoch=0, flag=False):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_peiyou"]:
+    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "akt_peiyou",  "akt_peiyou_fusion"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -107,7 +107,7 @@ def model_forward(model, data, epoch):
     elif model_name in ["bakt_simplex"]:
         y, y2 = model(dcur, train=True)
         ys = [y[:,1:], y2]
-    elif model_name in ["bakt", "bakt_peiyou"]:
+    elif model_name in ["bakt", "bakt_peiyou",  "bakt_peiyou_fusion"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["bakt_time", "bakt_side",  "bakt_side_model"]:
@@ -142,7 +142,7 @@ def model_forward(model, data, epoch):
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
-    elif model_name in ["akt_peiyou"]:
+    elif model_name in ["akt_peiyou",  "akt_peiyou_fusion"]:
         y, reg_loss = model(dcur)
         ys.append(y[:,1:])
         preloss.append(reg_loss)

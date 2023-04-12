@@ -346,6 +346,8 @@ class WandbUtils:
             return info_list
 
     def get_all_fold_name(self,dataset_name,model_name,emb_type="qid"):
+        if model_name == "bakt_side_model":
+            model_name = "bakt_side"
         sweep_key_list = [f"{dataset_name}_{model_name}_{emb_type}_{fold}" for fold in range(5)]
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list

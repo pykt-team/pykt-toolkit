@@ -71,14 +71,14 @@ def main(params):
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["bakt", "bakt_peiyou", "bakt_time", "bakt_side",  "bakt_side_model", "bakt_simplex"]:
+        if model_name in ["bakt", "bakt_peiyou",  "bakt_peiyou_fusion", "bakt_time", "bakt_side",  "bakt_side_model", "bakt_simplex"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
         if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
-        if model_name in ["akt_peiyou", "iekt_peiyou"]:
-            train_config["batch_size"] = 64
+        if model_name in ["akt_peiyou",  "akt_peiyou_fusion", "iekt_peiyou"]:
+            train_config["batch_size"] = 16
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed",
                 "insert_ratio", "crop_ratio", "mask_ratio", "reorder_ratio", "aug", "K"]:

@@ -25,14 +25,14 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             test_question_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-    elif model_name in ["akt_peiyou", "bakt_peiyou"]:
+    elif model_name in ["akt_peiyou",  "akt_peiyou_fusion", "bakt_peiyou",  "bakt_peiyou_fusion"]:
         print(f"in {model_name} dataloader!")
         # test_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         # test_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
         if "test_question_file" in data_config:
             # test_question_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-    elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
+    elif model_name in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         print("in iekt_peiyou dataloader!")
         # test_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
         #                 input_type=data_config["input_type"], folds=[-1], 
@@ -49,7 +49,7 @@ def init_test_datasets(data_config, model_name, batch_size):
         test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {-1})
         test_question_dataset = None
         test_question_window_dataset= None
-    elif model_name in que_type_models and model_name not in ["iekt_peiyou", "qdkt_peiyou"]:
+    elif model_name in que_type_models and model_name not in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
                         input_type=data_config["input_type"], folds=[-1], 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
@@ -70,9 +70,9 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             # test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-    if model_name in ["akt_peiyou", "bakt_peiyou"]:
+    if model_name in ["akt_peiyou",  "akt_peiyou_fusion", "bakt_peiyou",  "bakt_peiyou_fusion"]:
         test_loader, test_window_loader = None, None
-    elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
+    elif model_name in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         test_loader = None
         test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
     else:
@@ -115,7 +115,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         #     json_file2.write(json_str_2)
         curvalid = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {i})
         curtrain = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], all_folds - {i})
-    elif model_name in que_type_models and model_name not in ["iekt_peiyou", "qdkt_peiyou"]:
+    elif model_name in que_type_models and model_name not in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                         input_type=data_config["input_type"], folds={i}, 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
@@ -125,11 +125,11 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
     elif model_name in ["cdkt"]:
         curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
-    elif model_name in ["akt_peiyou", "bakt_peiyou"]:
+    elif model_name in ["akt_peiyou",  "akt_peiyou_fusion", "bakt_peiyou",  "bakt_peiyou_fusion"]:
         print(f"in {model_name} dataloader!")
         curtrain = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, False)
         curvalid = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-    elif model_name in ["iekt_peiyou", "qdkt_peiyou"]:
+    elif model_name in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         print(f"in {model_name} dataloader!")
         curvalid = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                         input_type=data_config["input_type"], folds={i}, 

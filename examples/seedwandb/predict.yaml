@@ -5,6 +5,6 @@ metric:
     name: testauc
 parameters:
     bz:
-        values: [32]
+        values: [16]
     save_dir:
         values: []
