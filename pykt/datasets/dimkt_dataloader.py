@@ -180,17 +180,24 @@ class DIMKTDataset(Dataset):
         return dori    
 
 def difficult_compute(df,sds_path,qds_path):
-    df2 = pd.DataFrame(data=None,columns=['concepts','questions','responses'])
+    concepts = []
+    questions = []
+    responses = []
     for i,row in tqdm(df.iterrows()):
-        concepts = [int(_) for _ in row["concepts"].split(",")]
-        questions = [int(_) for _ in row["questions"].split(",")]
-        responses = [int(_) for _ in row["responses"].split(",")]
-
-        for j in range(len(responses)):
-            if responses[j] == -1:
+        concept = [int(_) for _ in row["concepts"].split(",")]
+        question = [int(_) for _ in row["questions"].split(",")]
+        response = [int(_) for _ in row["responses"].split(",")]
+        length = len(response)
+        index = -1
+        for j in range(length):
+            if response[length - j - 1] != -1:
+                index = length - j
                 break
-            series = pd.Series({'concepts':concepts[j],'questions':questions[j],'responses':responses[j]})
-            df2 = df2.append(series,ignore_index=True)
+        concepts = concepts+concept[:index]
+        questions = questions+question[:index]
+        responses = responses+response[:index]
+    df2 = pd.DataFrame({'concepts':concepts,'questions':questions,'responses':responses})
+        
     skill_difficult(df2,sds_path,'concepts','responses')
     question_difficult(df2,qds_path,'questions','responses')
     
