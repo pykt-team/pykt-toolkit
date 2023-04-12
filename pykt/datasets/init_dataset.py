@@ -10,6 +10,7 @@ from .lpkt_dataloader import LPKTDataset
 from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from pykt.config import que_type_models
+from .dimkt_dataloader import DIMKTDataset
 
 
 
