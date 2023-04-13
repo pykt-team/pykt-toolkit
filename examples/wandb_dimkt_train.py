@@ -1,4 +1,6 @@
 import argparse
+import warnings
+warnings.filterwarnings("ignore")
 from wandb_train import main
 
 if __name__ == "__main__":
