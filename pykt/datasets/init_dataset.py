@@ -13,6 +13,7 @@ from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from .pretrain_dataloader import KTPretrainDataset
 from .que_pretrain_dataloader import KTPretrainQueDataset
+from .que_pretrain_dataloader_onlyqinfo import KTPretrainQueDatasetOnlyQinfo
 from pykt.config import que_type_models
 
 def init_test_datasets(data_config, model_name, batch_size):
@@ -32,12 +33,22 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             # test_question_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTPretrainDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-    elif model_name in ["iekt_peiyou", "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
+    elif model_name in ["iekt_peiyou"]:#, "qdkt_peiyou",  "qdkt_peiyou_fusion"]:
         print("in iekt_peiyou dataloader!")
         # test_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
         #                 input_type=data_config["input_type"], folds=[-1], 
         #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
         test_window_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
+                        input_type=data_config["input_type"], folds=[-1], 
+                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        test_question_dataset = None
+        test_question_window_dataset= None
+    elif model_name in ["qdkt_peiyou",  "qdkt_peiyou_fusion"]:
+        print("in qdkt dataloader!")
+        # test_dataset = KTPretrainQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
+        #                 input_type=data_config["input_type"], folds=[-1], 
+        #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        test_window_dataset = KTPretrainQueDatasetOnlyQinfo(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
                         input_type=data_config["input_type"], folds=[-1], 
                         concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
         test_question_dataset = None

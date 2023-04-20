@@ -226,7 +226,8 @@ class QueBaseModelPeiyou(QueBaseModel):
         data_new['cq'] = torch.cat((dcur["qseqs"][:,0:1], dcur["shft_qseqs"]), dim=1)
         data_new['cqtypes'] = torch.cat((dcur["qtypes"][:,0:1], dcur["shft_qtypes"]), dim=1)
         data_new['cc'] = torch.cat((dcur["cseqs"][:,0:1],  dcur["shft_cseqs"]), dim=1)
-        data_new['cqcroutes'] = torch.cat((dcur["qcroutes"][:,0:1,:], dcur["shft_qcroutes"]), dim=1)
+        if "qcroutes" in dcur:
+            data_new['cqcroutes'] = torch.cat((dcur["qcroutes"][:,0:1,:], dcur["shft_qcroutes"]), dim=1)
         # print(f"cqcrooutes: {data_new['cqcroutes'].shape}, cc: {data_new['cc'].shape}")
         # assert False
         data_new['cr'] = torch.cat((dcur["rseqs"][:,0:1], dcur["shft_rseqs"]), dim=1)
@@ -234,13 +235,15 @@ class QueBaseModelPeiyou(QueBaseModel):
         data_new['q'] = dcur["qseqs"]
         data_new['qtypes'] = dcur["qtypes"]
         data_new['c'] = dcur["cseqs"]
-        data_new['qcroutes'] = dcur["qcroutes"]
+        if "qcroutes" in dcur:
+            data_new['qcroutes'] = dcur["qcroutes"]
         data_new['r'] = dcur["rseqs"]
         data_new['t'] = dcur["tseqs"]
         data_new['qshft'] = dcur["shft_qseqs"]
         data_new['qtypesshft'] = dcur["shft_qtypes"]
         data_new['cshft'] = dcur["shft_cseqs"]
-        data_new['qcroutesshft'] = dcur["shft_qcroutes"]
+        if "shft_qcroutes" in dcur:
+            data_new['qcroutesshft'] = dcur["shft_qcroutes"]
         data_new['rshft'] = dcur["shft_rseqs"]
         data_new['tshft'] = dcur["shft_tseqs"]
         data_new['m'] = dcur["masks"]
