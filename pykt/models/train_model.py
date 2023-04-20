@@ -8,17 +8,16 @@ from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
+import pickle
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time"]:
+    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
-        # print(f"loss1: {y.shape}")
+        # print(f"y: {y.shape}")
         loss1 = binary_cross_entropy(y.double(), t.double())
 
         if model.emb_type.find("predcurc") != -1:
@@ -28,14 +27,30 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
                 loss = model.l1*loss1+model.l2*ys[1]
         elif model.emb_type.find("predhis") != -1:
             loss = model.l1*loss1+model.l2*ys[1]
+        elif model.emb_type in ["qid_mt"]:
+            loss = (1 - model.cf_weight)*loss1
+            for cl_loss in preloss:
+                # print(f"cl_loss:{cl_loss}")
+                loss += cl_loss
+        elif model.emb_type in ["qid_cl"]:
+            loss = loss1
+            for cl_loss in preloss:
+                # print(f"cl_loss:{cl_loss}")
+                loss += cl_loss
+        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment"]:
+            # print(f"preloss:{preloss}")
+            loss = loss1 + preloss
         else:
             loss = loss1
 
     elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
-
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
+    elif model_name in ["stosakt"]:
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
     elif model_name == "dkt+":
         y_curr = torch.masked_select(ys[1], sm)
         y_next = torch.masked_select(ys[0], sm)
@@ -63,11 +78,11 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(model, data):
+def model_forward(model, data, attn_grads=None):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    if model_name in ["dkt_forget", "bakt_time"]:
+    if model_name in ["dkt_forget", "bakt_time"] or model.emb_type.find("time") != -1:
         dcur, dgaps = data
     else:
         dcur = data
@@ -89,8 +104,36 @@ def model_forward(model, data):
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
     elif model_name in ["bakt"]:
-        y, y2, y3 = model(dcur, train=True)
+        y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["simplekt_sr", "parkt"]:
+        if model.emb_type.find("cl") == -1 and model.emb_type.find("mt") == -1 and model.emb_type.find("pvn") == -1 and model.emb_type.find("bi") == -1 and model.emb_type.find("time") == -1:
+            y, y2, y3 = model(dcur, train=True)
+        # elif model.emb_type.find("mt") != -1:
+        #     y, y2, y3, next_cid = model(dcur, train=True)
+        #     ys = [y[:,1:], y2, y3]
+        #     loss1 = cal_loss(model, ys, r, rshft, sm, preloss)
+        #     cid_ones = torch.ones(next_cid.size(0),next_cid.size(1)).to(device)
+        #     c_next_pred = torch.masked_select(next_cid, sm)
+        #     # print(f"c_next_pred: {c_next_pred}")
+        #     cid_ones_mask = torch.masked_select(cid_ones, sm)
+        #     # print(f"cid_ones_mask: {cid_ones_mask}")
+        #     loss2 = binary_cross_entropy(c_next_pred.double(), cid_ones_mask.double())
+        #     loss = (1 - model.cf_weight) * loss1 + model.cf_weight * loss2
+        elif model.emb_type.find("time") !=-1:
+            if model.emb_type.find("augment") !=-1:
+                y, y2, y3, preloss = model(dcur, train=True, dgaps=dgaps)
+            else:
+                y, y2, y3 = model(dcur, train=True, dgaps=dgaps)
+        else:
+            y, y2, y3, preloss = model(dcur, train=True)
+        ys = [y[:,1:], y2, y3]
+    elif model_name in ["bakt_qikt"]:
+        loss = model(dcur, train=True, attn_grads=attn_grads)
+    elif model_name in ["stosakt"]:
+        y, pvn_loss = model(dcur, train=True)
+        ys.append(y)
+        preloss.append(pvn_loss)
     elif model_name in ["bakt_time"]:
         y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
@@ -150,30 +193,49 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models:
+    elif model_name in que_type_models or model_name == "lpkt":
         y,loss = model.train_one_step(data)
     
-    if model_name not in ["atkt", "atktfix"]+que_type_models:
+    # if model_name in ["simplekt_sr"] and model.emb_type.find("mt") == -1:
+    #     loss = cal_loss(model, ys, r, rshft, sm, preloss)
+    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models or model_name == "lpkt":
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None):
     max_auc, best_epoch = 0, -1
     train_step = 0
     if model.model_name=='lpkt':
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
     for i in range(1, num_epochs + 1):
         loss_mean = []
-        for data in train_loader:
+        for j,data in enumerate(train_loader):
             train_step+=1
-            if model.model_name in que_type_models:
+            if model.model_name in que_type_models and model.model_name != "lpkt":
                 model.model.train()
             else:
                 model.train()
-            loss = model_forward(model, data)
+            if model.model_name.find("bakt") != -1:
+                if j == 0 or model.emb_type.find("grad") == -1 and model.emb_type != "qid":attn_grads=None
+                # if model.model_name.find("qikt") == -1:
+                #     if j != 0:pre_attn_weights = model.attn_weights
+                loss = model_forward(model, data, attn_grads)
+            else:
+                loss = model_forward(model, data, i)
             opt.zero_grad()
+            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
+            #     model.attn_weights.retain_grad()
             loss.backward()#compute gradients 
+            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
+            #     if j == len(train_loader) - 1:
+            #         pre_attn_grads = attn_grads
+            #         # print(f"pre_attn_grads:{pre_attn_grads.shape}")
+            #     attn_grads = model.attn_weights.grad
+            #     # print(f"after_training_attn_grads:{attn_grads.shape}")
+            #     if j == len(train_loader) - 1:
+            #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
+            #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])                
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())
@@ -209,4 +271,11 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
 
         if i - best_epoch >= 10:
             break
+    # if model.emb_type == "qid":
+    #     attn_grads = attn_grads.detach().cpu().numpy()
+    #     # print(f"writing:{attn_grads.shape}")
+    #     np.savez(f"./save_attn/{dataset_name}_save_grad_fold_{fold}.npz",attn_grads)
+    #     attn_weights = attn_weights.detach().cpu().numpy()
+    #     # print(f"attn_weights:{model.attn_weights.shape}")        
+    #     np.savez(f"./save_attn/{dataset_name}_save_attnweight_fold_{fold}.npz",attn_weights)
     return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch
