@@ -12,6 +12,7 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy, mse_loss
 from .simplekt_utils import NCELoss
 from random import choice
+# from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -20,57 +21,13 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-# class CIntegration(Module):
-#     def __init__(self, num_rgap, num_sgap, num_pcount, emb_dim) -> None:
-#         super().__init__()
-#         self.rgap_eye = torch.eye(num_rgap)
-#         self.sgap_eye = torch.eye(num_sgap)
-#         self.pcount_eye = torch.eye(num_pcount)
+class GELU(nn.Module):
+    """
+    Paper Section 3.4, last paragraph notice that BERT used the GELU instead of RELU
+    """
 
-#         ntotal = num_rgap + num_sgap + num_pcount
-#         self.cemb = Linear(ntotal, emb_dim, bias=False)
-#         print(f"num_sgap: {num_sgap}, num_rgap: {num_rgap}, num_pcount: {num_pcount}, ntotal: {ntotal}")
-#         # print(f"total: {ntotal}, self.cemb.weight: {self.cemb.weight.shape}")
-
-#     def forward(self, vt, rgap, sgap, pcount):
-#         rgap, sgap, pcount = self.rgap_eye[rgap].to(device), self.sgap_eye[sgap].to(device), self.pcount_eye[pcount].to(device)
-#         # print(f"vt: {vt.shape}, rgap: {rgap.shape}, sgap: {sgap.shape}, pcount: {pcount.shape}")
-#         ct = torch.cat((rgap, sgap, pcount), -1) # bz * seq_len * num_fea
-#         # print(f"ct: {ct.shape}, self.cemb.weight: {self.cemb.weight.shape}")
-#         # element-wise mul
-#         Cct = self.cemb(ct) # bz * seq_len * emb
-#         # print(f"ct: {ct.shape}, Cct: {Cct.shape}")
-#         theta = torch.mul(vt, Cct)
-#         theta = torch.cat((theta, ct), -1)
-#         return theta
-
-# class CIntegration(Module):
-#     def __init__(self, num_rgap, num_sgap, num_pcount, emb_dim) -> None:
-#         super().__init__()
-#         # self.rgap_eye = torch.eye(num_rgap)
-#         # self.sgap_eye = torch.eye(num_sgap)
-#         # self.pcount_eye = torch.eye(num_pcount)
-
-#         self.rgap_emb = nn.Embedding(self.num_rgap, embed_l)
-#         self.sgap_emb = nn.Embedding(self.num_sgap, embed_l)
-#         self.pcount_emb = nn.Embedding(self.num_pcount, embed_l)      
-
-#         # ntotal = num_rgap + num_sgap + num_pcount
-#         self.cemb = Linear(emb_dim*3, emb_dim, bias=False)
-#         print(f"num_sgap: {num_sgap}, num_rgap: {num_rgap}, num_pcount: {num_pcount}, ntotal: {ntotal}")
-#         # print(f"total: {ntotal}, self.cemb.weight: {self.cemb.weight.shape}")
-
-#     def forward(self, vt, rgap, sgap, pcount):
-#         rgap, sgap, pcount = self.rgap_emb(rgap), self.sgap_emb(sgap), self.pcount_emb(pcount)
-#         # print(f"vt: {vt.shape}, rgap: {rgap.shape}, sgap: {sgap.shape}, pcount: {pcount.shape}")
-#         ct = torch.cat((rgap, sgap, pcount), -1) # bz * seq_len * num_fea
-#         # print(f"ct: {ct.shape}, self.cemb.weight: {self.cemb.weight.shape}")
-#         # element-wise mul
-#         Cct = self.cemb(ct) # bz * seq_len * emb
-#         # print(f"ct: {ct.shape}, Cct: {Cct.shape}")
-#         theta = torch.mul(vt, Cct)
-#         theta = torch.cat((theta, ct), -1)
-#         return theta
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
 
 class timeGap(nn.Module):
     def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
@@ -93,34 +50,12 @@ class timeGap(nn.Module):
 
         return rgap, sgap, pcount, tg_emb
 
-
-# class timeGap(nn.Module):
-#     def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
-#         super().__init__()
-#         self.rgap_emb = nn.Embedding(num_rgap, emb_size)
-#         self.sgap_emb = nn.Embedding(num_sgap, emb_size)
-#         self.pcount_emb = nn.Embedding(num_pcount, emb_size)   
-
-#         # input_size = num_rgap + num_sgap + num_pcount
-
-#         self.time_emb = nn.Linear(emb_size*3, emb_size, bias=False)
-
-#     def forward(self, rgap, sgap, pcount):
-#         # rgap = self.rgap_eye[rgap].to(device)
-#         # sgap = self.sgap_eye[sgap].to(device)
-#         # pcount = self.pcount_eye[pcount].to(device)
-#         rgap, sgap, pcount = self.rgap_emb(rgap), self.sgap_emb(sgap), self.pcount_emb(pcount)
-#         tg = torch.cat((rgap, sgap, pcount), -1)
-#         tg_emb = self.time_emb(tg)
-
-#         return tg_emb
-
 class parKT(nn.Module):
 
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None, num_it=None, lambda_w1=0.05, lambda_w2=0.05, lamdba_guess=0.3, lamdba_slip=0.5):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None, num_it=None, lambda_w1=0.05, lambda_w2=0.05, lamdba_guess=0.3, lamdba_slip=0.5, cf_weight1=1, cf_weight2=1):
         super().__init__()
         """
         Input:
@@ -134,12 +69,17 @@ class parKT(nn.Module):
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
+        self.dropout1 = nn.Dropout(p=self.dropout)
         self.kq_same = kq_same
         self.n_pid = n_pid
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
+        self.d_model = d_model
+        self.gelu = GELU()
+        self.cf_weight1 = cf_weight1
+        self.cf_weight2 = cf_weight2
 
         self.lamdba_w1 = lambda_w1
         self.lambda_w2 = lambda_w2
@@ -176,40 +116,86 @@ class parKT(nn.Module):
         
         if emb_type.find("rnn") != -1:
             if emb_type.find("time") != -1:
-                # self.it_emb = nn.Embedding(self.num_sgap+100, embed_l)
-                # self.it_linear = nn.Linear(embed_l*2, 1,bias=True)
-                # self.c_integration = CIntegration(num_rgap, num_sgap, num_pcount, embed_l)
-                # ntotal = num_rgap + num_sgap + num_pcount
-                # self.emb_lstm = LSTM(embed_l+ ntotal, embed_l, batch_first=True)
                 self.emb_lstm = LSTM(embed_l, embed_l, batch_first=True)
                 self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
                 if emb_type.find("fr") != -1:
                     self.tanh = nn.Tanh()
+                    self.beta = torch.nn.Parameter(torch.randn(1))
                     if emb_type not in ["qid_rnn_time_fr"]:
                         self.it_emb = nn.Embedding(self.num_it+10, embed_l)
-                    self.it_linear = nn.Linear(embed_l*2, 1,bias=True)
+                    # self.it_linear = nn.Linear(embed_l*2, 1,bias=True)
+                    self.it_linear = nn.Linear(embed_l, 1,bias=True)
             else:
                 self.emb_lstm = LSTM(embed_l, embed_l, batch_first=True)
+
             if emb_type.find("xy") != -1:
                 self.y_emb_lstm = LSTM(embed_l, embed_l, batch_first=True)
             if emb_type.find("bi") != -1:
                 self.bi_emb_lstm = LSTM(embed_l, embed_l, batch_first=True, bidirectional=True)
-                self.bi_linear = nn.Linear(embed_l*2, embed_l)
+                # self.bi_linear = nn.Linear(embed_l*2, embed_l)
 
         if emb_type.find("bay") != -1 or emb_type.find("augment") != -1:
-            self.guess = nn.Linear(embed_l+self.num_rgap+self.num_pcount, 1)
+            self.guess = nn.Linear(embed_l+self.num_pcount, 1)
             self.slip = nn.Linear(embed_l+self.num_rgap+self.num_sgap+self.num_pcount, 1)
 
         # Architecture Object. It contains stack of attention block
+        
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)
-        self.out = nn.Sequential(
-            nn.Linear(embed_l*2,
-                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim2, 1)
-        )
+
+        if emb_type.find("irt") != -1:
+            self.out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+            self.problem_disc = torch.nn.Embedding(self.n_pid, 1)
+        elif emb_type.find("sahp") != -1:
+            self.start_layer = nn.Sequential(
+                nn.Linear(self.d_model, self.d_model, bias=True),
+                self.gelu
+            )
+
+            self.converge_layer = nn.Sequential(
+                nn.Linear(self.d_model, self.d_model, bias=True),
+                self.gelu
+            )
+
+            self.decay_layer = nn.Sequential(
+                nn.Linear(self.d_model, self.d_model, bias=True)
+                ,nn.Softplus(beta=10.0)
+            )
+
+            self.intensity_layer = nn.Sequential(
+                nn.Linear(self.d_model*2, 1, bias = True)
+                ,nn.Sigmoid()
+            )
+        elif emb_type.find("pt") != -1:
+            self.out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+
+            self.t_out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+        else:
+            self.out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+
         self.m = nn.Sigmoid()
 
         self.reset()
@@ -229,6 +215,10 @@ class parKT(nn.Module):
             qa_embed_data = self.qa_embed(target)+q_embed_data
         return q_embed_data, qa_embed_data
 
+    def state_decay(self, converge_point, start_point, omega, duration_t):
+        # * element-wise product
+        cell_t = torch.tanh(converge_point + (start_point - converge_point) * torch.exp(- omega * duration_t))
+        return cell_t
 
     def _instance_cl_one_pair_contrastive_learning(self, cl_batch, q_embed_data, qa_embed_data, intent_ids=None):
         """
@@ -285,6 +275,9 @@ class parKT(nn.Module):
         if emb_type.startswith("qid"):
             if emb_type.find("rnn") != -1:
                 if emb_type.find("time") != -1:
+                    t, tshft = dcur["tseqs"].long(), dcur["shft_tseqs"].long()
+                    t_data = torch.cat((t[:,0:1], tshft), dim=1)
+                    t_data = t_data.double() / 1000
                     rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
                     rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
 
@@ -293,51 +286,22 @@ class parKT(nn.Module):
                     pcounts = torch.cat((p[:, 0:1], pshft), dim=1)
                     # print(f"q_embed_data:{q_embed_data.shape}")
                     rgap, sgap, pcount, temb = self.time_emb(r_gaps, s_gaps, pcounts)
-                    # forget_rate = self.it_linear(torch.cat((temb, q_embed_data),dim=2)).view(batch_size,1,q_data.size(1),1)
-                    # forget_rate = self.m(forget_rate)
-                    if emb_type.find("bay") != -1:
-                        guess = self.guess(torch.cat((rgap, pcount, q_embed_data),dim=2)).squeeze(-1)
-                        guess = self.m(guess) * self.lamdba_guess
-                        slip = self.slip(torch.cat((rgap, sgap, pcount, q_embed_data),dim=2)).squeeze(-1)
-                        slip = self.m(slip) * self.lamdba_slip
-
-                    if train and emb_type.find("augment") != -1:
-                        guess = self.guess(torch.cat((rgap, pcount, q_embed_data),dim=2)).squeeze(-1)
-                        guess = self.m(guess) * self.lamdba_guess
-                        slip = self.slip(torch.cat((rgap, sgap, pcount, q_embed_data),dim=2)).squeeze(-1)
-                        slip = self.m(slip) * self.lamdba_slip
-                        new_target = torch.where(target == 0, torch.bernoulli(slip), 1 - torch.bernoulli(guess)).long()
-                        aug_q_embed_data, aug_qa_embed_data = self.base_emb(q_data, new_target)
-                        if self.n_pid > 0 and emb_type.find("norasch") == -1: # have problem id
-                            aug_q_embed_data = aug_q_embed_data + pid_embed_data * q_embed_diff_data
-                            # print(f"aug_q_embed_data: {aug_q_embed_data.shape}")
-
-                    if emb_type.find("fr") != -1:
-                        if emb_type in ["qid_rnn_time_fr"]:
-                            forget_rate = self.it_linear(torch.cat((temb, q_embed_data),dim=2)).view(batch_size,1,temb.size(1),1)
-                            forget_rate = self.m(forget_rate)
-                        else:
-                            # add forget_rate
-                            it, itshft = dgaps["its"].long(), dgaps["shft_its"].long()
-                            it_seqs = torch.cat((it[:,0:1], itshft), dim=1)
-                            it_embed_data = self.it_emb(it_seqs)
-                            # it_embed_data = q_embed_data + it_embed_data
-                            # print(f"q_embed_data:{q_embed_data.shape}")
-                            forget_rate = self.it_linear(torch.cat((it_embed_data, q_embed_data),dim=2)).view(batch_size,1,it_seqs.size(1),1)
-                            forget_rate = self.m(forget_rate)
-
-                            # print(f"forget_rate:{forget_rate.shape}")
                     qt_embed_data = q_embed_data + temb
-                    if emb_type.find("augment") != -1 and train:
-                        aug_q_embed_data = aug_q_embed_data + temb
-                        aug_query, _ = self.emb_lstm(aug_q_embed_data)
+
                     if emb_type.find("ytime") != -1:
                         qa_embed_data = qa_embed_data + temb
 
-                if emb_type.find("xy") != -1:
-                    qa_embed_data, _ = self.y_emb_lstm(qa_embed_data)
-                query, _ = self.emb_lstm(qt_embed_data)
+                if emb_type.find("time") != -1:  
+                    query, (hidden_state,cell) = self.emb_lstm(qt_embed_data)
+                else:
+                    query, (hidden_state,cell) = self.emb_lstm(q_embed_data)
 
+                if emb_type.find("fr") != -1:
+                    if emb_type in ["qid_rnn_time_fr"]:
+                        # follow hawkesKT
+                        relu = nn.ReLU()
+                        delta_t = relu(self.it_linear(temb))
+                        forget_rate = torch.exp(-(self.beta + 1) * delta_t).view(batch_size,temb.size(1),1)
                 if emb_type.find("time") != -1:
                     if emb_type.find("fr") == -1:
                         if train and emb_type.find("augment") != -1:
@@ -345,45 +309,67 @@ class parKT(nn.Module):
                             aug_input_combined = torch.cat((aug_d_output, aug_query), -1)
                             aug_output = self.out(aug_input_combined).squeeze(-1)
                             # print(f"aug_output: {aug_output.shape}")
-                        d_output = self.model(query, qa_embed_data, forget_rate=None) 
+                        elif emb_type.find("sahp") != -1:
+                            d_output = self.model(query, qa_embed_data, time_step=t_data) 
+                        else:
+                            d_output = self.model(query, qa_embed_data) 
                     else:
-                        # print(f"forget_rate:{forget_rate.shape}")
-                        d_output = self.model(query, qa_embed_data, forget_rate=forget_rate)
+                        d_output = self.model(query*forget_rate, qa_embed_data*forget_rate, forget_rate=None)
                 else:
                     d_output = self.model(query, qa_embed_data)  
-                input_combined = torch.cat((d_output, q_embed_data), -1)
-                output = self.out(input_combined).squeeze(-1)
+
+                if emb_type.find("irt") != -1:
+                    # follow ijcai
+                    problem_diff = pid_embed_data
+                    problem_disc = self.problem_disc(pid_data)
+                    input_x = (d_output - problem_diff) * problem_disc * 10
+                    input_x = torch.cat((input_x, q_embed_data), -1)
+                    output = self.out(input_x).squeeze(-1)
+                    # print(f"output:{output.shape}")
+                elif emb_type.find("sahp") != -1:
+                    embed_info = d_output
+                    # print(f"embed_info:{torch.min(embed_info), torch.max(embed_info)}")
+                    self.start_point = self.start_layer(embed_info)
+                    # print(f"start_point:{torch.min(self.start_point), torch.max(self.start_point)}")
+                    self.converge_point = self.converge_layer(embed_info)
+                    # print(f"converge_point:{torch.min(self.converge_point), torch.max(self.converge_point)}")
+                    self.omega = self.decay_layer(embed_info)
+                    # print(f"omega:{torch.min(self.omega), torch.max(self.omega)}")
+                    cell_t = self.state_decay(self.converge_point, self.start_point, self.omega, s_gaps[:, :, None])
+                    # print(f"cell_t:{cell_t.shape}")
+                    input_combined = torch.cat((cell_t, query), -1)
+                    output = self.intensity_layer(input_combined).squeeze(-1)    
+                    # print(f"output:{output}")
+                    # print(f"output:{torch.min(output), torch.max(output)}")
+                else:
+                    # pad_zero = torch.zeros(d_output.size(0), 1, d_output.size(2)).to(device)
+                    # query = torch.cat([query[:, 1:, :], pad_zero], dim=1) # 第一行score置0
+                    input_combined = torch.cat((d_output, query), -1)
+                    output = self.out(input_combined).squeeze(-1)
+
                 if emb_type.find("bi") != -1:
-                    bi_query, _ = self.bi_emb_lstm(q_embed_data)
-                    bi_query = self.bi_linear(bi_query)
-                    bi_d_output = self.model(bi_query, qa_embed_data)     
-                    bi_input_combined = torch.cat((bi_d_output, bi_query), -1)   
+                    bi_query, (hidden, cell) = self.bi_emb_lstm(qt_embed_data)
+                    # print(f"hidden:{hidden.shape, cell.shape}")
+                    # bi_query = self.bi_linear(bi_query)
+                    bi_query_ = torch.reshape(bi_query,(-1,2,qt_embed_data.size(2)))
+                    bi_query_ = torch.mean(bi_query_,dim=1).reshape(qt_embed_data.size(0), qt_embed_data.size(1), -1)
+                    # print(f"bi_query:{bi_query.shape}")
+                    bi_d_output = self.model(bi_query_, qa_embed_data)     
+                    bi_input_combined = torch.cat((bi_d_output, bi_query_), -1)   
                     bi_output = self.out(bi_input_combined).squeeze(-1)
-                    
+
             else:
                 d_output = self.model(q_embed_data, qa_embed_data)
                 input_combined = torch.cat((d_output, q_embed_data), -1)
                 output = self.out(input_combined).squeeze(-1)    
-
-            preds = self.m(output)
-            if emb_type.find("bi") != -1:
-                bi_preds = self.m(bi_output)[:,1:]
-                sm = dcur["smasks"]
-                y = torch.masked_select(bi_preds, sm)
-                # print(f"y:{y.shape}")
-                t = torch.masked_select(rshft, sm)
-                # print(f"t:{t.shape}")
-                cl_losses = self.lamdbd_w1 * (binary_cross_entropy(y.double(), t.double()))
-                # print(f"bi_preds:{bi_preds.shape}")
-
-            elif emb_type.find("bay") != -1:
-                # print(f"guess:{guess.shape}")
-                # print(f"slip:{slip.shape}")
-                preds = preds * (1-slip) + guess * (1-preds)
-                # print(f"preds:{preds.shape}")
+            
+            if emb_type.find("sahp") != -1:
+                preds = output
+            else:
+                preds = self.m(output)
 
         if train:
-            if emb_type not in ["qid_cl", "qid_mt", "qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment"]:
+            if emb_type not in ["qid_cl", "qid_mt", "qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"]:
                 return preds, y2, y3
             else:
                 if emb_type.find("augment") != -1:
@@ -396,6 +382,39 @@ class parKT(nn.Module):
                     # print(f"t:{t.shape}")
                     perturbation_loss = mse_loss(y, aug_y)
                     cl_losses = self.lamdba_w1 * (binary_cross_entropy(aug_y.double(), t.double())) + self.lambda_w2 * perturbation_loss
+                elif emb_type.find("pt") != -1:
+                    cl_losses = 0
+                    t_label= dgaps["shft_tlabel"].double()
+                    # print(f"t_label:{torch.max(t_label)}")
+                    if emb_type.find("bi") != -1:
+                        t_output = self.t_out(bi_query).squeeze(-1)
+                        t_pred = self.m(t_output)[:,:-1]
+                        bi_preds = self.m(bi_output)[:,1:]
+                        # print(f"bi_preds:{bi_preds.shape}")
+                        sm = dcur["smasks"]
+                        y = torch.masked_select(bi_preds, sm)
+                        # print(f"y:{y.shape}")
+                        t = torch.masked_select(rshft, sm)
+                        cl_losses = self.cf_weight1 * (binary_cross_entropy(y.double(), t.double()))
+                    else:
+                        t_combined = torch.cat((d_output, temb), -1)
+                        t_output = self.t_out(t_combined).squeeze(-1)
+                        t_pred = self.m(t_output)[:,1:]
+                    sm = dcur["smasks"]
+                    ty = torch.masked_select(t_pred, sm)
+                    # print(f"max_y:{torch.max(y)}")
+                    tt = torch.masked_select(t_label, sm)
+                    # print(f"max_t:{torch.max(t)}")
+                    cl_losses += self.cf_weight2*binary_cross_entropy(ty.double(), tt.double())
+                elif emb_type.find("bi") != -1:
+                    bi_preds = self.m(bi_output)[:,1:]
+                    # print(f"bi_preds:{bi_preds.shape}")
+                    sm = dcur["smasks"]
+                    y = torch.masked_select(bi_preds, sm)
+                    # print(f"y:{y.shape}")
+                    t = torch.masked_select(rshft, sm)
+                    # print(f"t:{t.shape}")
+                    cl_losses = self.cf_weight * (binary_cross_entropy(y.double(), t.double()))
                 return preds, y2, y3, cl_losses
         else:
             if qtest:
@@ -415,22 +434,36 @@ class Architecture(nn.Module):
         """
         self.d_model = d_model
         self.model_type = model_type
+        self.emb_type = emb_type
 
         self.blocks_2 = nn.ModuleList([
             TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                 d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
             for _ in range(n_blocks)
         ])
-        # self.position_emb1 = CosinePositionalEmbedding(d_model=self.d_model*2, max_len=seq_len)
-        self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
-    def forward(self, q_embed_data, qa_embed_data, forget_rate=None):
+        if self.emb_type.find("sahp") != -1:
+            self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
+            # self.position_emb = BiasedPositionalEmbedding(d_model=self.d_model, max_len=seq_len)
+        else:
+            self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
+
+    def forward(self, q_embed_data, qa_embed_data, forget_rate=None, time_step=None):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
-
-        q_posemb = self.position_emb(q_embed_data)
+        if self.emb_type.find("sahp") != -1:
+            # q_posemb = self.position_emb(q_embed_data, time_step)
+            q_posemb = self.position_emb(q_embed_data)
+        else:
+            q_posemb = self.position_emb(q_embed_data)
+        # print(f"q_posemb:{q_posemb.shape}")
+        # print(f"q_embed_data:{q_embed_data.shape}")
         q_embed_data = q_embed_data + q_posemb
-        qa_posemb = self.position_emb(qa_embed_data)
+        if self.emb_type.find("sahp") != -1:
+            # qa_posemb = self.position_emb(qa_embed_data, time_step)
+            qa_posemb = self.position_emb(qa_embed_data)
+        else:
+            qa_posemb = self.position_emb(qa_embed_data)            
         qa_embed_data = qa_embed_data + qa_posemb
 
         qa_pos_embed = qa_embed_data
@@ -512,27 +545,34 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True,seq_len=200,emb_type="qid",init_eps = 1e-3):
+    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True,seq_len=200,emb_type="qid",init_eps = 1e-3,max_relative_positions=-1,position_buckets=-1):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
         """
         self.d_model = d_model
-        self.d_k = d_feature
-        self.h = n_heads
-        self.kq_same = kq_same
-        self.seq_len = seq_len
         self.emb_type = emb_type
 
-        self.v_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.k_linear = nn.Linear(d_model, d_model, bias=bias)
-        if kq_same is False:
-            self.q_linear = nn.Linear(d_model, d_model, bias=bias)
-        self.dropout = nn.Dropout(dropout)
-        self.proj_bias = bias
-        self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        if self.emb_type.find("disentangled_attention") != -1:
+            self.attn = DisentangledSelfAttention(num_attention_heads=n_heads,hidden_size=d_model,hidden_dropout_prob=dropout,attention_probs_dropout_prob=dropout)
+            self.max_relative_positions = max_relative_positions
+            self.position_buckets = position_buckets
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        else:
+            self.d_k = d_feature
+            self.h = n_heads
+            self.kq_same = kq_same
+            self.seq_len = seq_len
 
-        self._reset_parameters()
+            self.v_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.k_linear = nn.Linear(d_model, d_model, bias=bias)
+            if kq_same is False:
+                self.q_linear = nn.Linear(d_model, d_model, bias=bias)
+            self.dropout = nn.Dropout(dropout)
+            self.proj_bias = bias
+            self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+
+            self._reset_parameters()
 
     def _reset_parameters(self):
         xavier_uniform_(self.k_linear.weight)
@@ -547,39 +587,54 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
+    def get_rel_pos(self, hidden_states, query_states=None, relative_pos=None):
+        if relative_pos is None:
+            q = query_states.size(-2) if query_states is not None else hidden_states.size(-2)
+            relative_pos = build_relative_position(q, hidden_states.size(-2), bucket_size = self.position_buckets, max_position=self.max_relative_positions)
+        return relative_pos
+
     def forward(self, q, k, v, mask, zero_pad, forget_rate=None):
 
         bs = q.size(0)
 
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
-        if self.kq_same is False:
-            q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+        if self.emb_type.find("disentangled_attention") != -1:#放在这里才能生效
+            relative_pos = self.get_rel_pos(q, query_states=None, relative_pos=None)
+            concat = self.attn(q,k,v,mask,zero_pad=zero_pad,relative_pos=relative_pos)['hidden_states']
         else:
-            q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
-        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+            k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+            if self.kq_same is False:
+                q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
+            else:
+                q = self.k_linear(q).view(bs, -1, self.h, self.d_k)
+            v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
 
-        k = k.transpose(1, 2)
-        q = q.transpose(1, 2)
-        v = v.transpose(1, 2)
-        # calculate attention using function we will define next
+            k = k.transpose(1, 2)
+            q = q.transpose(1, 2)
+            v = v.transpose(1, 2)
+            # calculate attention using function we will define next
 
-        scores = attention(q, k, v, self.d_k,
-                        mask, self.dropout, zero_pad, forget_rate=forget_rate)
+            scores = attention(q, k, v, self.d_k,
+                            mask, self.dropout, zero_pad, forget_rate=forget_rate, emb_type=self.emb_type)
 
-        # concatenate heads and put through final linear layer
-        concat = scores.transpose(1, 2).contiguous()\
-            .view(bs, -1, self.d_model)
+            # concatenate heads and put through final linear layer
+            concat = scores.transpose(1, 2).contiguous()\
+                .view(bs, -1, self.d_model)
 
         output = self.out_proj(concat)
 
         return output
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, forget_rate=None):
+def attention(q, k, v, d_k, mask, dropout, zero_pad, forget_rate=None, emb_type="qid"):
     """
     This is called by Multi-head atention object to find the values.
     """
     # d_k: 每一个头的dim
+    # print(f"emb_type:{emb_type}")
+    # if emb_type.find("sahp") != -1:
+    #     scores = torch.exp(torch.matmul(q, k.transpose(-2, -1))) \
+    #         / math.sqrt(d_k)
+    # else:
     scores = torch.matmul(q, k.transpose(-2, -1)) / \
         math.sqrt(d_k)  # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(3)
@@ -626,3 +681,33 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
+
+
+class BiasedPositionalEmbedding(nn.Module):
+    def __init__(self, d_model, max_len=512):
+        super().__init__()
+
+        position = torch.arange(0, max_len).float().unsqueeze(1)
+        div_term = (torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)).exp()
+        self.register_buffer('position', position)
+        self.register_buffer('div_term', div_term)
+
+        self.Wt = nn.Linear(1, d_model // 2)
+
+    def forward(self, x, interval):
+        # print(f"interval:{interval.shape}")
+        interval = interval.float()
+        phi = self.Wt(interval.unsqueeze(-1))
+        aa = len(x.size())
+        if aa > 1:
+            length = x.size(1)
+        else:
+            length = x.size(0)
+
+        arc = (self.position[:length] * self.div_term).unsqueeze(0)
+
+        pe_sin = torch.sin(arc + phi)
+        pe_cos = torch.cos(arc + phi)
+        pe = torch.cat([pe_sin, pe_cos], dim=-1)
+
+        return pe

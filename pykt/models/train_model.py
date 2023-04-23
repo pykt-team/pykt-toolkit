@@ -37,7 +37,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             for cl_loss in preloss:
                 # print(f"cl_loss:{cl_loss}")
                 loss += cl_loss
-        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment"]:
+        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_birnn_time_pt"]:
             # print(f"preloss:{preloss}")
             loss = loss1 + preloss
         else:
@@ -121,7 +121,7 @@ def model_forward(model, data, attn_grads=None):
         #     loss2 = binary_cross_entropy(c_next_pred.double(), cid_ones_mask.double())
         #     loss = (1 - model.cf_weight) * loss1 + model.cf_weight * loss2
         elif model.emb_type.find("time") !=-1:
-            if model.emb_type.find("augment") !=-1:
+            if model.emb_type.find("augment") !=-1 or model.emb_type.find("pt") !=-1 or model.emb_type.find("bi") !=-1:
                 y, y2, y3, preloss = model(dcur, train=True, dgaps=dgaps)
             else:
                 y, y2, y3 = model(dcur, train=True, dgaps=dgaps)
