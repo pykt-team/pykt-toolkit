@@ -81,7 +81,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curvalid)
     elif model_name == "lpkt":
         at2idx, it2idx = generate_time2idx(data_config)
-        json_str = json.dumps(at2idx)
+        # json_str = json.dumps(at2idx)
         # with open('at2idx.json', 'w') as json_file:
         #     json_file.write(json_str)
         # json_str_2 = json.dumps(it2idx)
