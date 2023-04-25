@@ -28,6 +28,7 @@ from .bakt_qikt import BAKT_QIKT
 from .simplekt_sr import simpleKT_SR
 from .stosakt import StosaKT
 from .parKT import parKT
+from .mikt import MIKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -108,9 +109,15 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
         model = simpleKT_SR(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "parkt":
         if emb_type.find("time") == -1:
-            model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_stu=num_stu).to(device)
+            model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
         else:
             model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"]).to(device)
+            # model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"], num_it=data_config["num_it"]).to(device)
+    elif model_name == "mikt":
+        if emb_type.find("time") == -1:
+            model = MIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        else:
+            model = MIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"]).to(device)
     elif model_name == "stosakt":
         model = StosaKT(data_config["num_c"], args, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:

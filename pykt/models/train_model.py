@@ -14,7 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt"]:
+    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt", "mikt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"y: {y.shape}")
@@ -37,7 +37,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             for cl_loss in preloss:
                 # print(f"cl_loss:{cl_loss}")
                 loss += cl_loss
-        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_birnn_time_pt"]:
+        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"]:
             # print(f"preloss:{preloss}")
             loss = loss1 + preloss
         else:
@@ -106,7 +106,7 @@ def model_forward(model, data, attn_grads=None):
     elif model_name in ["bakt"]:
         y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
-    elif model_name in ["simplekt_sr", "parkt"]:
+    elif model_name in ["simplekt_sr", "parkt","mikt"]:
         if model.emb_type.find("cl") == -1 and model.emb_type.find("mt") == -1 and model.emb_type.find("pvn") == -1 and model.emb_type.find("bi") == -1 and model.emb_type.find("time") == -1:
             y, y2, y3 = model(dcur, train=True)
         # elif model.emb_type.find("mt") != -1:
@@ -193,12 +193,12 @@ def model_forward(model, data, attn_grads=None):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models or model_name == "lpkt":
+    elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
     
     # if model_name in ["simplekt_sr"] and model.emb_type.find("mt") == -1:
     #     loss = cal_loss(model, ys, r, rshft, sm, preloss)
-    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models or model_name == "lpkt":
+    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
@@ -212,7 +212,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for j,data in enumerate(train_loader):
             train_step+=1
-            if model.model_name in que_type_models and model.model_name != "lpkt":
+            if model.model_name in que_type_models:
                 model.model.train()
             else:
                 model.train()
