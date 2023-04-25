@@ -56,7 +56,6 @@ class LPKTDataset(Dataset):
 
     def __len__(self):
         """return the dataset length
-
         Returns:
             int: the length of the dataset
         """
@@ -66,7 +65,6 @@ class LPKTDataset(Dataset):
         """
         Args:
             index (int): the index of the data want to get
-
         Returns:
             (tuple): tuple containing:
             
@@ -200,10 +198,8 @@ class LPKTDataset(Dataset):
             sequence_path (str): file path of the sequences
             folds (list[int]): 
             pad_val (int, optional): pad value. Defaults to -1.
-
         Returns: 
             (tuple): tuple containing
-
             - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-1 interactions
             - **c_seqs (torch.tensor)**: knowledge concept id sequence of the 0~seqlen-1 interactions
             - **r_seqs (torch.tensor)**: response id sequence of the 0~seqlen-1 interactions
@@ -228,7 +224,9 @@ class LPKTDataset(Dataset):
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
-                at = [self.at2idx[str(int(float(_)))] for _ in row["usetimes"].split(",")]
+                use_time = [int(float(t)) for t in row["usetimes"].split(",")]
+                use_time = [ x // 1000 for x in use_time]
+                at = [self.at2idx[str(ut)] for ut in use_time]
                 dori["utseqs"].append(at)
                 
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
@@ -237,8 +235,8 @@ class LPKTDataset(Dataset):
             #cal interval time
             if "timestamps" in row:
                 timestamps = dori["tseqs"][-1]
-                shft_timestamps = [0] + timestamps[:-1]
-                it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
+                shft_timestamps = timestamps[:1] + timestamps[:-1]
+                it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 1000 // 60, 43200),-1)
             else:
                 it = np.ones(len(dori["cseqs"][-1])).astype(int)
             tmp_it = [self.it2idx[str(t)] for t in it]
@@ -269,5 +267,3 @@ class LPKTDataset(Dataset):
             
             return dori, dqtest
         return dori
-
-            

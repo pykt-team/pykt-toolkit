@@ -16,7 +16,7 @@ device = "cpu" if not torch.cuda.is_available() else "cuda"
 def generate_qmatrix(data_config, gamma=0.0):
     df_train = pd.read_csv(os.path.join(data_config["dpath"], "train_valid.csv"))
     df_test = pd.read_csv(os.path.join(data_config["dpath"], "test.csv"))
-    df = pd.concat([df_train, df_test])    
+    df = pd.concat([df_train, df_test])
 
     problem2skill = dict()
     for i, row in df.iterrows():
