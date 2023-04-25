@@ -1,17 +1,17 @@
-program: wandb_cdkt_train.py
+program: wandb_atdkt_train.py
 method: bayes
 metric:
     goal: maximize
     name: validauc
 parameters:
     model_name:
-        values: ["cdkt"]
+        values: ["atdkt"]
     dataset_name:
         values: ["xes"]
     emb_type:
         values: ["qiddelxembhistranscembpredcurc"]
     save_dir:
-        values: ["models/cdkt_tiaocan"]
+        values: ["models/atdkt_tiaocan"]
     emb_size:
         values: [64, 256]
     num_attn_heads:

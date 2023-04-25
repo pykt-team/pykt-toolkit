@@ -273,11 +273,12 @@ class WandbUtils:
             print("-"*60+'\n')
         return report
 
-    def stop_sweep(self,cmd):
-        cmd = cmd.replace("cancel","stop")
+    def stop_sweep(self,cmd,stop_type="cancel"):
+        if stop_type == "stop":
+            cmd = cmd.replace("cancel","stop")
         debug_print(f"{cmd} excute")
         os.system(cmd)
-        print(f"We will stop the sweep, by {cmd}")
+        print(f"We will {stop_type} the sweep, by {cmd}")
 
     
     def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
@@ -323,7 +324,7 @@ class WandbUtils:
         
         return check_result_list
 
-    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False):
+    def get_sweep_info_by_pattern(self,sweep_pattern,n_jobs=5,return_df=False,keep_states=["RUNNING", "PENDING",'CANCELED','FINISHED']):
         sweep_key_list = []
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
@@ -337,6 +338,8 @@ class WandbUtils:
 
         for i, key in enumerate(sweep_key_list):
             info = results[i]
+            if info['state'] not in keep_states:
+                continue
             info.update({'sweep_pattern':sweep_pattern,"key":key,
                     'agent_name': f"{self.user}/{self.project_name}/{self.sweep_dict[key]}"})
             info_list.append(info)

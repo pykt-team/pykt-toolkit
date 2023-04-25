@@ -41,7 +41,7 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["bakt", "bakt_time"]:
+        if model_name in ["simplekt", "bakt_time", "sparsekt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -67,7 +67,7 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -83,12 +83,16 @@ def main(params):
     print(f"model_config: {model_config}")
     print(f"train_config: {train_config}")
 
+    if model_name in ["dimkt"]:
+        del model_config['num_epochs']
+        del model_config['weight_decay']
+
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
+    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
@@ -106,6 +110,8 @@ def main(params):
         opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
     elif model_name == "iekt":
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
+    elif model_name == "dimkt":
+        opt = torch.optim.Adam(model.parameters(),lr=learning_rate,weight_decay=params['weight_decay'])
     else:
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
