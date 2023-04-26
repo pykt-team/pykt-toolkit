@@ -55,7 +55,7 @@ class parKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None, num_it=None, lambda_w1=0.05, lambda_w2=0.05, lamdba_guess=0.3, lamdba_slip=0.5, cf_weight1=1, cf_weight2=1):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None, num_it=None, lambda_w1=0.05, lambda_w2=0.05, lamdba_guess=0.3, lamdba_slip=0.5, cf_weight1=1, cf_weight2=1, c_weight=0.3, t_weight=0.3):
         super().__init__()
         """
         Input:
@@ -151,6 +151,7 @@ class parKT(nn.Module):
                 nn.Linear(final_fc_dim2, 1)
             )
             self.problem_disc = torch.nn.Embedding(self.n_pid, 1)
+            # self.problem_disc = torch.nn.Embedding(self.n_pid, embed_l)
         elif emb_type.find("sahp") != -1:
             self.start_layer = nn.Sequential(
                 nn.Linear(self.d_model, self.d_model, bias=True),
@@ -181,6 +182,39 @@ class parKT(nn.Module):
             )
 
             self.t_out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+        elif emb_type.find("dual") != -1:
+            self.c_weight = nn.Linear(d_model, d_model)
+            self.t_weight = nn.Linear(d_model, d_model)
+            self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)
+            self.out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+        elif emb_type.find("trip") != -1:
+            self.c_weight = c_weight
+            self.t_weight = t_weight
+            self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)
+            self.model3 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)   
+            self.model4 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)   
+            # self.model5 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+            #                         d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)
+            self.outlinear = nn.Linear(4*embed_l, embed_l)         
+            self.out = nn.Sequential(
                 nn.Linear(embed_l*2,
                         final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
                 nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
@@ -287,7 +321,6 @@ class parKT(nn.Module):
                     # print(f"q_embed_data:{q_embed_data.shape}")
                     rgap, sgap, pcount, temb = self.time_emb(r_gaps, s_gaps, pcounts)
                     qt_embed_data = q_embed_data + temb
-
                     if emb_type.find("ytime") != -1:
                         qa_embed_data = qa_embed_data + temb
 
@@ -311,6 +344,15 @@ class parKT(nn.Module):
                             # print(f"aug_output: {aug_output.shape}")
                         elif emb_type.find("sahp") != -1:
                             d_output = self.model(query, qa_embed_data, time_step=t_data) 
+                        elif emb_type.find("dual") != -1:
+                            t_output = self.model2(temb, qa_embed_data) # 计算时间信息和基本信息的attention？
+                            d_output = self.model(query, qa_embed_data) 
+                        elif emb_type.find("trip") != -1:
+                            qa_output = self.model2(q_embed_data, qa_embed_data)
+                            ta_output = self.model3(temb, qa_embed_data)
+                            qt_output = self.model4(q_embed_data, temb) # 计算时间信息和基本信息的attention
+                            # tq_output = self.model5(temb, q_embed_data) # 计算时间信息和基本信息的attention                            
+                            d_output = self.model(query, qa_embed_data) 
                         else:
                             d_output = self.model(query, qa_embed_data) 
                     else:
@@ -341,6 +383,17 @@ class parKT(nn.Module):
                     output = self.intensity_layer(input_combined).squeeze(-1)    
                     # print(f"output:{output}")
                     # print(f"output:{torch.min(output), torch.max(output)}")
+                elif emb_type.find("dual") != -1:
+                    w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_output)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
+                    d_output = w * d_output + (1 - w) * t_output # 每一维加权平均后的综合信息
+                    input_combined = torch.cat((d_output, query), -1)
+                    output = self.out(input_combined).squeeze(-1)
+                elif emb_type.find("trip") != -1:
+                    # w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_output)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
+                    # d_output = self.c_weight * d_output + self.t_weight * t_output + (1 - self.c_weight - self.t_weight)*qt_output # 每一维加权平均后的综合信息
+                    d_output = self.outlinear(torch.cat((qa_output, ta_output, qt_output, d_output), -1))
+                    input_combined = torch.cat((d_output, query), -1)
+                    output = self.out(input_combined).squeeze(-1)
                 else:
                     # pad_zero = torch.zeros(d_output.size(0), 1, d_output.size(2)).to(device)
                     # query = torch.cat([query[:, 1:, :], pad_zero], dim=1) # 第一行score置0
