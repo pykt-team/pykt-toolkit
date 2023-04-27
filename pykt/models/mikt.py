@@ -46,7 +46,7 @@ class MIKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, num_rgap=None, num_sgap=None, num_pcount=None, cf_weight1=0.3, cf_weight2=0.3):
         super().__init__()
         """
         Input:
@@ -73,6 +73,9 @@ class MIKT(nn.Module):
         self.num_sgap = num_sgap
         self.num_pcount = num_pcount
 
+        self.cf_weight1 = cf_weight1
+        self.cf_weight2 = cf_weight2
+
         embed_l = d_model
         if self.n_pid > 0:
             if emb_type.find("scalar") != -1:
@@ -96,11 +99,16 @@ class MIKT(nn.Module):
         
         self.emb_lstm = LSTM(embed_l, embed_l, batch_first=True)
         self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
-        self.init_y_pre = nn.Parameter(torch.randn(1, embed_l))
         # self.out_lstm = LSTM(embed_l*2, embed_l, batch_first=True)
-        self.out_lstm = nn.Sequential(
+
+        if emb_type.find("enh") != -1:
+            # self.init_y_pre = nn.Parameter(torch.randn(1, embed_l))
+            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+                                    d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len, emb_type=emb_type)
+
+            self.comb = nn.Sequential(
             nn.Linear(embed_l*2,
-                    embed_l), nn.ReLU(), nn.Dropout(self.dropout)
+                    final_fc_dim), nn.Tanh(), nn.Dropout(self.dropout)
         )
 
         # Architecture Object. It contains stack of attention block
@@ -113,6 +121,25 @@ class MIKT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
+
+        if emb_type.find("pt") != -1: 
+            self.t_out = nn.Sequential(
+                nn.Linear(embed_l*2,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
+            if emb_type.find("doublept") != -1: 
+                self.cit_out = nn.Sequential(
+                    nn.Linear(embed_l*2,
+                            final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                    nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                    ), nn.Dropout(self.dropout),
+                    nn.Linear(final_fc_dim2, 1)
+                )
+        
+        self.relu = nn.ReLU()
         self.m = nn.Sigmoid()
 
         self.reset()
@@ -129,21 +156,23 @@ class MIKT(nn.Module):
             qa_embed_data = self.qa_embed(qa_data)
         else:
             # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            qa_embed_data = self.qa_embed(target)+q_embed_data
-        return q_embed_data, qa_embed_data
+            target_embed_data = self.qa_embed(target)
+            qa_embed_data = target_embed_data+q_embed_data
+        return q_embed_data, qa_embed_data, target_embed_data
 
     def forward(self, dcur, qtest=False, train=False, dgaps=None):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
+        # print(f"q_data:{q_data}")
         target = torch.cat((r[:,0:1], rshft), dim=1)
         batch_size = q.size(0)
 
         emb_type = self.emb_type
 
         if emb_type.startswith("qid"):
-            q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+            q_embed_data, qa_embed_data, target_embed_data = self.base_emb(q_data, target)
         if self.n_pid > 0 and emb_type.find("norasch") == -1: # have problem id
             if emb_type.find("aktrasch") == -1:
                 q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
@@ -165,9 +194,6 @@ class MIKT(nn.Module):
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
         if emb_type.startswith("qid"):
-            t, tshft = dcur["tseqs"].long(), dcur["shft_tseqs"].long()
-            t_data = torch.cat((t[:,0:1], tshft), dim=1)
-            t_data = t_data.double() / 1000
             rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
             rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
 
@@ -176,25 +202,97 @@ class MIKT(nn.Module):
             pcounts = torch.cat((p[:, 0:1], pshft), dim=1)
             # print(f"q_embed_data:{q_embed_data.shape}")
             rgap, sgap, pcount, temb = self.time_emb(r_gaps, s_gaps, pcounts)
-            # print(f"time_emb:{temb}")
-
             qt_embed_data = q_embed_data + temb
             # print(f"qt_emb:{qt_embed_data}")
             query, (hidden_state,cell) = self.emb_lstm(qt_embed_data)
-
-            init_y_pre = self.init_y_pre.repeat(q_embed_data.size(0),1,1)
-            # print(f"init_y_pre:{init_y_pre.shape}")
+            # print(f"query:{query}")
             d_output, y_pre = self.model(query, qa_embed_data)
-            y_pre = torch.cat((init_y_pre,y_pre[:,:-1,:]),dim=1)
-            # print(f"y_pre:{y_pre.shape}")
-            d_output = self.out_lstm(torch.cat((d_output, y_pre), -1))
+            if emb_type.find("enh") != -1:
+                # # d_output, y_pre = self.model(qa_embed_data, target_embed_data, only_hist=True)
+                # pre_d_output, y_pre = self.model(qa_embed_data, target_embed_data)
+                # # print(f"y_pre:{y_pre.shape}")
+                # init_y_pre = self.init_y_pre.repeat(q_embed_data.size(0),1,1)
+                # y_pre = torch.cat((init_y_pre,pre_d_output[:,:-1,:]),dim=1)
+                # qa_embed_data = y_pre+qa_embed_data
+                # # query_ = query+y_pre
+                # d_output, y_pre = self.model(query, qa_embed_data)
+
+                # pre_d_output, y_pre = self.model(qa_embed_data, target_embed_data)
+                pre_d_output, y_pre = self.model2(temb, target_embed_data)
+                # print(f"y_pre:{y_pre.shape}")
+                # init_y_pre = self.init_y_pre.repeat(q_embed_data.size(0),1,1)
+                # y_pre = torch.cat((init_y_pre,pre_d_output[:,:-1,:]),dim=1)
+                # query_ = y_pre+query
+                # qa_embed_data = pre_d_output+qa_embed_data
+                qa_embed_data = self.comb(torch.cat((qa_embed_data, pre_d_output),dim=2))
+                # query_ = query+y_pre
+                d_output, y_pre = self.model(query, qa_embed_data)
+
 
             input_combined = torch.cat((d_output, query), -1)
             output = self.out(input_combined).squeeze(-1)
             preds = self.m(output)
+            # print(f"preds:{preds}")
 
         if train:
-            return preds, y2, y3
+            if emb_type.find("pt") != -1:
+                cl_losses = 0
+                # t_label= dgaps["shft_tlabel"].double()
+                t_label= dgaps["shft_pretlabel"].double()
+                # print(f"t_label:{t_label}")
+                t_combined = torch.cat((d_output, temb), -1)
+                t_output = self.t_out(t_combined).squeeze(-1)
+                t_pred = self.m(t_output)[:,1:]
+                # print(f"t_pred:{t_pred}")
+                sm = dcur["smasks"]
+                ty = torch.masked_select(t_pred, sm)
+                # print(f"min_y:{torch.min(ty)}")
+                tt = torch.masked_select(t_label, sm)
+                # print(f"min_t:{torch.min(tt)}")
+                t_loss = binary_cross_entropy(ty.double(), tt.double())
+                # print(f"t_loss:{t_loss}")
+                cl_losses += self.cf_weight1 * t_loss
+                # print(f"cl_losses:{cl_losses}")
+
+                if emb_type.find("doublept") != -1:
+                    cit_label= dgaps["shft_citlabel"].double()
+                    cit_output = self.cit_out(t_combined).squeeze(-1)
+                    cit_pred = self.m(cit_output)[:,1:]
+                    city = torch.masked_select(cit_pred, sm)
+                    citt = torch.masked_select(cit_label, sm)
+                    cit_loss = binary_cross_entropy(city.double(), citt.double())
+                    # print(f"cit_loss:{cit_loss}")
+                    cl_losses += self.cf_weight2 * cit_loss
+                    # print(f"cl_losses:{cl_losses}")
+                return preds, y2, y3, cl_losses
+            # elif emb_type.find("label") != -1:
+            #     sm = dcur["smasks"]
+            #     t, tshft = dcur["tseqs"].long(), dcur["shft_tseqs"].long()
+            #     t_data = torch.cat((t[:,0:1], tshft), dim=1)
+            #     t_data = t_data.long() // 1000 // 60
+
+            #     cl_losses = 0
+            #     post_data = t_data[:,1:]  
+            #     pret_data = t_data[:,:-1]
+
+            #     it_label = torch.where(post_data - pret_data > 43200, 43200,post_data - pret_data)
+            #     it_label = torch.masked_select(it_label,sm)
+            #     print(f"it_label:{it_label.shape}")
+            #     print(f"it_label:{torch.max(it_label)}")
+            #     t_combined = torch.cat((temb, d_output), -1)
+            #     t_output = self.t_out(t_combined).squeeze(-1)
+            #     t_pred = self.relu(t_output)[:,1:]
+            #     print(f"t_pred:{torch.max(t_pred)}")
+            #     it_pred = t_pred - pret_data
+            #     it_pred = torch.masked_select(it_pred,sm)
+            #     print(f"t_pred:{it_pred.shape}")
+            #     print(f"it_pred:{torch.max(it_pred)}")
+            #     cl_losses = (it_pred - it_label)/it_label
+            #     cl_losses = torch.sum(cl_losses)
+            #     print(f"cl_losses:{cl_losses}")
+            #     return preds, y2, y3, cl_losses
+            else:
+                return preds, y2, y3
         else:
             if qtest:
                 return preds, output
@@ -221,15 +319,16 @@ class Architecture(nn.Module):
             for _ in range(n_blocks)
         ])
 
-        self.blocks_1 = nn.ModuleList([
-            TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
-                                d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
-            for _ in range(n_blocks)
-        ])
+        if self.emb_type.find("enh") != -1:
+            self.blocks_1 = nn.ModuleList([
+                TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
+                                    d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same, emb_type=emb_type)
+                for _ in range(n_blocks)
+            ])
 
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
-    def forward(self, q_embed_data, qa_embed_data, forget_rate=None, time_step=None):
+    def forward(self, q_embed_data, qa_embed_data, forget_rate=None, time_step=None, only_hist=False):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -249,14 +348,16 @@ class Architecture(nn.Module):
         # print(f"y:{y.shape}")
 
         # encoder
+        y_pre = None     
+        if only_hist:
+            for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
+                y_pre = block(mask=1, query=y, key=y, values=y) # yt^   
 
-        for block in self.blocks_1:  # encode qas, 对0～t-1时刻前的qa信息进行编码
-            y_pre = block(mask=1, query=y, key=y, values=y) # yt^        
-
-        for block in self.blocks_2:
-            x = block(mask=0, query=x, key=x, values=y, apply_pos=True,forget_rate=forget_rate) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
-            # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
-            # print(x[0,0,:])
+        else:
+            for block in self.blocks_2:
+                x = block(mask=0, query=x, key=x, values=y, apply_pos=True,forget_rate=forget_rate) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+                # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
+                # print(x[0,0,:])
         return x, y_pre
 
 class TransformerLayer(nn.Module):
