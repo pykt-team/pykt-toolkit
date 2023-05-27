@@ -421,7 +421,11 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             fout.write("\t".join(["orirow", "qidx", "questions", "concepts", "concept_preds", "late_trues", "late_mean", "late_vote", "late_all", "early_trues", "early_preds"]) + "\n")
         else:
             fout.write("\t".join(["orirow", "qidx", "questions", "concepts", "concept_preds", "late_trues", "late_mean", "late_vote", "late_all"]) + "\n")
+    bzidx = 0
     with torch.no_grad():
+        bzidx += 1
+        if bzidx % 10 == 0:
+            print(f"bzidx: {bzidx}")
         dinfos = dict()
         dhistory = dict()
         history_keys = ["hs", "sm", "cq", "cc", "cr", "y", "qidxs", "rests", "orirow"]
