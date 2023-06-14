@@ -12,7 +12,6 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy, mse_loss
 from .simplekt_utils import NCELoss
 from random import choice
-# from .disentangled_attention import DisentangledSelfAttention,build_relative_position
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -279,6 +278,7 @@ class parKT(nn.Module):
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
+        # print(f"q_data:{q_data}")
         target = torch.cat((r[:,0:1], rshft), dim=1)
         batch_size = q.size(0)
 
@@ -326,9 +326,10 @@ class parKT(nn.Module):
 
                 if emb_type.find("time") != -1:  
                     query, (hidden_state,cell) = self.emb_lstm(qt_embed_data)
+                    # print(f"query:{query}")
                 else:
                     query, (hidden_state,cell) = self.emb_lstm(q_embed_data)
-
+                    
                 if emb_type.find("fr") != -1:
                     if emb_type in ["qid_rnn_time_fr"]:
                         # follow hawkesKT
@@ -348,13 +349,14 @@ class parKT(nn.Module):
                             t_output = self.model2(temb, qa_embed_data) # 计算时间信息和基本信息的attention？
                             d_output = self.model(query, qa_embed_data) 
                         elif emb_type.find("trip") != -1:
-                            qa_output = self.model2(q_embed_data, qa_embed_data)
+                            qa_output = self.model2(temb, qa_embed_data)
                             ta_output = self.model3(temb, qa_embed_data)
                             qt_output = self.model4(q_embed_data, temb) # 计算时间信息和基本信息的attention
                             # tq_output = self.model5(temb, q_embed_data) # 计算时间信息和基本信息的attention                            
                             d_output = self.model(query, qa_embed_data) 
                         else:
                             d_output = self.model(query, qa_embed_data) 
+                            # print(f"d_output:{d_output}")
                     else:
                         d_output = self.model(query*forget_rate, qa_embed_data*forget_rate, forget_rate=None)
                 else:
@@ -401,11 +403,12 @@ class parKT(nn.Module):
                     output = self.out(input_combined).squeeze(-1)
 
                 if emb_type.find("bi") != -1:
+                    bs, seqlen = qt_embed_data.size(0), qt_embed_data.size(1)
                     bi_query, (hidden, cell) = self.bi_emb_lstm(qt_embed_data)
                     # print(f"hidden:{hidden.shape, cell.shape}")
                     # bi_query = self.bi_linear(bi_query)
                     bi_query_ = torch.reshape(bi_query,(-1,2,qt_embed_data.size(2)))
-                    bi_query_ = torch.mean(bi_query_,dim=1).reshape(qt_embed_data.size(0), qt_embed_data.size(1), -1)
+                    bi_query_ = torch.mean(bi_query_,dim=1).reshape(bs, seqlen, -1)
                     # print(f"bi_query:{bi_query.shape}")
                     bi_d_output = self.model(bi_query_, qa_embed_data)     
                     bi_input_combined = torch.cat((bi_d_output, bi_query_), -1)   
@@ -420,6 +423,7 @@ class parKT(nn.Module):
                 preds = output
             else:
                 preds = self.m(output)
+                # print(f"preds:{preds}")
 
         if train:
             if emb_type not in ["qid_cl", "qid_mt", "qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"]:
@@ -438,10 +442,18 @@ class parKT(nn.Module):
                 elif emb_type.find("pt") != -1:
                     cl_losses = 0
                     t_label= dgaps["shft_tlabel"].double()
-                    # print(f"t_label:{torch.max(t_label)}")
+                    # print(f"t_label:{t_label}")
                     if emb_type.find("bi") != -1:
-                        t_output = self.t_out(bi_query).squeeze(-1)
-                        t_pred = self.m(t_output)[:,:-1]
+                        bi_query = bi_query.view(bs, seqlen, 2, -1)
+                        output_ffw = bi_query[:,:,:1,:].view(bs, seqlen,-1)
+                        output_bfw = bi_query[:,:,1:,:].view(bs,seqlen,-1)
+                        zero_pad = torch.zeros(bs,1,self.d_model).to(device)
+                        output_ffw = torch.cat((zero_pad, output_ffw),dim=1)[:,:-1,:]
+                        # print(f"output_ffw:{output_ffw.shape}")
+                        output_bfw = torch.cat((output_bfw, zero_pad),dim=1)[:,1:,:]
+                        # print(f"output_bfw:{output_bfw.shape}")
+                        t_output = self.t_out(torch.cat((output_ffw, output_bfw),dim=2)).squeeze(-1)
+                        t_pred = self.m(t_output)[:,1:]
                         bi_preds = self.m(bi_output)[:,1:]
                         # print(f"bi_preds:{bi_preds.shape}")
                         sm = dcur["smasks"]
@@ -457,7 +469,7 @@ class parKT(nn.Module):
                     ty = torch.masked_select(t_pred, sm)
                     # print(f"max_y:{torch.max(y)}")
                     tt = torch.masked_select(t_label, sm)
-                    # print(f"max_t:{torch.max(t)}")
+                    # print(f"cf_weight2:{self.cf_weight2}")
                     cl_losses += self.cf_weight2*binary_cross_entropy(ty.double(), tt.double())
                 elif emb_type.find("bi") != -1:
                     bi_preds = self.m(bi_output)[:,1:]

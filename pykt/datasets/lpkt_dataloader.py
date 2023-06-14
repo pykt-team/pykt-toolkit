@@ -15,11 +15,9 @@ ModelConf = {
 }
 
 class LPKTDataset(Dataset):
-    def __init__(self, file_path, at2idx, it2idx, input_type, folds, qtest=False):
+    def __init__(self, file_path, input_type, folds, qtest=False):
         super(LPKTDataset, self).__init__()
         self.sequence_path = file_path
-        self.at2idx = at2idx
-        self.it2idx = it2idx
         self.input_type = input_type
         self.qtest = qtest
         folds = list(folds)
@@ -228,7 +226,7 @@ class LPKTDataset(Dataset):
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
-                at = [self.at2idx[str(int(float(_)))] for _ in row["usetimes"].split(",")]
+                at = [int(float(_)) for _ in row["usetimes"].split(",")]
                 dori["utseqs"].append(at)
                 
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
@@ -238,11 +236,14 @@ class LPKTDataset(Dataset):
             if "timestamps" in row:
                 timestamps = dori["tseqs"][-1]
                 shft_timestamps = [0] + timestamps[:-1]
-                it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) // 60, 43200),-1)
+                it = np.maximum(np.minimum((np.array(timestamps) - np.array(shft_timestamps)) //1000 // 60, 43200),-1).tolist()
+                it = [0] + it[1:]
             else:
-                it = np.ones(len(dori["cseqs"][-1])).astype(int)
-            tmp_it = [self.it2idx[str(t)] for t in it]
-            dori["itseqs"].append(tmp_it)
+                it = np.ones(len(dori["cseqs"][-1])).astype(int).tolist()
+                it = [0] + it[1:]
+            # tmp_it = [self.it2idx[str(t)] for t in it]
+            # dori["itseqs"].append(tmp_it)
+            dori["itseqs"].append(it)
 
             interaction_num += dori["smasks"][-1].count(1)
 

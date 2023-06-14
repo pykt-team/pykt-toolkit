@@ -12,20 +12,61 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 import random
 # from entmax import sparsemax, entmax15, entmax_bisect, EntmaxBisect
-import time
+from .loss import Loss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class MLP(nn.Module):
+    '''
+    classifier decoder implemented with mlp
+    '''
+    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
+        super().__init__()
+
+        self.lins = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim)
+            for _ in range(n_layer)
+        ])
+        self.dropout = nn.Dropout(p = dpo)
+        self.out = nn.Linear(hidden_dim, output_dim)
+        self.act = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        for lin in self.lins:
+            x = F.relu(lin(x))
+        return self.out(self.dropout(x))
+
 
 class Dim(IntEnum):
     batch = 0
     seq = 1
     feature = 2
 
-class BAKT(nn.Module):
+class MLP(nn.Module):
+    '''
+    classifier decoder implemented with mlp
+    '''
+    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
+        super().__init__()
+
+        self.lins = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim)
+            for _ in range(n_layer)
+        ])
+        self.dropout = nn.Dropout(p = dpo)
+        self.out = nn.Linear(hidden_dim, output_dim)
+        self.act = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        for lin in self.lins:
+            x = F.relu(lin(x))
+        return self.out(self.dropout(x))
+
+class BAKT_QIKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, sparse_ratio=0.8, k_index=5, stride=1):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, sparse_ratio=0.8, k_index=5, stride=1,mlp_layer_num=2,loss_c_all_lambda=0.3,loss_c_next_lambda=0.3):
         super().__init__()
         """
         Input:
@@ -35,7 +76,7 @@ class BAKT(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "bakt"
+        self.model_name = "bakt_qikt"
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
@@ -48,6 +89,9 @@ class BAKT(nn.Module):
         self.sparse_ratio = sparse_ratio
         self.k_index = k_index
         self.stride = stride
+        self.mlp_layer_num = mlp_layer_num
+        self.loss_c_all_lambda = loss_c_all_lambda
+        self.loss_c_next_lambda = loss_c_next_lambda
 
         embed_l = d_model
         if self.n_pid > 0:
@@ -70,22 +114,14 @@ class BAKT(nn.Module):
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
-        # self.out = nn.Sequential(
-        #     nn.Linear(d_model + embed_l,
-        #               final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-        #     nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
-        #     ), nn.Dropout(self.dropout),
-        #     nn.Linear(final_fc_dim2, 1)
-        # )
-        
         self.out = nn.Sequential(
             nn.Linear(d_model + embed_l,
-                      final_fc_dim), nn.GELU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, final_fc_dim2), nn.GELU(
+                      final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+            nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
-
+        
         if self.emb_type.endswith("predcurc"): # predict cur question' cur concept
             self.l1 = loss1
             self.l2 = loss2
@@ -117,6 +153,10 @@ class BAKT(nn.Module):
                     nn.Linear(self.hidden_size, self.hidden_size//2), nn.ELU(), nn.Dropout(dropout),
                     nn.Linear(self.hidden_size//2, 1))
                 self.hisloss = nn.MSELoss()
+            
+        if self.emb_type.find("qikt") != -1:
+            self.out_concept_next = MLP(self.mlp_layer_num, d_model + embed_l, self.n_question, self.dropout)
+            self.out_concept_all = MLP(self.mlp_layer_num, d_model, self.n_question, self.dropout)
 
         self.reset()
 
@@ -263,7 +303,7 @@ class BAKT(nn.Module):
         # y = torch.sigmoid(self.out_layer(h))
         return y3
 
-    def forward(self, dcur, qtest=False, train=False, attn_grads=None,save_path="", save_attn_path="", save_grad_path="",attn_cnt_path=""):
+    def forward(self, dcur, qtest=False, train=False, attn_grads=None,save_path="", save_attn_path="", save_grad_path=""):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
@@ -274,7 +314,6 @@ class BAKT(nn.Module):
         sparse_ratio = self.sparse_ratio
         k_index = self.k_index
         stride = self.stride
-        n_question = self.n_question
 
         # Batch First
         if emb_type.startswith("qid"):
@@ -301,7 +340,7 @@ class BAKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch","qid_cl"]:
+        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
             d_output, attn_weights = self.model(q_embed_data, qa_embed_data)
             self.attn_weights = attn_weights
 
@@ -310,13 +349,23 @@ class BAKT(nn.Module):
             m = nn.Sigmoid()
             preds = m(output)
         elif emb_type.find("attn") != -1:
-            d_output, attn_weights = self.model(q_embed_data, qa_embed_data, emb_type, sparse_ratio, k_index, attn_grads, stride,save_path, save_attn_path, save_grad_path,attn_cnt_path,q_data,n_question)
-            self.attn_weights = attn_weights
+            d_output, attn_weights = self.model(q_embed_data, qa_embed_data, emb_type, sparse_ratio, k_index, attn_grads, stride,save_path, save_attn_path, save_grad_path)
+            if emb_type.find("qikt") != -1:
+                    h_next = torch.cat([d_output, q_embed_data], dim=-1)
+                    # print(f"h_next:{h_next.shape}")
+                    y_concept_next = torch.sigmoid(self.out_concept_next(h_next))
+                    # print(f"d_output:{d_output.shape}")
+                    y_concept_all = torch.sigmoid(self.out_concept_all(d_output))
+                    y_concept_final = (y_concept_next + y_concept_all)/2
+                    # print(f"y_concept_final:{y_concept_final.shape}")
+                    # y_concept_final = torch.sigmoid( y_concept_next + y_concept_all)  
+            else:
+                self.attn_weights = attn_weights
+                concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+                output = self.out(concat_q).squeeze(-1)
+                m = nn.Sigmoid()
+                preds = m(output)
 
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
             # predict concept
             qemb = self.question_emb(pid_data)
@@ -337,21 +386,37 @@ class BAKT(nn.Module):
             #     y2 = self.afterpredcurc(curh, dcur)
             if emb_type.find("his") != -1:
                 y3 = self.predhis(d_output, dcur)
-
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            # if emb_type.find("his") != -1:
-            #     y3 = self.predhis(concat_q, dcur)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
-
-        if train:
-            return preds, y2, y3
+                concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+                # if emb_type.find("his") != -1:
+                #     y3 = self.predhis(concat_q, dcur)
+                output = self.out(concat_q).squeeze(-1)
+                m = nn.Sigmoid()
+                preds = m(output)
+                  
+                
+        if emb_type.find("qikt") != -1:
+                preds_all = (y_concept_all[:,1:] * one_hot(cshft.long(), self.n_question)).sum(-1)
+                preds_next = (y_concept_next[:,1:] * one_hot(cshft.long(), self.n_question)).sum(-1)
+                preds_final = (y_concept_final[:,1:] * one_hot(cshft.long(), self.n_question)).sum(-1)
+                if train:
+                    # print(f"trainiing_preds_next:{preds_next.shape}")
+                    loss_c_all = binary_cross_entropy(preds_all, dcur["shft_rseqs"], dcur["smasks"])
+                    loss_c_next = binary_cross_entropy(preds_next, dcur["shft_rseqs"], dcur["smasks"])#kc level loss
+                    loss_kt = binary_cross_entropy(preds_final, dcur["shft_rseqs"], dcur["smasks"])
+                    # total_loss = loss_c_next
+                    total_loss = loss_kt  + self.loss_c_all_lambda * loss_c_all + self.loss_c_next_lambda * loss_c_next
+                    return total_loss
+                else:
+                    # print(f"evaluating")
+                    return preds_final
         else:
-            if qtest:
-                return preds, concat_q
+            if train:
+                return preds, y2, y3
             else:
-                return preds
+                if qtest:
+                    return preds, concat_q
+                else:
+                    return preds
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
@@ -366,7 +431,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'bakt'}:
+        if model_type.find("bakt") != -1:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
@@ -374,7 +439,7 @@ class Architecture(nn.Module):
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
-    def forward(self, q_embed_data, qa_embed_data, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path="",attn_cnt_path="",q_data=None,n_question=None):
+    def forward(self, q_embed_data, qa_embed_data, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
         # target shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
@@ -393,7 +458,7 @@ class Architecture(nn.Module):
         # encoder
         
         for block in self.blocks_2:
-            x, attn_weights = block(mask=0, query=x, key=x, values=y, apply_pos=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path,attn_cnt_path=attn_cnt_path,q_data=q_data,n_question=n_question) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+            x, attn_weights = block(mask=0, query=x, key=x, values=y, apply_pos=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
         return x, attn_weights
@@ -415,15 +480,14 @@ class TransformerLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
 
         self.linear1 = nn.Linear(d_model, d_ff)
-        # self.activation = nn.ReLU()
-        self.activation = nn.GELU()
+        self.activation = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(d_ff, d_model)
 
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path="",attn_cnt_path="",q_data=None,n_question=None):
+    def forward(self, mask, query, key, values, apply_pos=True, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -436,6 +500,7 @@ class TransformerLayer(nn.Module):
             query: Input gets changed over the layer and returned.
 
         """
+
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
@@ -443,11 +508,11 @@ class TransformerLayer(nn.Module):
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2,_ = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path,attn_cnt_path=attn_cnt_path,q_data=q_data,n_question=n_question) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
+                query, key, values, mask=src_mask, zero_pad=True, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path) # 只能看到之前的信息，当前的信息也看不到，此时会把第一行score全置0，表示第一道题看不到历史的interaction信息，第一题attn之后，对应value全0
         else:
             # Calls block.masked_attn_head.forward() method
             query2,_ = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path,attn_cnt_path=attn_cnt_path,q_data=q_data,n_question=n_question)
+                query, key, values, mask=src_mask, zero_pad=False, emb_type=emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride, save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
 
         query = query + self.dropout1((query2)) # 残差1
         query = self.layer_norm1(query) # layer norm
@@ -493,7 +558,7 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
 
-    def forward(self, q, k, v, mask, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path="",attn_cnt_path="",q_data=None,n_question=None):
+    def forward(self, q, k, v, mask, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1,save_path="", save_attn_path="", save_grad_path=""):
 
         bs = q.size(0)
 
@@ -513,7 +578,7 @@ class MultiHeadAttention(nn.Module):
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
         scores, attn_weights = attention(q, k, v, self.d_k,
-                           mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path,attn_cnt_path=attn_cnt_path,q_data=q_data,n_question=n_question)
+                           mask, self.dropout, zero_pad, emb_type, sparse_ratio=sparse_ratio, k_index=k_index, attn_grads=attn_grads, stride=stride,save_path=save_path, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1, 2).contiguous()\
@@ -524,7 +589,7 @@ class MultiHeadAttention(nn.Module):
         return output, attn_weights
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1, save_path="", save_attn_path="", save_grad_path="",attn_cnt_path="",q_data=None,n_question=None):
+def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_ratio=0.8, k_index=5, attn_grads=None, stride=1, save_path="", save_attn_path="", save_grad_path=""):
     """
     This is called by Multi-head atention object to find the values.
     """
@@ -647,21 +712,18 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
 
     elif emb_type.find("sparseattn") != -1:
         # scorted_attention
-        if k_index >= seqlen:
-            scores = scores
-        else:
-            scores_a = scores[:, :, :k_index, :]
-            scores_b = scores[:, :, k_index:, :].reshape(bs*head*(seqlen-k_index), -1)
-            sorted_scores,sorted_idx = torch.sort(scores_b,descending=True)
-            scores_t = sorted_scores[:,k_index-1:k_index].repeat(1,seqlen)
-            scores_b = torch.where(scores_b - scores_t >= torch.tensor(0).to(device), scores_b, torch.tensor(-1e32).to(device)).reshape(bs,head,seqlen-k_index,-1)
-            scores = torch.cat([scores_a, scores_b], dim=2)
-            if emb_type == "qid_sparseattn":
-                # print(f"top_k:softmatx")
-                scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
-            else:
-                # print(f"top_k:entmax15")
-                scores = entmax15(scores, dim=-1)  # BS,8,seqlen,seqlen
+        scores_a = scores[:, :, :k_index, :]
+        scores_b = scores[:, :, k_index:, :].reshape(bs*head*(seqlen-k_index), -1)
+        sorted_scores,sorted_idx = torch.sort(scores_b,descending=True)
+        scores_t = sorted_scores[:,k_index-1:k_index].repeat(1,seqlen)
+        scores_b = torch.where(scores_b - scores_t >= torch.tensor(0).to(device), scores_b, torch.tensor(-1e32).to(device)).reshape(bs,head,seqlen-k_index,-1)
+        scores = torch.cat([scores_a, scores_b], dim=2)
+        # if emb_type == "sparseattn":
+        #     # print(f"top_k:softmatx")
+        scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
+        # else:
+        #     # print(f"top_k:entmax15")
+        #     scores = entmax15(scores, dim=-1)  # BS,8,seqlen,seqlen
 
     elif emb_type.find("grad") != -1:
         grads = np.load(save_grad_path,allow_pickle=True)["arr_0"]
@@ -717,19 +779,19 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
         a = torch.ones(bs*head*seqlen,seqlen).to(device)
         new_mask.scatter_(1,idx,a) 
         idx_matrix = torch.arange(seqlen).repeat(bs*seqlen*head,1).to(device)
-        new_mask = torch.where(idx_matrix - idx <= 0,0,1).float()
+        new_mask = torch.where(idx_matrix - idx <=0,0,1).float()
         sorted_scores = new_mask * sorted_scores
         sorted_scores = torch.where(sorted_scores==0.0,torch.tensor(-1).to(device).float(),sorted_scores)
         tmp_scores, indices= torch.max(sorted_scores,dim=1)
         tmp_scores = tmp_scores.unsqueeze(-1).repeat(1,seqlen)
         new_scores = torch.where(tmp_scores-scores>=0,torch.tensor(-1e32).to(device).float(),scores).reshape((bs,head,seqlen,-1))
-        # scores = F.softmax(new_scores, dim=-1)
-        if emb_type == "qid_accumulative_attn":
-            # print(f"accumulative:softmax")
-            scores = F.softmax(new_scores, dim=-1)  # BS,8,seqlen,seqlen
-        else:
-            # print(f"accumulative:entmax15")
-            scores = entmax15(new_scores, dim=-1)  # BS,8,seqlen,seqlen
+        scores = F.softmax(new_scores, dim=-1)
+        # if emb_type == "accumulative_attn":
+        #     # print(f"accumulative:softmatx")
+        # scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
+        # else:
+        #     # print(f"accumulative:entmax15")
+        #     scores = entmax15(scores, dim=-1)  # BS,8,seqlen,seqlen
     else:
         before_dropout_scores = scores
 
@@ -737,29 +799,6 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
         pad_zero = torch.zeros(bs, head, 1, seqlen).to(device)
         scores = torch.cat([pad_zero, scores[:bs, :, 1:, :]], dim=2) # 第一行score置0
     # print(f"after zero pad scores: {scores}")
-    # time_start = time.time()
-    # sum_attn = torch.mean(scores,dim=1)
-    # # print(f"max_sum_attn:{torch.max(sum_attn)}")
-    # load_arr = torch.tensor(np.load(attn_cnt_path)).to(device)
-    # # for i in range(bs):
-    # #     for j in range(seqlen):
-    # #         for k in range(j):
-    # #             load_arr[q_data[i][j]][q_data[i][k]] += sum_attn[i][j][k]
-    # # print(f"n_question:{n_question}")
-    # tmp_attn = torch.zeros(n_question+1,n_question+1).to(device)
-    # for i in range(bs):
-    #     tmp_qid_0 = torch.reshape(q_data[i].repeat(1,seqlen).reshape(seqlen,-1).permute(1,0),(seqlen,-1))
-    #     tmp_qid_1 = q_data[i].repeat(1,seqlen).reshape(seqlen,-1)
-    #     # print(f"tmp_attn_before:{tmp_attn}")
-    #     # print(f"sum_attn_total:{sum_attn[i]}")
-    #     tmp_attn_ = torch.zeros(n_question+1,n_question+1).to(device)
-    #     tmp_attn_ = tmp_attn_.index_put((tmp_qid_0,tmp_qid_1), sum_attn[i])
-    #     tmp_attn += tmp_attn_
-    #     # print(f"tmp_attn_after:{tmp_attn}")
-    # load_arr += tmp_attn
-    # np.save(attn_cnt_path,load_arr.detach().cpu())
-    # print(f"taking {time.time()-time_start}s") 
-    # print(f"max_attn:{torch.max(scores)}")
 
     if emb_type == "qid":
         sub_scores = torch.reshape(scores,(bs*head*seqlen,-1))
