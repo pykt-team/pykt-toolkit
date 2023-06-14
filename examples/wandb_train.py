@@ -16,13 +16,17 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
-def save_config(train_config, model_config, data_config, params, save_dir):
-    d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
+def save_config(train_config, model_config, data_config, params, save_dir, args=None):
+    # print(f"type_args:{type(args)}")
+    if args:
+        d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params, "train_args":vars(args)}
+    else:
+        d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
     save_path = os.path.join(save_dir, "config.json")
     with open(save_path, "w") as fout:
         json.dump(d, fout)
 
-def main(params):
+def main(params, args=None):
     if "use_wandb" not in params:
         params['use_wandb'] = 1
 
@@ -41,7 +45,7 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["simplekt", "bakt_time", "sparsekt"]:
+        if model_name in ["bakt", "bakt_time", "bakt_qikt","simplekt_sr", "stosakt", "parkt", "mikt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -67,7 +71,16 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    if model_name not in ["simplekt_sr", "parkt"]:
+        train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
+        # print(f"curtrain:{len(curtrain)}")
+    elif model_name in ["simplekt_sr"]:
+        train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args)
+    elif model_name in ["parkt"]:
+        if emb_type.find("cl") != -1 or emb_type.find("uid") != -1:
+            train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args)
+        else:
+            train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -83,21 +96,27 @@ def main(params):
     print(f"model_config: {model_config}")
     print(f"train_config: {train_config}")
 
-    if model_name in ["dimkt"]:
-        del model_config['num_epochs']
-        del model_config['weight_decay']
-
-    save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
+    if model_name in ["stosakt"]:
+        save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path, args)
+    else:
+        save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time"]:
+    if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
     print(f"model_name:{model_name}")
-    model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+    if model_name in ["parkt"]:
+        dpath = os.path.join(data_config[dataset_name]["dpath"], "keyid2idx.json")
+        with open(dpath, "r") as f:
+            map_json = json.load(f)
+            num_stu = len(map_json["uid"])
+        model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)
+    else:
+        model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
     print(f"model is {model}")
     if model_name == "hawkes":
         weight_p, bias_p = [], []
@@ -110,8 +129,6 @@ def main(params):
         opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
     elif model_name == "iekt":
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
-    elif model_name == "dimkt":
-        opt = torch.optim.Adam(model.parameters(),lr=learning_rate,weight_decay=params['weight_decay'])
     else:
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
@@ -126,10 +143,17 @@ def main(params):
     
     debug_print(text = "train model",fuc_name="main")
     
-    testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model)
+    if emb_type.find("cl") != -1:
+        # print(f"curtrain:{len(curtrain)}")
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size)
+    else:
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
     
     if save_model:
-        best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+        if model_name not in ["parkt"]:
+            best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
+        else:
+            best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)
         net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
         best_model.load_state_dict(net)
 
