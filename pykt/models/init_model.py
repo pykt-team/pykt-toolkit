@@ -19,8 +19,6 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
-from .cdkt import CDKT
-from .bakt import BAKT
 from .bakt_time import BAKTTime
 from .qdkt import QDKT
 from .qikt import QIKT

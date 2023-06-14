@@ -23,7 +23,7 @@ class GPT4KT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=1024, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, c0=0.1, max_epoch=10):
         super().__init__()
         """
         Input:
@@ -43,6 +43,9 @@ class GPT4KT(nn.Module):
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
+        self.c0 = c0
+        self.max_epoch = max_epoch
+        
         embed_l = d_model
 
         self.que_emb = QueEmb(num_q=self.n_pid,num_c=self.n_question,emb_size=embed_l,emb_type=self.emb_type,model_name=self.model_name,device=device,

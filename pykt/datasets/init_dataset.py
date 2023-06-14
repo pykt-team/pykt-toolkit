@@ -10,6 +10,7 @@ from .parkt_dataloader import ParktDataset
 from .lpkt_dataloader import LPKTDataset
 from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
+from .que_data_loader_cl import KTQueDataset4CL
 from pykt.config import que_type_models
 # from .simplekt_cl_dataloader import CL4KTDataset
 from .cl_utils import sort_samples
@@ -96,13 +97,18 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         # # print(f"curvalid:{len(curvalid)}")
         # curtrain = KTDataset(cl_dpath, data_config["input_type"], all_folds - {i})  
         # print(f"curtrain:{len(curtrain)}")
-
-        train_valid_path = os.path.join(data_config["dpath"], data_config["train_valid_file"])
-        sorted_df = sort_samples(train_valid_path)
-        curvalid = CL4KTDataset(train_valid_path, sorted_df, data_config["input_type"], {i})
-        # print(f"curvalid:{len(curvalid)}")
-        curtrain = CL4KTDataset(train_valid_path, sorted_df, data_config["input_type"], all_folds - {i})  
-        # print(f"curtrain:{len(curtrain)}")
+        if model_name != "gpt4kt":
+            train_valid_path = os.path.join(data_config["dpath"], data_config["train_valid_file"])
+            sorted_df = sort_samples(train_valid_path)
+            curvalid = CL4KTDataset(train_valid_path, sorted_df, data_config["input_type"], {i})
+            # print(f"curvalid:{len(curvalid)}")
+            curtrain = CL4KTDataset(train_valid_path, sorted_df, data_config["input_type"], all_folds - {i})  
+            # print(f"curtrain:{len(curtrain)}")
+        else:
+            train_valid_path = os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"])
+            sorted_df = sort_samples(train_valid_path)
+            curvalid = KTQueDataset4CL(train_valid_path, sorted_df, data_config["input_type"], {i}, concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            curtrain = KTQueDataset4CL(train_valid_path, sorted_df, data_config["input_type"], all_folds - {i}, concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])  
     elif model_name in ["dkt_forget", "bakt_time"]:
         max_rgap, max_sgap, max_pcount, max_it = 0, 0, 0, 0
         curvalid = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})

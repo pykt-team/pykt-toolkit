@@ -73,7 +73,7 @@ class QueEmb(nn.Module):
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
 
-        if emb_type == "iekt":
+        if emb_type.find("iekt") != -1:
             self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
             # self.que_emb.weight.requires_grad = False
             self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
@@ -144,7 +144,7 @@ class QueEmb(nn.Module):
             que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
             xemb = self.que_c_linear(xemb)
             return xemb,emb_q,emb_c
-        elif emb_type == "iekt":
+        elif emb_type.find("iekt") != -1:
             emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
             emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]

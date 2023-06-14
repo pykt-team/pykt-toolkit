@@ -209,7 +209,7 @@ def model_forward(model, data, attn_grads=None):
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
 
-def sample4cl(curtrain, total_step, batch_size, i, c0, max_epoch):
+def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     # print(f"curtrain:{type(curtrain)}")
     print(f"curtrain:{len(curtrain)}")
     simple_size = min(1,i*(1-c0)/max_epoch+c0)
@@ -224,12 +224,11 @@ def sample4cl(curtrain, total_step, batch_size, i, c0, max_epoch):
     # train_loader = DataLoader(curtrain, batch_size=batch_size)
     return simple_size, bn
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, c0=0.5, max_epoch=4, curtrain=None,batch_size=None):    
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None):    
     max_auc, best_epoch = 0, -1
     train_step = 0
     if model.model_name=='lpkt':
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
-    total_step = 1
     simple_size = 0
     cl_bn = 10000
     for i in range(1, num_epochs + 1):
@@ -237,7 +236,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.emb_type.find("cl") != -1:
             # a = 1
             if simple_size != 1:
-                simple_size, cl_bn = sample4cl(curtrain, total_step, batch_size, i, c0, max_epoch)
+                simple_size, cl_bn = sample4cl(curtrain, batch_size, i, model.c0, model.max_epoch)
         for j,data in enumerate(train_loader):
             if simple_size != 1 and j > cl_bn:continue
             if model.model_name in que_type_models:
@@ -265,7 +264,6 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
             #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])                
             opt.step()#update model’s parameters
-            total_step += 1
                 
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
