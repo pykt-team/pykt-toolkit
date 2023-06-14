@@ -11,7 +11,7 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 import random
-# from entmax import sparsemax, entmax15, entmax_bisect, EntmaxBisect
+from entmax import sparsemax, entmax15, entmax_bisect, EntmaxBisect
 import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -21,7 +21,7 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-class BAKT(nn.Module):
+class sparseKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
@@ -35,7 +35,7 @@ class BAKT(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "bakt"
+        self.model_name = "sparsekt"
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
@@ -301,7 +301,7 @@ class BAKT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch","qid_cl"]:
+        if emb_type in ["qid", "qidaktrasch", "qid_scalar", "qid_norasch"]:
             d_output, attn_weights = self.model(q_embed_data, qa_embed_data)
             self.attn_weights = attn_weights
 
@@ -366,7 +366,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'bakt'}:
+        if model_type in {'sparsekt'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
@@ -838,4 +838,5 @@ class timeGap(nn.Module):
         tg_emb = self.time_emb(tg)
 
         return tg_emb
+
 

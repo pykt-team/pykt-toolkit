@@ -65,10 +65,10 @@ pip install -U pykt-toolkit -i  https://pypi.python.org/simple
 We now have a [paper](https://arxiv.org/abs/2206.11460?context=cs.CY) you can cite for the our pyKT library:
 
 ```bibtex
-@article{liu2022pykt,
+@inproceedings{liupykt2022,
   title={pyKT: A Python Library to Benchmark Deep Learning based Knowledge Tracing Models},
   author={Liu, Zitao and Liu, Qiongqiong and Chen, Jiahao and Huang, Shuyan and Tang, Jiliang and Luo, Weiqi},
-  journal={arXiv preprint arXiv:2206.11460},
+  booktitle={Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
   year={2022}
 }
 ```

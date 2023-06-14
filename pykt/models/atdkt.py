@@ -6,10 +6,11 @@ from .utils import ut_mask
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-class CDKT(Module):
-    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', num_layers=1, num_attn_heads=5, l1=0.5, l2=0.5, l3=0.5, start=50, emb_path="", pretrain_dim=768):
+class ATDKT(Module):
+    def __init__(self, num_q, num_c, seq_len, emb_size, dropout=0.1, emb_type='qid', 
+            num_layers=1, num_attn_heads=5, l1=0.5, l2=0.5, l3=0.5, start=50, emb_path="", pretrain_dim=768):
         super().__init__()
-        self.model_name = "cdkt"
+        self.model_name = "atdkt"
         print(f"qnum: {num_q}, cnum: {num_c}")
         print(f"emb_type: {emb_type}")
         self.num_q = num_q
@@ -34,7 +35,6 @@ class CDKT(Module):
             if self.emb_type.find("qemb") != -1:
                 self.question_emb = Embedding(self.num_q, self.emb_size)
             
-            # 加一个预测历史准确率的任务
             self.start = start
             self.hisclasifier = nn.Sequential(
                 nn.Linear(self.hidden_size, self.hidden_size//2), nn.ReLU(), nn.Dropout(dropout),
@@ -62,7 +62,6 @@ class CDKT(Module):
                 self.concept_emb = Embedding(self.num_c, self.emb_size) # add concept emb
 
             self.closs = CrossEntropyLoss()
-            # 加一个预测历史准确率的任务
             if self.emb_type.find("his") != -1:
                 self.start = start
                 self.hisclasifier = nn.Sequential(
@@ -122,7 +121,7 @@ class CDKT(Module):
         h = self.dropout_layer(h)
         y = self.out_layer(h)
         y = torch.sigmoid(y)
-        return y, y2, y3, rpreds, qh
+        return y, y2, y3
 
     def forward(self, dcur, train=False): ## F * xemb
         # print(f"keys: {dcur.keys()}")
@@ -162,10 +161,10 @@ class CDKT(Module):
             y = self.out_layer(h)
             y = torch.sigmoid(y)
         elif emb_type.endswith("predcurc"): # predict current question' current concept
-            y, y2, y3, rpreds, qh = self.predcurc(dcur, q, c, r, xemb, train)
+            y, y2, y3 = self.predcurc(dcur, q, c, r, xemb, train)
 
         if train:
             return y, y2, y3
         else:
-            return y, rpreds, qh
+            return y
   

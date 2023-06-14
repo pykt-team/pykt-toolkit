@@ -11,6 +11,11 @@ else:
     from torch import FloatTensor, LongTensor
 import numpy as np
 
+if torch.cuda.is_available():
+    from torch.cuda import FloatTensor, LongTensor
+else:
+    from torch import FloatTensor, LongTensor
+
 class KTDataset(Dataset):
     """Dataset for KT
         can use to init dataset for: (for models except dkt_forget)
