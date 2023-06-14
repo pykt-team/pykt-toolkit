@@ -9,12 +9,15 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
 import pickle
+from torch.utils.data import DataLoader
+import itertools
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt", "mikt"]:
+    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt", "mikt", "gpt4kt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"y: {y.shape}")
@@ -32,12 +35,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             for cl_loss in preloss:
                 # print(f"cl_loss:{cl_loss}")
                 loss += cl_loss
-        elif model.emb_type in ["qid_cl"]:
-            loss = loss1
-            for cl_loss in preloss:
-                # print(f"cl_loss:{cl_loss}")
-                loss += cl_loss
-        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"]:
+        # elif model.emb_type in ["qid_cl"]:
+        #     loss = loss1
+        #     for cl_loss in preloss:
+        #         # print(f"cl_loss:{cl_loss}")
+        #         loss += cl_loss
+        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"] or model.emb_type.find("pt") != -1:
             # print(f"preloss:{preloss}")
             loss = loss1 + preloss
         else:
@@ -106,6 +109,10 @@ def model_forward(model, data, attn_grads=None):
     elif model_name in ["bakt"]:
         y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["gpt4kt"]:
+        y, y2, y3 = model(dcur, train=True)
+        ys = [y[:,1:], y2, y3]
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
     elif model_name in ["simplekt_sr", "parkt","mikt"]:
         if model.emb_type.find("cl") == -1 and model.emb_type.find("mt") == -1 and model.emb_type.find("pvn") == -1 and model.emb_type.find("bi") == -1 and model.emb_type.find("time") == -1:
             y, y2, y3 = model(dcur, train=True)
@@ -140,7 +147,7 @@ def model_forward(model, data, attn_grads=None):
     elif model_name in ["lpkt"]:
         # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1)
         cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
-    if model_name in ["dkt"]:
+    elif model_name in ["dkt"]:
         y = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
@@ -201,17 +208,38 @@ def model_forward(model, data, attn_grads=None):
     if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
-    
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None):
+def sample4cl(curtrain, total_step, batch_size, i, c0, max_epoch):
+    # print(f"curtrain:{type(curtrain)}")
+    print(f"curtrain:{len(curtrain)}")
+    simple_size = min(1,i*(1-c0)/max_epoch+c0)
+    bn = simple_size // 64
+    print(f"simple_size:{simple_size}")
+    # print(f"simple_size:{int(simple_size*len(curtrain))}")
+    # curtrain = curtrain[:2]
+    # curtrain = dict(itertools.islice(curtrain.items(),int(simple_size*len(curtrain))))
+    # curtrain = curtrain[1885]
+    # curtrain = curtrain[:int(simple_size*len(curtrain))]
+    # print(f"curtrain:{len(curtrain)}")
+    # train_loader = DataLoader(curtrain, batch_size=batch_size)
+    return simple_size, bn
+
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, c0=0.5, max_epoch=4, curtrain=None,batch_size=None):    
     max_auc, best_epoch = 0, -1
     train_step = 0
     if model.model_name=='lpkt':
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
+    total_step = 1
+    simple_size = 0
+    cl_bn = 10000
     for i in range(1, num_epochs + 1):
         loss_mean = []
+        if model.emb_type.find("cl") != -1:
+            # a = 1
+            if simple_size != 1:
+                simple_size, cl_bn = sample4cl(curtrain, total_step, batch_size, i, c0, max_epoch)
         for j,data in enumerate(train_loader):
-            train_step+=1
+            if simple_size != 1 and j > cl_bn:continue
             if model.model_name in que_type_models:
                 model.model.train()
             else:
@@ -237,6 +265,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
             #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])                
             opt.step()#update model’s parameters
+            total_step += 1
                 
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:

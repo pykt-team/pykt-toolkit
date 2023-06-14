@@ -6,8 +6,51 @@ from sklearn import metrics
 from pykt.config import que_type_models
 from ..datasets.lpkt_utils import generate_time2idx
 import pandas as pd
+import json
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
+
+def save_cur_predict_result_emb(dres, q, r, d, t, qemb, qhemb, m, sm, p):
+# def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
+    # dres, q, r, qshft, rshft, m, sm, y
+    results = []
+    for i in range(0, t.shape[0]):
+        cps = torch.masked_select(p[i], sm[i]).detach().cpu()
+        cts = torch.masked_select(t[i], sm[i]).detach().cpu()
+    
+        cqs = torch.masked_select(q[i], m[i]).detach().cpu()
+        crs = torch.masked_select(r[i], m[i]).detach().cpu()
+
+        cds = torch.masked_select(d[i], sm[i]).detach().cpu()
+
+        qs, rs, ts, ps, ds = [], [], [], [], []
+        for cq, cr in zip(cqs.int(), crs.int()):
+            qs.append(cq.item())
+            rs.append(cr.item())
+        for ct, cp, cd in zip(cts.int(), cps, cds.int()):
+            ts.append(ct.item())
+            ps.append(cp.item())
+            ds.append(cd.item())
+        try:
+            auc = metrics.roc_auc_score(
+                y_true=np.array(ts), y_score=np.array(ps)
+            )
+            
+        except Exception as e:
+            # print(e)
+            auc = -1
+        # cthr = torch.masked_select(thr[i], sm[i]).detach().cpu().tolist()
+        # cphr = torch.masked_select(phr[i], sm[i]).detach().cpu().tolist()
+        flag = sm[i]==1
+        # sque = que[i][flag].detach().cpu().tolist()
+        sq = qemb[i][flag].detach().cpu().tolist()
+        sqh = qhemb[i][flag].detach().cpu().tolist()
+
+        prelabels = [1 if p >= 0.5 else 0 for p in ps]
+        acc = metrics.accuracy_score(ts, prelabels)
+        dres[len(dres)] = [qs, rs, ds, ts, ps, prelabels, auc, acc, sq, sqh]#, cthr, cphr, sque, sqh]
+        results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc, sq, sqh]))#, cthr, cphr, sque, sqh]))
+    return "\n".join(results)
 
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     # dres, q, r, qshft, rshft, m, sm, y
@@ -15,7 +58,8 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     for i in range(0, t.shape[0]):
         cps = torch.masked_select(p[i], sm[i]).detach().cpu()
         cts = torch.masked_select(t[i], sm[i]).detach().cpu()
-    
+        # print(f"q:{q.shape}")
+        # print(f"m:{m.shape}")
         cqs = torch.masked_select(q[i], m[i]).detach().cpu()
         crs = torch.masked_select(r[i], m[i]).detach().cpu()
 
@@ -51,10 +95,14 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
         y_scores = []
         dres = dict()
         test_mini_index = 0
+        dic_emb = {"xemb":{},"yemb":{}}
+        dic_emb = dict()
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            if model_name in ["dkt_forget", "bakt_time", "parkt", "mikt"] and model.emb_type.find("time") != -1:
+            if model_name in ["dkt_forget", "parkt", "mikt"] and model.emb_type.find("time") != -1:
+                dcur, dgaps = data
+            elif model_name in ["bakt_time"]:
                 dcur, dgaps = data
             else:
                 dcur = data
@@ -62,7 +110,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models:
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "gpt4kt"]:
                 model.model.eval()
             else:
                 model.eval()
@@ -84,8 +132,10 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             elif model_name in ["bakt_qikt"]:
                 y = model(dcur)
             elif model_name in ["bakt_time"]:
-                y = model(dcur, dgaps)
+                y, qemb, qhemb, dic_emb = model(dcur, dgaps, dic_emb=dic_emb)
                 y = y[:,1:]
+                qemb = qemb[:,1:,:]
+                qhemb = qhemb[:,1:,:]
             elif model_name in ["simplekt_sr", "parkt", "mikt"]:
                 if model.emb_type.find("time") != -1:
                     y = model(dcur, dgaps=dgaps)
@@ -102,6 +152,10 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 else:
                     y = model(dcur, attn_cnt_path=attn_cnt_path)
                 y = y[:,1:]
+            elif model_name in ["gpt4kt"]:
+                y = model(dcur)
+                y = y[:,1:]
+                c,cshft = q,qshft#question level 
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -141,7 +195,12 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
-                result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
+                if model_name not in ["bakt_time"]:
+                    result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
+                else:
+                    # print(f"save_path:{save_path}")
+                    result = save_cur_predict_result_emb(dres, c, r, cshft, rshft, qemb, qhemb, m, sm, y)
+                    # print(f"results:{result}")
                 fout.write(result+"\n")
 
             y = torch.masked_select(y, sm).detach().cpu()
@@ -157,6 +216,9 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
+        if model_name in ["bakt_time"]:
+            with open(f"./embeddings/{dataset_name}_emb_json.json", "w") as f:
+                json.dump(dic_emb, f)
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
     return auc, acc
@@ -382,6 +444,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         #     dhistory[key] = []
         y_trues, y_scores = [], []
         lenc = 0
+        dic_emb = dict()
         for data in test_loader:
             if model_name in ["dkt_forget", "bakt_time"] or model.emb_type.find("time") != -1:
                 dcurori, dgaps, dqtest = data
@@ -411,8 +474,14 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
                 
             elif model_name in ["bakt_time"]:
-                y, h = model(dcurori, dgaps, qtest=True, train=False)
+                y, h, dic_emb,num_c = model(dcurori, dgaps, qtest=True, train=False, dic_emb=dic_emb)
                 y = y[:,1:]
+                # print(f"dic_emb:{len(dic_emb)}")
+                # if len(dic_emb) == num_c:
+                #     with open(f"./embeddings/{dataset_name}_emb_json.json", "w") as f:
+                #         json.dump(dic_emb, f)
+                #         print(f"save embeddings to file!!!")
+                #         break
                 # start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
                 # print(start_hemb.shape, h.shape)
                 # h = torch.cat((start_hemb, h), dim=1) # add the first hidden emb
@@ -551,12 +620,83 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             acc = metrics.accuracy_score(ts, prelabels)
             aucs[key] = auc
             accs[key] = acc
+        with open(f"./embeddings/{dataset_name}emb_json.json", "w") as f:
+            json.dump(dic_emb, f)
     return aucs, accs
 
 
 def log2(t):
     import math
     return round(math.log(t+1, 2))
+
+def MIKT_calC(row, data_config):
+    uid = row["uid"]
+    repeated_gap, sequence_gap, past_counts, sequence_it, t_label, pret_label, cit_label = [], [], [], [], [], [],[]
+    # default: concepts
+    skills = row["concepts"].split(",")
+    timestamps = row["timestamps"].split(",")
+    dpreskill, dlastskill, dcount = dict(), dict(), dict()
+    pret, double_pret = None, None
+    cnt = 0
+    for idx,(s, t) in enumerate(zip(skills, timestamps)):
+        s, t = int(s), int(t)
+        if s not in dlastskill or s == -1:
+            curRepeatedGap = 0
+            curCIt = 0
+            dlastskill[s] = -1
+        else:
+            curRepeatedGap = log2((t - dlastskill[s]) / 1000 / 60) + 1 # minutes
+            if dpreskill[s] == -1:
+                curCIt = 0.5
+            else:
+                precit = int((t - dlastskill[s]))/1000
+                double_precit = int((t - dpreskill[s]))/1000
+                curCIt = round(1 - ((precit + 0.01)/(double_precit + 0.01)),2)
+        dpreskill[s] = dlastskill[s]
+        dlastskill[s] = t
+
+        repeated_gap.append(curRepeatedGap)
+        cit_label.append(curCIt)
+
+        if pret == None or t == -1:
+            if t == -1:
+                cnt += 1
+            curLastGap = 0
+            curLastIt = 0
+            curPreT = 0
+            if idx == 0:
+                curLableT = 0
+                double_pret = t
+            else:
+                if cnt == 2:
+                    t_label[-1] = 1
+                else:
+                    curLableT = 0
+
+        else:
+            curLastGap = log2((t - pret) / 1000 / 60) + 1
+            # curLastIt = min(int((t - pret) / 1000 / 60) + 1,43200)
+            curLastIt = int((t - pret)) / 1000
+            curPreIt = int((pret - double_pret))/1000
+            curPostIt = int((t - double_pret))/1000
+            curLableT = round((curPreIt+0.01)/(curPostIt+0.01),2)
+            curPreT = round(1 - ((curLastIt + 0.01)/(curPostIt + 0.01)),2)
+            double_pret = pret
+        pret = t
+        sequence_gap.append(curLastGap)
+        sequence_it.append(curLastIt)
+        t_label.append(curLableT)
+        pret_label.append(curPreT)
+        
+        dcount.setdefault(s, 0)
+        ccount = log2(dcount[s])
+        ccount = data_config["num_pcount"] - 1 if ccount >= data_config["num_pcount"] else ccount
+        past_counts.append(ccount)
+        dcount[s] += 1
+    t_label = [0]+t_label[2:]+[1]
+    pret_label = [0, 0.5]+pret_label[2:]
+
+    return repeated_gap, sequence_gap, past_counts, sequence_it, t_label, pret_label, cit_label
 
 def calC(row, data_config):
     repeated_gap, sequence_gap, past_counts = [], [], []
@@ -590,14 +730,94 @@ def calC(row, data_config):
         past_counts.append(ccount)
         
         dcount[s] += 1
-    return repeated_gap, sequence_gap, past_counts           
+    return repeated_gap, sequence_gap, past_counts    
 
-def get_info_dkt_forget(row, data_config):
+def MIKT_calC_INDEX(row, data_config):
+    repeated_gap, sequence_gap, past_counts, sequence_it, t_label, pret_label, cit_label = [], [], [], [], [], [],[]
+    uid = row["uid"]
+    # default: concepts
+    skills = row["concepts"].split(",")
+    # print(f"skills:{skills}")
+    timestamps = [i for i in range(len(skills))]
+    dpreskill, dlastskill, dcount = dict(), dict(), dict()
+    pret, double_pret = None, None
+    cnt = 0
+
+    for idx,(s, t) in enumerate(zip(skills, timestamps)):
+        s, t = int(s), int(t)
+        if s not in dlastskill or s == -1:
+            curRepeatedGap = 0
+            curCIt = 0
+            dlastskill[s] = -1
+        else:
+            curRepeatedGap = (t - dlastskill[s])# minutes
+            if dpreskill[s] == -1:
+                # print(f"s:{s}")
+                curCIt = 0.5
+            else:
+                # print(f"s:{s}")
+                precit = int((t - dlastskill[s]))
+                double_precit = int((t - dpreskill[s]))
+                curCIt = round(1 - ((precit + 0.01)/(double_precit + 0.01)),2)
+        dpreskill[s] = dlastskill[s]
+        dlastskill[s] = t
+
+        curRepeatedGap = data_config["num_rgap"] - 1 if curRepeatedGap >= data_config["num_rgap"] else curRepeatedGap
+        repeated_gap.append(curRepeatedGap)
+        cit_label.append(curCIt)
+
+        if pret == None or t == -1:
+            if t == -1:
+                cnt += 1
+            curLastGap = 0
+            curLastIt = 0
+            curPreT = 0
+            if idx == 0:
+                curLableT = 0
+                double_pret = t
+            else:
+                if cnt == 2:
+                    t_label[-1] = 1
+                else:
+                    curLableT = 0
+
+        else:
+            curLastGap = (t - pret) 
+            curLastIt = int((t - pret)) 
+            curPreIt = int((pret - double_pret))
+            curPostIt = int((t - double_pret))
+            curLableT = round((curPreIt+0.01)/(curPostIt+0.01),2)
+            curPreT = round(1 - ((curLastIt + 0.01)/(curPostIt + 0.01)),2)
+            double_pret = pret
+        pret = t
+        sequence_gap.append(curLastGap)
+        sequence_it.append(curLastIt)
+        t_label.append(curLableT)
+        pret_label.append(curPreT)
+
+        dcount.setdefault(s, 0)
+        ccount = dcount[s]
+        ccount = data_config["num_pcount"] - 1 if ccount >= data_config["num_pcount"] else ccount
+        past_counts.append(ccount)
+
+    t_label = [0]+t_label[2:]+[1]
+    pret_label = [0, 0.5]+pret_label[2:]
+
+    return repeated_gap, sequence_gap, past_counts, sequence_it, t_label, pret_label, cit_label       
+
+def get_info_dkt_forget(row, data_config, model_name, dataset_name):
     dforget = dict()
-    rgap, sgap, pcount = calC(row, data_config)
+    if model_name not in ["mikt"]:
+        rgap, sgap, pcount = calC(row, data_config)
 
-    ## TODO
-    dforget["rgaps"], dforget["sgaps"], dforget["pcounts"] = rgap, sgap, pcount
+        ## TODO
+        dforget["rgaps"], dforget["sgaps"], dforget["pcounts"] = rgap, sgap, pcount
+    else:
+        if dataset_name not in ["assist2009", "assist2015"]:
+            rgap, sgap, pcount, its, tlabel, pretlabel, cit_label = MIKT_calC(row, data_config)
+        else:
+            rgap, sgap, pcount, its, tlabel, pretlabel, cit_label = MIKT_calC_INDEX(row, data_config)
+        dforget["rgaps"], dforget["sgaps"], dforget["pcounts"], dforget["its"], dforget["tlabel"], dforget["pretlabel"], dforget["citlabel"] = rgap, sgap, pcount, its, tlabel, pretlabel, cit_label        
     return dforget
 
 def evaluate_splitpred_question(model, data_config, testf, model_name, save_path="", use_pred=False, train_ratio=0.2, atkt_pad=False):
@@ -619,7 +839,8 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             #     sys.exit()
             model.eval()
 
-            dforget = dict() if model_name not in ["dkt_forget", "bakt_time"] else get_info_dkt_forget(row, data_config)
+            dataset_name = data_config["dpath"].split("/")[-1]
+            dforget = dict() if model_name not in ["dkt_forget", "bakt_time", "parkt", "mikt"] else get_info_dkt_forget(row, data_config, model_name, dataset_name)
 
             concepts, responses = row["concepts"].split(","), row["responses"].split(",")
             ###
@@ -794,7 +1015,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             y = model(cin.long(), rin.long())
             # print(y)
             pred = y[0][-1][cout.item()]
-        if model_name in ["dkt_forget", "bakt_time"]:
+        if model_name in ["dkt_forget", "bakt_time","parkt","mikt"]:
             din = dict()
             for key in curdforget:
                 din[key] = curdforget[key][:,start:]
@@ -870,7 +1091,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
 
             y, reg_loss = model(cin.long(), rin.long(), qin.long())
             pred = y[0][-1]
-        elif model_name in ["bakt_time"]:
+        elif model_name in ["bakt_time", "parkt", "mikt"]:
            if qout != None:
                curq = torch.tensor([[qout.item()]]).to(device)
                qinshft = torch.cat((qin[:,1:], curq), axis=1)
@@ -881,9 +1102,9 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
            cinshft, rinshft = torch.cat((cin[:,1:], curc), axis=1), torch.cat((rin[:,1:], curr), axis=1)
            dcurinfos = {"qseqs": qin, "cseqs": cin, "rseqs": rin, "shft_qseqs": qinshft, "shft_cseqs": cinshft, "shft_rseqs": rinshft}
            
-           y = model(dcurinfos, dgaps)
+           y = model(dcurinfos, dgaps=dgaps)
            pred = y[0][-1]
-        elif model_name in ["bakt","simplekt_sr", "parkt", "mikt"]:
+        elif model_name in ["bakt","simplekt_sr"]:
            if qout != None:
                curq = torch.tensor([[qout.item()]]).to(device)
                qinshft = torch.cat((qin[:,1:], curq), axis=1)
@@ -942,7 +1163,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             nextitin = cit[0:k+1].unsqueeze(0) if cit.shape[0] > 0 else itin
 
         # update nextdforget
-        if model_name in ["dkt_forget", "bakt_time"]:
+        if model_name in ["dkt_forget", "bakt_time", "mikt"]:
             for key in nextdforget:
                 curd = torch.tensor([[dforget[key][k]]]).long().to(device)
                 nextdforget[key] = torch.cat((nextdforget[key], curd), axis=1)
@@ -1062,7 +1283,8 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
                 ditshfts.append(curit)
 
         d, dshft = dict(), dict()
-        if model_name in ["dkt_forget", "bakt_time"]:
+        if model_name in ["dkt_forget", "bakt_time", "parkt", "mikt"]:
+            # print(f"curdforget:{curdforget}")
             for key in curdforget:
                 d[key] = curdforget[key][:,start:]
                 dds.setdefault(key, [])
@@ -1118,6 +1340,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
     else:
         qidxs, finalqs, finalcs, finalrs, finalts, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finald, finaldshft = prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget, t, end)
     bidx, bz = 0, 128
+    # print(f"finalcs:{finalcs.shape}")
     while bidx < finalcs.shape[0]:
         curc, curr = finalcs[bidx: bidx+bz], finalrs[bidx: bidx+bz]
         curcshft, currshft = finalcshfts[bidx: bidx+bz], finalrshfts[bidx: bidx+bz]
@@ -1131,7 +1354,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             curt = finalts[bidx: bidx+bz]
             curtshft = finaltshfts[bidx: bidx+bz]
         curd, curdshft = dict(), dict()
-        if model_name in ["dkt_forget", "bakt_time"]:
+        if model_name in ["dkt_forget", "bakt_time", "parkt", "mikt"]:
             for key in finald:
                 curd[key] = finald[key][bidx: bidx+bz]
                 curdshft[key] = finaldshft[key][bidx: bidx+bz]
@@ -1143,12 +1366,13 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
         ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
         ccr = torch.cat((curr[:,0:1], currshft), dim=1)
         cct = torch.cat((curt[:,0:1], curtshft), dim=1)
-        if model_name in ["dkt_forget", "bakt_time"]:
+        if model_name in ["dkt_forget", "bakt_time", "parkt", "mikt"]:
             dgaps = dict()
             for key in curd:
                 dgaps[key] = curd[key]
             for key in curdshft:
                 dgaps["shft_"+key] = curdshft[key]
+            # print(f"dgaps:{dgaps}")
         if model_name in ["cdkt"]:
             # y = model(curc.long(), curr.long(), curq.long())
             # y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
@@ -1190,14 +1414,14 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
             y = model(ccq.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
-        elif model_name in ["bakt_time"]:
+        elif model_name in ["bakt_time", "parkt", "mikt"]:
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             # print(f"finald: {finald.keys()}")
             # print(f"dgaps: {dgaps.keys()}")
-            y = model(dcurinfos, dgaps)
+            y = model(dcurinfos, dgaps=dgaps)
             y = y[:,1:]
-        elif model_name in ["bakt","simplekt_sr", "parkt", "mikt"]:
+        elif model_name in ["bakt","simplekt_sr"]:
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             # print(f"finald: {finald.keys()}")

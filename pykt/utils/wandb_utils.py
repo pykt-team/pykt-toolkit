@@ -8,6 +8,7 @@ import json
 from multiprocessing.pool import ThreadPool # 线程池
 from .utils import debug_print
 import shutil
+import traceback
 
 def get_runs_result(runs):
     result_list = []
@@ -116,6 +117,7 @@ class WandbUtils:
         df = df.sort_values("create_time")
         df["run_index"] = range(len(df))
         df.index = range(len(df))
+#         print(f"df:{df}")
         return df
 
     def get_multi_df(self,id_list=[],input_type="sweep_name",drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
@@ -216,7 +218,7 @@ class WandbUtils:
         stop_info = {"finish":finish,"not_improve_num":not_improve_num,"stop_index":i,"first_best_index":first_best_index}
         return stop_info
 
-    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False):
+    def check_sweep_early_stop(self,id,input_type="sweep_name",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,wandb_key=None):
         """Check sweep early stop
 
         Args:
@@ -258,7 +260,7 @@ class WandbUtils:
                 if stop_info['finish']:
                     df = df[:stop_info['stop_index']]#only keep before stop point
                     report['not_improve_num'] = stop_info['not_improve_num']
-                    stop_cmd = f"wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
+                    stop_cmd = f"WANDB_API_KEY={wandb_key} wandb sweep {self.user}/{self.project_name}/{sweep_id} --cancel"
                     print(f"    Run `{stop_cmd}` to stop the sweep.")
                     report['state'] = True
                     report['stop_cmd'] = stop_cmd
@@ -279,13 +281,17 @@ class WandbUtils:
         print(f"We will stop the sweep, by {cmd}")
 
     
-    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5):
+    def check_sweep_list(self, sweep_key_list, metric="validauc", metric_type="max", min_run_num=200, patience=50, force_check_df=False, stop=False,n_jobs=5,wandb_key=None):
         check_result_list = []
 
         def check_help(sweep_name, input_type='sweep_name',
                     metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df):
-            check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
-                                                    metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df)
+            try:
+                check_result = self.check_sweep_early_stop(sweep_name, input_type=input_type,
+                                                        metric=metric, metric_type=metric_type, min_run_num=min_run_num, patience=patience, force_check_df=force_check_df,wandb_key=wandb_key)
+            except:
+                print(f"Check fail for {sweep_name},detiils are {traceback.format_exc()}")
+                check_result = {"State":False,"stop_cmd":""}
             return check_result
         p = ThreadPool(n_jobs)
         check_result_list = p.map(check_help, sweep_key_list)
@@ -296,7 +302,7 @@ class WandbUtils:
                     self.stop_sweep(result['stop_cmd'])
         return check_result_list
 
-    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
+    def check_sweep_by_pattern(self,sweep_pattern,metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5,wandb_key=None):
         """Check sweeps by pattern
         
         Args:
@@ -314,7 +320,7 @@ class WandbUtils:
         for sweep_name in self.sweep_keys:
             if sweep_name.startswith(sweep_pattern) or sweep_pattern=='all':
                 sweep_key_list.append(sweep_name)
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs,wandb_key=wandb_key)
         
         return check_result_list
 
@@ -345,12 +351,12 @@ class WandbUtils:
         sweep_key_list = [x for x in sweep_key_list if x in self.sweep_keys]#filter error
         return sweep_key_list
 
-    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5):
+    def check_sweep_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",metric="validauc",metric_type="max",min_run_num=200,patience=50,force_check_df=False,stop=False,n_jobs=5,wandb_key=None):
         sweep_key_list = self.get_all_fold_name(dataset_name,model_name,emb_type)
         if len(sweep_key_list)!=5:
             print("Input error, please check")
             return 
-        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs)
+        check_result_list = self.check_sweep_list(sweep_key_list,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience,force_check_df=force_check_df,stop=stop,n_jobs=n_jobs,wandb_key=wandb_key)
         return check_result_list
     
     def get_df_by_model_dataset_name(self,dataset_name,model_name,emb_type="qid",drop_duplicate=False, drop_na=True, only_finish=True,n_jobs=5):
@@ -374,6 +380,7 @@ class WandbUtils:
                     stop_info = self.get_stop_index(df,metric=metric,metric_type=metric_type,min_run_num=min_run_num,patience=patience)
                     df = df[:stop_info['stop_index']]#only keep before stop point
                 df_list.append(df)
+                total_df = df
             
             #find the best row
             row_list = []
@@ -426,7 +433,7 @@ class WandbUtils:
         # with open(wandb_path) as fin:
         #     wandb_config = json.load(fin)
         pre = "WANDB_API_KEY=" + wandb_key + " wandb sweep "
-        with open(sweep_shell,"w") as fallsh:
+        with open(sweep_shell,"a+") as fallsh:
             if generate_all:
                 files = os.listdir(pred_dir)
                 files = sorted(files)
@@ -489,6 +496,7 @@ class WandbUtils:
         """
         all_res = self.get_df('_'.join([dataset_name, model_name, emb_type, 'prediction']), input_type="sweep_name")
         all_res = all_res.drop_duplicates(["save_dir"])
+#         print(f"all_res:{all_res}")
         if len(all_res) < 5:
             print("Failure running exists, please check!!!")
             return
@@ -521,11 +529,11 @@ class WandbUtils:
                 print(key + "_concepts:", "%.4f"%question_auc_mean + "," + "%.4f"%question_acc_mean + "," + "%.4f"%question_winauc_mean + "," + "%.4f"%question_winacc_mean) 
         except:
             print(f"{model_name} don't have question tag!!!")
-            return
+            # return
 
         try:
-            early_aucs = np.unique(all_res["oriaucearly_preds"].values)
-            early_accs = np.unique(all_res["oriaccearly_preds"].values)
+            # early_aucs = np.unique(all_res["oriaucearly_preds"].values)
+            # early_accs = np.unique(all_res["oriaccearly_preds"].values)
             early_window_aucs = np.unique(all_res["windowaucearly_preds"].values)
             early_window_accs = np.unique(all_res["windowaccearly_preds"].values)
             early_auc_mean, early_auc_std = np.mean(early_aucs), np.std(early_aucs, ddof=0)
@@ -540,8 +548,9 @@ class WandbUtils:
         except:
             print(f"{model_name} don't have early fusion!!!")
 
-        late_mean_aucs = np.unique(all_res["oriauclate_mean"].values)
-        late_mean_accs = np.unique(all_res["oriacclate_mean"].values)
+        # late_mean_aucs = np.unique(all_res["oriauclate_mean"].values)
+        # late_mean_accs = np.unique(all_res["oriacclate_mean"].values)
+        late_mean_aucs,late_mean_accs = -1,-1
         late_mean_window_aucs = np.unique(all_res["windowauclate_mean"].values)
         late_mean_window_accs = np.unique(all_res["windowacclate_mean"].values)
         latemean_auc_mean, latemean_auc_std = np.mean(late_mean_aucs), np.std(late_mean_aucs, ddof=0)
@@ -554,8 +563,8 @@ class WandbUtils:
         else:
             print(key + "_latemean:", "%.4f"%latemean_auc_mean + "," + "%.4f"%latemean_acc_mean + "," + "%.4f"%latemean_winauc_mean + "," + "%.4f"%latemean_winacc_mean)
 
-        late_vote_aucs = np.unique(all_res["oriauclate_vote"].values)
-        late_vote_accs = np.unique(all_res["oriacclate_vote"].values)
+        # late_vote_aucs = np.unique(all_res["oriauclate_vote"].values)
+        # late_vote_accs = np.unique(all_res["oriacclate_vote"].values)
         late_vote_window_aucs = np.unique(all_res["windowauclate_vote"].values)
         late_vote_window_accs = np.unique(all_res["windowacclate_vote"].values)
         latevote_auc_mean, latevote_auc_std = np.mean(late_vote_aucs), np.std(late_vote_aucs, ddof=0)
@@ -568,8 +577,8 @@ class WandbUtils:
         else:
             print(key + "_latevote:", "%.4f"%latevote_auc_mean + "," + "%.4f"%latevote_acc_mean + "," + "%.4f"%latevote_winauc_mean + "," + "%.4f"%latevote_winacc_mean)
 
-        late_all_aucs = np.unique(all_res["oriauclate_all"].values)
-        late_all_accs = np.unique(all_res["oriacclate_all"].values)
+        # late_all_aucs = np.unique(all_res["oriauclate_all"].values)
+        # late_all_accs = np.unique(all_res["oriacclate_all"].values)
         late_all_window_aucs = np.unique(all_res["windowauclate_all"].values)
         late_all_window_accs = np.unique(all_res["windowacclate_all"].values)
         lateall_auc_mean, lateall_auc_std = np.mean(late_all_aucs), np.std(late_all_aucs, ddof=0)
