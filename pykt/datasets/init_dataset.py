@@ -16,7 +16,7 @@ from pykt.config import que_type_models
 from .cl_utils import sort_samples
 from .cl_dataloader import CL4KTDataset
 
-def init_test_datasets(data_config, model_name, batch_size,i):
+def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
     print(f"model_name is {model_name}")
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -42,12 +42,26 @@ def init_test_datasets(data_config, model_name, batch_size,i):
             test_question_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)  
     elif model_name in que_type_models:
-        test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=[-1], 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-        test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=[-1], 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        if model_name not in ["gpt4kt"]:
+            test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=[-1], 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=[-1], 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        else:
+            # test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel_pretrain"]),
+            #                 input_type=data_config["input_type"], folds=[-1], 
+            #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            test_dataset = None
+            if win200:
+                test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
+                                input_type=data_config["input_type"], folds=[-1], 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            else:
+                test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain"]),
+                                input_type=data_config["input_type"], folds=[-1], 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
         test_question_dataset = None
         test_question_window_dataset= None
     elif model_name in ["cdkt"]:

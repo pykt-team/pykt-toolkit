@@ -21,6 +21,7 @@ def main(params):
         wandb.init(project="wandb_predict")
 
     save_dir, batch_size, fusion_type = params["save_dir"], params["bz"], params["fusion_type"].split(",")
+    win200 = params["win200"]
 
     with open(os.path.join(save_dir, "config.json")) as fin:
         config = json.load(fin)
@@ -42,6 +43,8 @@ def main(params):
 
     with open("../configs/data_config.json") as fin:
         curconfig = copy.deepcopy(json.load(fin))
+        if model_name in ["gpt4kt"]:
+            dataset_name = params["dataset_name"]
         data_config = curconfig[dataset_name]
         data_config["dataset_name"] = dataset_name
         if model_name in ["dkt_forget", "bakt_time"] or emb_type.find("time") != -1:
@@ -51,8 +54,9 @@ def main(params):
         elif model_name in ["lpkt"]:
             print("running  prediction")
             data_config["num_at"] = config["data_config"]["num_at"]
-            data_config["num_it"] = config["data_config"]["num_it"]            
-    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size,fold)
+            data_config["num_it"] = config["data_config"]["num_it"] 
+            
+    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size,fold,win200)
 
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")
@@ -71,16 +75,22 @@ def main(params):
     
 
     window_testauc, window_testacc = -1, -1
-    if dataset_name in ["statics2011", "assist2015", "poj"] or model_name in ["lpkt", "gpt4kt"]:
-        init_weight = torch.zeros(data_config["num_c"]+1,data_config["num_c"]+1)
-        np.save(f"/root/autodl-nas/huangshuyan/attention/pykt-toolkit/examples/new_attn_distribution/{dataset_name}_{fold}_{emb_type}", init_weight)
+    if dataset_name in ["statics2011", "assist2015", "poj"] or model_name in ["lpkt"]:
+        # init_weight = torch.zeros(data_config["num_c"]+1,data_config["num_c"]+1)
+        # np.save(f"/root/autodl-nas/huangshuyan/attention/pykt-toolkit/examples/new_attn_distribution/{dataset_name}_{fold}_{emb_type}", init_weight)
         # attn_cnt_path = f"/root/autodl-nas/huangshuyan/attention/pykt-toolkit/examples/new_attn_distribution/{dataset_name}_{fold}_{emb_type}.npy"
-        attn_cnt_path = ""
-        if attn_cnt_path == "":
-            save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
-        else:
-            save_test_window_path = os.path.join(save_dir, model.emb_type+"_train_predictions.txt")
+        # attn_cnt_path = ""
+        # if attn_cnt_path == "":
+        save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
+        # else:
+        #     save_test_window_path = os.path.join(save_dir, model.emb_type+"_train_predictions.txt")
             # print(f"test_window_loader:{test_window_loader}")
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold, attn_cnt_path)
+        # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+        print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    
+    if model_name in ["gpt4kt"]:
+        save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions_pretrain.txt")
         window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold, attn_cnt_path)
         # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
         print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
@@ -128,6 +138,8 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--fusion_type", type=str, default="late_fusion")
     parser.add_argument("--use_wandb", type=int, default=1)
+    parser.add_argument("--dataset_name", type=str, default="algebra2005")
+    parser.add_argument("--win200", type=bool, default=True)
 
     args = parser.parse_args()
     print(args)
