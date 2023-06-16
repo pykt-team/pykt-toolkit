@@ -131,6 +131,7 @@ def main(params):
     print(dres)
     raw_config = json.load(open(os.path.join(save_dir,"config.json")))
     dres.update(raw_config['params'])
+    dres["dataset_name"] = dataset_name
 
     if params['use_wandb'] ==1:
         wandb.log(dres)
