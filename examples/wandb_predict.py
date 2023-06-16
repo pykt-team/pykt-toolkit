@@ -55,6 +55,9 @@ def main(params):
             print("running  prediction")
             data_config["num_at"] = config["data_config"]["num_at"]
             data_config["num_it"] = config["data_config"]["num_it"] 
+        elif model_name in ["gpt4kt"]:
+            data_config["num_q"] = config["data_config"]["num_q"]
+            data_config["num_c"] = config["data_config"]["num_c"] 
             
     test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size,fold,win200)
 
