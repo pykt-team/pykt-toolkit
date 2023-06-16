@@ -88,13 +88,13 @@ def main(params):
         # else:
         #     save_test_window_path = os.path.join(save_dir, model.emb_type+"_train_predictions.txt")
             # print(f"test_window_loader:{test_window_loader}")
-        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold, attn_cnt_path)
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold)
         # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
         print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
     
     if model_name in ["gpt4kt"]:
         save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions_pretrain.txt")
-        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold, attn_cnt_path)
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold)
         # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
         print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
