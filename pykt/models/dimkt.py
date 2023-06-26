@@ -27,8 +27,8 @@ class DIMKT(Module):
 
         self.q_emb = Embedding(self.num_q+1,self.emb_size,padding_idx=0)
         self.c_emb = Embedding(self.num_c+1,self.emb_size,padding_idx=0)
-        self.sd_emb = Embedding(self.difficult_levels+1,self.emb_size,padding_idx=0)
-        self.qd_emb = Embedding(self.difficult_levels+1,self.emb_size,padding_idx=0)
+        self.sd_emb = Embedding(self.difficult_levels+2,self.emb_size,padding_idx=0)
+        self.qd_emb = Embedding(self.difficult_levels+2,self.emb_size,padding_idx=0)
         self.a_emb = Embedding(2,self.emb_size)
         
         self.linear_1 = Linear(4*self.emb_size,self.emb_size)
@@ -42,7 +42,6 @@ class DIMKT(Module):
     def forward(self,q,c,sd,qd,a,qshft,cshft,sdshft,qdshft):
         if self.batch_size != len(q):
             self.batch_size = len(q)
-
         q_emb = self.q_emb(Variable(q))
         c_emb = self.c_emb(Variable(c))
         sd_emb = self.sd_emb(Variable(sd))
@@ -82,7 +81,8 @@ class DIMKT(Module):
         k = self.knowledge.repeat(self.batch_size,1).cuda()
         
         h = list()
-        for i in range(1,self.num_steps+1):
+        seqlen = q.size(1)
+        for i in range(1,seqlen+1):
             
             sd_1 = squeeze(slice_sd_embedding[i],1)
             a_1 = squeeze(slice_a_embedding[i],1)
