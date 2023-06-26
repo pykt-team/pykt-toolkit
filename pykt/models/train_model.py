@@ -254,6 +254,9 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
             #     model.attn_weights.retain_grad()
             loss.backward()#compute gradients 
+            # for name, param in model.named_parameters():
+                # print('Gradient of ', name, ' is', param.grad)
+                # break
             # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
             #     if j == len(train_loader) - 1:
             #         pre_attn_grads = attn_grads
@@ -262,7 +265,8 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             #     # print(f"after_training_attn_grads:{attn_grads.shape}")
             #     if j == len(train_loader) - 1:
             #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
-            #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])                
+            #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])   
+
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())
