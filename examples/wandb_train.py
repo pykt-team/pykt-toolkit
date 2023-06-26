@@ -39,7 +39,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
+        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "dimkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["simplekt", "bakt_time", "sparsekt"]:
             train_config["batch_size"] = 64 ## because of OOM
@@ -67,7 +67,11 @@ def main(params):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    if model_name not in ["dimkt"]:
+        train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+    else:
+        diff_level = params["difficult_levels"]
+        train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size, diff_level=diff_level)
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -84,7 +88,7 @@ def main(params):
     print(f"train_config: {train_config}")
 
     if model_name in ["dimkt"]:
-        del model_config['num_epochs']
+        # del model_config['num_epochs']
         del model_config['weight_decay']
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
