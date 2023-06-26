@@ -11,6 +11,7 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 from .que_base_model import QueBaseModel,QueEmb
+from torch.utils.checkpoint import checkpoint
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -142,9 +143,13 @@ class Architecture(nn.Module):
         # encoder
         
         for block in self.blocks_2:
-            x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+            input_data = (0,x,x,y,True)
+            # x = block(input_data)
+            x = checkpoint(block, input_data)
+            # x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
+            # x = input_data[1]
         return x
 
 class TransformerLayer(nn.Module):
@@ -171,7 +176,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True):
+    def forward(self, input_data):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -184,7 +189,7 @@ class TransformerLayer(nn.Module):
             query: Input gets changed over the layer and returned.
 
         """
-
+        mask, query, key, values, apply_pos = input_data[0], input_data[1], input_data[2], input_data[3], input_data[4]
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
@@ -205,6 +210,7 @@ class TransformerLayer(nn.Module):
                 self.activation(self.linear1(query))))
             query = query + self.dropout2((query2)) # 残差
             query = self.layer_norm2(query) # lay norm
+        # input_data = (mask, query, key, values, True)
         return query
 
 
