@@ -24,7 +24,7 @@ class GPT4KT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=1024, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, c0=0.1, max_epoch=10):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, c0=0.1, max_epoch=10, cf_weight=0.3):
         super().__init__()
         """
         Input:
@@ -44,8 +44,8 @@ class GPT4KT(nn.Module):
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
-        self.c0 = c0
-        self.max_epoch = max_epoch
+        self.ce_loss = CrossEntropyLoss()
+        self.cf_weight = cf_weight
         
         embed_l = d_model
 
@@ -63,6 +63,14 @@ class GPT4KT(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
+        if emb_type.find("predc") != -1:
+            self.qclasifier = nn.Sequential(
+                nn.Linear(d_model + embed_l,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, self.n_pid)
+            )
 
         self.reset()
 
@@ -88,19 +96,31 @@ class GPT4KT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        q_embed_data = q_embed_data.float()
-        qa_embed_data = qa_embed_data.float()
-        # d_output = checkpoint(self.model, (q_embed_data, qa_embed_data))
-        # print(f"d_output:{d_output}")
         d_output = self.model((q_embed_data, qa_embed_data))
-        # print(f"d_output:{d_output}")
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
         preds = m(output)
-
+        
+        if self.emb_type.find("predc") != -1 and train:
+            cl_losses = []
+            sm = dcur["smasks"].long()
+            start = 0
+            # print(f"rnn_out:{rnn_out.shape}")
+            cpreds = self.qclasifier(concat_q[:,start:,:])
+            flag = sm[:,start:]==1
+            print(f"cpreds:{cpreds[:,:-1,:][flag].shape}")
+            print(f"qtag:{q[:,start:][flag].shape}")
+            cl_loss = self.ce_loss(cpreds[:,:-1,:][flag], q[:,start:][flag])
+            # cl_loss = self.ce_loss(cpreds[:,:-1,:][flag], c[:,start:][flag])
+            # cl_loss = self.ce_loss(next_c_pred[:,:-1,:][flag], cshft[:,start:][flag])
+            cl_losses.append(self.cf_weight * cl_loss)
+            
         if train:
-            return preds, y2, y3
+            if self.emb_type == "iekt":
+                return preds, y2, y3
+            else:
+                return preds, y2, y3, cl_losses
         else:
             if qtest:
                 return preds, concat_q
@@ -150,13 +170,11 @@ class Architecture(nn.Module):
         for block in self.blocks_2:
             # x.requires_grad_(True)
             # y.requires_grad_(True)
-            mask = 0
-            apply_pos=True
             # def run_block(mask, query, key, values, apply_pos):
             #     return block(mask, query, key, values, apply_pos)
             # x = checkpoint(run_block, mask, x, x, y, apply_pos)
             
-            x = checkpoint(block, mask, x, x, y, apply_pos)
+            x = checkpoint(block, x, x, y)
             # x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
@@ -187,7 +205,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True):
+    def forward(self, query, key, values):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -200,7 +218,8 @@ class TransformerLayer(nn.Module):
             query: Input gets changed over the layer and returned.
 
         """
-
+        mask = 0
+        apply_pos=True
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')

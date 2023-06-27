@@ -30,7 +30,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
                 loss = model.l1*loss1+model.l2*ys[1]
         elif model.emb_type.find("predhis") != -1:
             loss = model.l1*loss1+model.l2*ys[1]
-        elif model.emb_type in ["qid_mt"]:
+        elif model.emb_type in ["qid_mt"] or model.emb_type.find("predc") != -1:
             loss = (1 - model.cf_weight)*loss1
             for cl_loss in preloss:
                 # print(f"cl_loss:{cl_loss}")
@@ -110,7 +110,10 @@ def model_forward(model, data, attn_grads=None):
         y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["gpt4kt"]:
-        y, y2, y3 = model(dcur, train=True)
+        if model.emb_type == "iekt":
+            y, y2, y3 = model(dcur, train=True)
+        else:
+            y, y2, y3, preloss = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     elif model_name in ["simplekt_sr", "parkt","mikt"]:
@@ -238,6 +241,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             if simple_size != 1:
                 simple_size, cl_bn = sample4cl(curtrain, batch_size, i, model.c0, model.max_epoch)
         for j,data in enumerate(train_loader):
+            # if j>=1: break
             if simple_size != 1 and j > cl_bn:continue
             if model.model_name in que_type_models:
                 model.model.train()
@@ -254,8 +258,9 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
             #     model.attn_weights.retain_grad()
             loss.backward()#compute gradients 
+            # print(loss.item())
             # for name, param in model.named_parameters():
-                # print('Gradient of ', name, ' is', param.grad)
+            #     print('Gradient of ', name, ' is', param.grad[-5:])
                 # break
             # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
             #     if j == len(train_loader) - 1:
