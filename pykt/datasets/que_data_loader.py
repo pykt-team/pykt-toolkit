@@ -139,7 +139,8 @@ class KTQueDataset(Dataset):
                 try:
                     dori["qseqs"].append([int(_) for _ in row["questions"].split(",")])
                 except:
-                    print(f"i:{i}, questions:{row["questions"]}")
+                    que_seq = row["questions"]
+                    print(f"i:{i}, questions:{que_seq}")
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
