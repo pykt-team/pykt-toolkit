@@ -88,8 +88,12 @@ class GPT4KT(nn.Module):
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
-        d_output = self.model(q_embed_data, qa_embed_data)
-
+        q_embed_data = q_embed_data.float()
+        qa_embed_data = qa_embed_data.float()
+        # d_output = checkpoint(self.model, (q_embed_data, qa_embed_data))
+        # print(f"d_output:{d_output}")
+        d_output = self.model((q_embed_data, qa_embed_data))
+        # print(f"d_output:{d_output}")
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
@@ -124,8 +128,9 @@ class Architecture(nn.Module):
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
-    def forward(self, q_embed_data, qa_embed_data):
+    def forward(self, inputs):
         # target shape  bs, seqlen
+        q_embed_data, qa_embed_data = inputs
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
         q_posemb = self.position_emb(q_embed_data)
@@ -143,9 +148,15 @@ class Architecture(nn.Module):
         # encoder
         
         for block in self.blocks_2:
-            input_data = (0,x,x,y,True)
-            # x = block(input_data)
-            x = checkpoint(block, input_data)
+            # x.requires_grad_(True)
+            # y.requires_grad_(True)
+            mask = 0
+            apply_pos=True
+            # def run_block(mask, query, key, values, apply_pos):
+            #     return block(mask, query, key, values, apply_pos)
+            # x = checkpoint(run_block, mask, x, x, y, apply_pos)
+            
+            x = checkpoint(block, mask, x, x, y, apply_pos)
             # x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
@@ -176,7 +187,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, input_data):
+    def forward(self, mask, query, key, values, apply_pos=True):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -189,7 +200,7 @@ class TransformerLayer(nn.Module):
             query: Input gets changed over the layer and returned.
 
         """
-        mask, query, key, values, apply_pos = input_data[0], input_data[1], input_data[2], input_data[3], input_data[4]
+
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
@@ -210,7 +221,6 @@ class TransformerLayer(nn.Module):
                 self.activation(self.linear1(query))))
             query = query + self.dropout2((query2)) # 残差
             query = self.layer_norm2(query) # lay norm
-        # input_data = (mask, query, key, values, True)
         return query
 
 
@@ -320,8 +330,8 @@ class CosinePositionalEmbedding(nn.Module):
         super().__init__()
         # Compute the positional encodings once in log space.
         pe = 0.1 * torch.randn(max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1).float()
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+        position = torch.arange(0, max_len).unsqueeze(1).long()
+        div_term = torch.exp(torch.arange(0, d_model, 2).long() *
                              -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
