@@ -136,7 +136,10 @@ class KTQueDataset(Dataset):
                     row_skills.append(skills)
                 dori["cseqs"].append(row_skills)
             if "questions" in self.input_type:
-                dori["qseqs"].append([int(_) for _ in row["questions"].split(",")])
+                try:
+                    dori["qseqs"].append([int(_) for _ in row["questions"].split(",")])
+                except:
+                    print(f"i:{i}, questions:{row["questions"]}")
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
