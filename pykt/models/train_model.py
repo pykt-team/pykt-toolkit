@@ -30,7 +30,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
                 loss = model.l1*loss1+model.l2*ys[1]
         elif model.emb_type.find("predhis") != -1:
             loss = model.l1*loss1+model.l2*ys[1]
-        elif model.emb_type in ["qid_mt"] or model.emb_type.find("predc") != -1:
+        elif model.emb_type in ["qid_mt"]:
             loss = (1 - model.cf_weight)*loss1
             for cl_loss in preloss:
                 # print(f"cl_loss:{cl_loss}")
@@ -39,8 +39,8 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         #     loss = loss1
         #     for cl_loss in preloss:
         #         # print(f"cl_loss:{cl_loss}")
-        #         loss += cl_loss
-        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"] or model.emb_type.find("pt") != -1:
+        #         loss += cl_loss         
+        elif model.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"] or model.emb_type.find("predc") != -1 or model.emb_type.find("pt") != -1:
             # print(f"preloss:{preloss}")
             loss = loss1 + preloss
         else:
@@ -87,6 +87,8 @@ def model_forward(model, data, attn_grads=None):
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     if model_name in ["dkt_forget", "bakt_time"] or model.emb_type.find("time") != -1:
         dcur, dgaps = data
+    elif model_name in ["gpt4kt"] and model.emb_type.find("pt") != -1:
+        dcur, dgaps = data
     else:
         dcur = data
     q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
@@ -112,8 +114,10 @@ def model_forward(model, data, attn_grads=None):
     elif model_name in ["gpt4kt"]:
         if model.emb_type == "iekt":
             y, y2, y3 = model(dcur, train=True)
-        else:
+        elif model.emb_type.find("pt") == -1:
             y, y2, y3, preloss = model(dcur, train=True)
+        else:
+            y, y2, y3, preloss = model(dcur, train=True, dgaps=dgaps)
         ys = [y[:,1:], y2, y3]
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     elif model_name in ["simplekt_sr", "parkt","mikt"]:

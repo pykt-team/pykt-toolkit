@@ -147,13 +147,18 @@ class QueEmb(nn.Module):
         elif emb_type.find("iekt") != -1:
             emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
-            emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
-            xemb = self.que_c_linear(emb_qc)
-            # print(f"emb_qc shape is {emb_qc.shape}")
-            # print(f"r shape is {r.shape}")
-            # print(f"(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2) shape is {(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2).shape}")
-            emb_qca = torch.cat([emb_qc.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
-                                emb_qc.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
+            # print(f"emb_c:{emb_c.shape}")
+            # print(f"emb_c:{emb_c}")s
+            if emb_c.shape != emb_q.shape:
+                xemb, emb_qca, emb_qc, emb_c = None, None, None, None
+            else:
+                emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+                xemb = self.que_c_linear(emb_qc)
+                # print(f"emb_qc shape is {emb_qc.shape}")
+                # print(f"r shape is {r.shape}")
+                # print(f"(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2) shape is {(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2).shape}")
+                emb_qca = torch.cat([emb_qc.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
+                                    emb_qc.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
             return xemb,emb_qca,emb_qc,emb_q,emb_c
 
         return xemb

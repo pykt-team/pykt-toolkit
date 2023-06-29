@@ -104,6 +104,8 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 dcur, dgaps = data
             elif model_name in ["bakt_time"]:
                 dcur, dgaps = data
+            elif model_name in ["gpt4kt"] and model.emb_type.find("pt") != -1:
+                dcur, dgaps = data
             else:
                 dcur = data
             q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
@@ -153,9 +155,13 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                     y = model(dcur, attn_cnt_path=attn_cnt_path)
                 y = y[:,1:]
             elif model_name in ["gpt4kt"]:
-                y = model(dcur)
+                if model.emb_type.find("pt") != -1:
+                    y = model(dcur, dgaps=dgaps)
+                else:
+                    y = model(dcur)
                 y = y[:,1:]
-                c,cshft = q,qshft#question level 
+                if q.size(1) != 0:
+                    c,cshft = q,qshft#question level 
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)

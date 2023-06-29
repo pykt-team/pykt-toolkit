@@ -11,6 +11,7 @@ from .lpkt_dataloader import LPKTDataset
 from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from .que_data_loader_cl import KTQueDataset4CL
+from .que_data_loader_time import KTQueDataset4PT
 from pykt.config import que_type_models
 # from .simplekt_cl_dataloader import CL4KTDataset
 from .cl_utils import sort_samples
@@ -54,14 +55,23 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
             #                 input_type=data_config["input_type"], folds=[-1], 
             #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
             test_dataset = None
+            dataset = data_config['dpath'].split("/")[-1]
             if win200:
-                test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
+                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]:
+                    test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                else:
+                    test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+                    test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})                              
             else:
-                test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain"]),
+                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]:
+                    test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                else:
+                    test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+                    test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})  
         test_question_dataset = None
         test_question_window_dataset= None
     elif model_name in ["cdkt"]:
@@ -140,12 +150,23 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         curvalid = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {i})
         curtrain = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], all_folds - {i})
     elif model_name in que_type_models:
-        curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds={i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-        curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=all_folds - {i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        if emb_type.find("pt") != -1:
+            max_rgap, max_sgap, max_pcount, max_it = 0, 0, 0, 0
+            curvalid = KTQueDataset4PT(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds={i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            curtrain = KTQueDataset4PT(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=all_folds - {i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])  
+            max_sgap = curtrain.max_sgap if curtrain.max_sgap > max_sgap else max_sgap
+            max_sgap = curvalid.max_sgap if curvalid.max_sgap > max_sgap else max_sgap        
+        else:            
+            curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds={i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=all_folds - {i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     elif model_name in ["cdkt"]:
         curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
@@ -212,6 +233,8 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         print(f"num_it:{len(it2idx)}")
         data_config["num_at"] = len(at2idx) + 1
         data_config["num_it"] = len(it2idx) + 1
+    if model_name in ["gpt4kt"] and emb_type.find("pt") != -1:
+        data_config["num_sgap"] = max_sgap + 1
     # test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     # # test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
     # test_window_loader = None

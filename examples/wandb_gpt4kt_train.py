@@ -27,9 +27,9 @@ if __name__ == "__main__":
     parser.add_argument("--n_blocks", type=int, default=2)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
 
-    # curriculum learning
-    parser.add_argument("--c0", type=float, default=0.1)
-    parser.add_argument("--max_epoch", type=float, default=10)
+    # multi-task
+    parser.add_argument("--cf_weight", type=float, default=0.1)
+    parser.add_argument("--t_weight", type=float, default=0.1)
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
