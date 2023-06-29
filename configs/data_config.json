@@ -197,7 +197,8 @@
         "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
         "test_file_quelevel": "test_sequences_quelevel.csv",
         "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
-        "test_original_file_quelevel": "test_quelevel.csv"
+        "test_original_file_quelevel": "test_quelevel.csv",
+        "test_window_file_quelevel_pretrain_w200":"test_window_sequences_quelevel.csv"
     },
     "junyi2015": {
         "dpath": "../data/junyi2015",
@@ -392,7 +393,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "ednet5w": {
-        "dpath": "../data/ednet5w",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/ednet5w",
         "num_q": 12235,
         "num_c": 188,
         "input_type": [
