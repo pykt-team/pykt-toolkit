@@ -24,7 +24,7 @@ class GPT4KT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=1024, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, c0=0.1, max_epoch=10, cf_weight=0.3):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, cf_weight=0.3, t_weight=0.3, num_sgap=None):
         super().__init__()
         """
         Input:
@@ -46,12 +46,17 @@ class GPT4KT(nn.Module):
         self.emb_type = emb_type
         self.ce_loss = CrossEntropyLoss()
         self.cf_weight = cf_weight
+        self.t_weight = t_weight
+        self.num_sgap = num_sgap
         
         embed_l = d_model
 
         self.que_emb = QueEmb(num_q=self.n_pid,num_c=self.n_question,emb_size=embed_l,emb_type=self.emb_type,model_name=self.model_name,device=device,
                     emb_path=emb_path,pretrain_dim=pretrain_dim)
         self.qa_embed = nn.Embedding(2, embed_l)
+        
+        if self.emb_type.find("pt") != -1:
+            self.time_emb = nn.Embedding(self.num_sgap+1, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
@@ -71,6 +76,15 @@ class GPT4KT(nn.Module):
                 ), nn.Dropout(self.dropout),
                 nn.Linear(final_fc_dim2, self.n_pid)
             )
+            
+        if emb_type.find("pt") != -1: 
+            self.t_out = nn.Sequential(
+                nn.Linear(d_model + embed_l,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
 
         self.reset()
 
@@ -79,16 +93,27 @@ class GPT4KT(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def forward(self, dcur, qtest=False, train=False):
+    def forward(self, dcur, qtest=False, train=False, dgaps=None):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
-
+        
         # Batch First
+        if pid_data.size(1) == 0:
+            pid_data,q_data = q_data, pid_data
         _, emb_qca, emb_qc, emb_q, emb_c = self.que_emb(pid_data, q_data, target)
-        q_embed_data = emb_q + emb_c
+        if q_data.size(1) == 0:
+            q_embed_data = emb_q
+        else:
+            q_embed_data = emb_q + emb_c
+        # print(f"emb_q:{emb_q.shape}")
+        if self.emb_type.find("pt") != -1:
+            sg, sgshft = dgaps["sgaps"].long(), dgaps["shft_sgaps"].long()
+            s_gaps = torch.cat((sg[:, 0:1], sgshft), dim=1)
+            emb_t = self.time_emb(s_gaps)
+            q_embed_data += emb_t
         qa_embed_data = self.qa_embed(target)
         qa_embed_data = q_embed_data + qa_embed_data
 
@@ -101,20 +126,35 @@ class GPT4KT(nn.Module):
         output = self.out(concat_q).squeeze(-1)
         m = nn.Sigmoid()
         preds = m(output)
-        
+
+        cl_losses = 0
         if self.emb_type.find("predc") != -1 and train:
-            cl_losses = []
             sm = dcur["smasks"].long()
             start = 0
-            # print(f"rnn_out:{rnn_out.shape}")
             cpreds = self.qclasifier(concat_q[:,start:,:])
+            # print(f"cpreds:{cpreds.shape}")
             flag = sm[:,start:]==1
-            print(f"cpreds:{cpreds[:,:-1,:][flag].shape}")
-            print(f"qtag:{q[:,start:][flag].shape}")
+            # print(f"flag:{flag.shape}")
+            # print(f"cpreds:{cpreds[:,:-1,:][flag].shape}")
+            # print(f"qtag:{q[:,start:][flag].shape}")
             cl_loss = self.ce_loss(cpreds[:,:-1,:][flag], q[:,start:][flag])
-            # cl_loss = self.ce_loss(cpreds[:,:-1,:][flag], c[:,start:][flag])
-            # cl_loss = self.ce_loss(next_c_pred[:,:-1,:][flag], cshft[:,start:][flag])
-            cl_losses.append(self.cf_weight * cl_loss)
+            cl_losses += self.cf_weight * cl_loss
+        
+        if self.emb_type.find("pt") != -1 and train:
+            t_label= dgaps["shft_pretlabel"].double()
+            t_combined = torch.cat((d_output, emb_t), -1)
+            t_output = self.t_out(t_combined).squeeze(-1)
+            t_pred = m(t_output)[:,1:]
+            # print(f"t_pred:{t_pred}")
+            sm = dcur["smasks"]
+            ty = torch.masked_select(t_pred, sm)
+            # print(f"min_y:{torch.min(ty)}")
+            tt = torch.masked_select(t_label, sm)
+            # print(f"min_t:{torch.min(tt)}")
+            t_loss = binary_cross_entropy(ty.double(), tt.double())
+            # t_loss = mse_loss(ty.double(), tt.double())
+            # print(f"t_loss:{t_loss}")
+            cl_losses += self.t_weight * t_loss
             
         if train:
             if self.emb_type == "iekt":
