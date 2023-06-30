@@ -1,6 +1,7 @@
 import pandas as pd
 from torch.utils.data import Dataset
-from torch.cuda import FloatTensor, LongTensor
+# from torch.cuda import FloatTensor, LongTensor
+from torch import FloatTensor, LongTensor
 import os
 import numpy as np
 from tqdm import tqdm
