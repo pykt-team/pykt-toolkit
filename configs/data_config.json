@@ -393,7 +393,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "ednet5w": {
-        "dpath": "/mnt/pfs/zitao_team/shuyanwong/pykt-toolkit/data/ednet5w",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/ednet5w",
         "num_q": 12235,
         "num_c": 188,
         "input_type": [
@@ -428,8 +428,8 @@
     },
     "pretrain": {
         "dpath": "../data/pretrain",
-        "num_q": 322000,
-        "num_c": 2018,
+        "num_q": 340614,
+        "num_c": 1838,
         "input_type": [
             "questions",
             "concepts"
