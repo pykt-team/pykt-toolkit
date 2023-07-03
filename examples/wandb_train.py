@@ -115,8 +115,10 @@ def main(params, args=None):
             map_json = json.load(f)
             num_stu = len(map_json["uid"])
         model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)
+        print(f"model_parameter:{sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())}")
     else:
         model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
+        print(f"model_parameter:{sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())}")
     print(f"model is {model}")
     if model_name == "hawkes":
         weight_p, bias_p = [], []
