@@ -25,13 +25,13 @@ parameters:
     learning_rate:
         values: [1e-3, 1e-4, 1e-5]
     num_attn_heads:
-        values: [4, 8]
+        values: [4, 8]    
+    n_blocks:
+        values: [1, 2, 4]
     cf_weight:
         values: [0.01,0.1,0.3,0.5,0.7,1.0]
     t_weight:
         values: [0.01,0.1,0.3,0.5,0.7,1.0]
-    learning_rate:
-        values: [1e-3, 1e-4, 1e-5]
     seed:
         values: [42, 3407]
     fold:
