@@ -7,7 +7,7 @@ graph based models and attention based models in our work, we mainly develop the
 
 +------------+----------------+
 | Models     | Category       |
-+============+================+
++------------+----------------+
 | DKT        | Sequential     |
 +------------+----------------+
 | DKT+       | Sequential     |
@@ -190,9 +190,7 @@ Conference on Learning@ Scale.
 
 AKT
 ---
-
-| 
-| Attentive knowledge tracing (AKT) introduce a rasch model to
+Attentive knowledge tracing (AKT) introduce a rasch model to
   regularize the KC and question embeddings to discriminate the
   questions on the same KC, and modeling the exercise representations
   and the students' historical interactdion embeddings via three
@@ -274,8 +272,9 @@ and establish the relation between students' knowledge state and the question di
 .. figure:: ../pics/dimkt.png
    :alt: 
 
-`Shen, Shuanghong, et al. "Assessing Student's Dynamic Knowledge State by Exploring the Question Difficulty Effect." Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval. 2022.
- <https://dl.acm.org/doi/pdf/10.1145/3477495.3531939?casa_token=mwhaMrkKoDgAAAAA:jx_kpCPNND8ZIy37YaZ4HGijYeRFWXEOcaodf3bpIYQLp3U2eW1De5GnR_XhXiM4Rremm4i8k3BkJA>`__
+`Shen, Shuanghong, et al. "Assessing Student's Dynamic Knowledge State by Exploring the Question Difficulty Effect." 
+Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval. 
+2022. <https://dl.acm.org/doi/pdf/10.1145/3477495.3531939>`__
 
 IEKT
 ----
@@ -312,8 +311,8 @@ tagging prediction task and individualized prior knowledge prediction task.
 .. figure:: ../pics/atdkt.png
    :alt: 
 
-`Liu, Zitao, et al. "Enhancing deep knowledge tracing with auxiliary tasks." Proceedings of the ACM Web Conference 2023. 2023.
- <https://dl.acm.org/doi/pdf/10.1145/3543507.3583866>`__
+`Liu, Zitao, et al. "Enhancing deep knowledge tracing with auxiliary tasks." Proceedings of the ACM Web Conference 2023.
+ 2023. <https://dl.acm.org/doi/pdf/10.1145/3543507.3583866>`__
 
 simpleKT
 ----
@@ -322,7 +321,7 @@ simpleKT is a strong but simple baseline method to deal with the KT task by mode
 and use the ordinary dot-product attention function to extract the time-aware information embedded in the student learning interactions.
 
 `Liu, Zitao, et al. "simpleKT: A Simple But Tough-to-Beat Baseline for Knowledge Tracing." 
-The Eleventh International Conference on Learning Representations. 2022.
+The Eleventh International Conference on Learning Representations. 2022. <https://arxiv.org/pdf/2302.06881.pdf>`__
 
 QIKT
 ----
