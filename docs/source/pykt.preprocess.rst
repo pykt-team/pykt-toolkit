@@ -4,6 +4,14 @@ pykt.preprocess package
 Submodules
 ----------
 
+pykt.preprocess.aaai2022\_competition module
+--------------------------------------------
+
+.. automodule:: pykt.preprocess.aaai2022_competition
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.preprocess.algebra2005\_preprocess module
 ----------------------------------------------
 

@@ -14,7 +14,7 @@ from .dimkt_dataloader import DIMKTDataset
 
 
 
-def init_test_datasets(data_config, model_name, batch_size):
+def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
     print(f"model_name is {model_name}")
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -46,6 +46,12 @@ def init_test_datasets(data_config, model_name, batch_size):
         if "test_question_file" in data_config:
             test_question_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
+    elif model_name in ["dimkt"]:
+        test_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1}, diff_level=diff_level)
+        test_window_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1}, diff_level=diff_level)
+        if "test_question_file" in data_config:
+            test_question_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True, diff_level=diff_level)
+            test_question_window_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True, diff_level=diff_level)
     else:
         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
@@ -71,7 +77,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     max_pcount = cur.max_pcount if cur.max_pcount > max_pcount else max_pcount
     return max_rgap, max_sgap, max_pcount
 
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
+def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None):
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -82,7 +88,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curvalid)
     elif model_name == "lpkt":
         at2idx, it2idx = generate_time2idx(data_config)
-        json_str = json.dumps(at2idx)
+        # json_str = json.dumps(at2idx)
         # with open('at2idx.json', 'w') as json_file:
         #     json_file.write(json_str)
         # json_str_2 = json.dumps(it2idx)
@@ -100,6 +106,9 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
     elif model_name in ["atdkt"]:
         curvalid = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+    elif model_name == "dimkt":
+        curvalid = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i}, diff_level=diff_level)
+        curtrain = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, diff_level=diff_level)
     else:
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})

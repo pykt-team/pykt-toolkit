@@ -4,10 +4,26 @@ pykt.datasets package
 Submodules
 ----------
 
+pykt.datasets.atdkt\_dataloader module
+--------------------------------------
+
+.. automodule:: pykt.datasets.atdkt_dataloader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.datasets.data\_loader module
 ---------------------------------
 
 .. automodule:: pykt.datasets.data_loader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.datasets.dimkt\_dataloader module
+--------------------------------------
+
+.. automodule:: pykt.datasets.dimkt_dataloader
    :members:
    :undoc-members:
    :show-inheritance:

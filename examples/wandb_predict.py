@@ -44,8 +44,12 @@ def main(params):
             data_config["num_pcount"] = config["data_config"]["num_pcount"]
         elif model_name == "lpkt":
             data_config["num_at"] = config["data_config"]["num_at"]
-            data_config["num_it"] = config["data_config"]["num_it"]            
-    test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
+            data_config["num_it"] = config["data_config"]["num_it"]    
+    if model_name not in ["dimkt"]:        
+        test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
+    else:
+        diff_level = trained_params["difficult_levels"]
+        test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size, diff_level=diff_level)
 
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")

@@ -1,7 +1,8 @@
 from torch import cat,squeeze,unsqueeze,sum
-from torch.nn import Embedding,Module,Sigmoid,Tanh,Dropout,Linear
+from torch.nn import Embedding,Module,Sigmoid,Tanh,Dropout,Linear,Parameter
 from torch.autograd import Variable
 import torch
+import torch.nn as nn
 
 class DIMKT(Module):
     def __init__(self,num_q,num_c,dropout,emb_size,batch_size,num_steps,difficult_levels,emb_type,emb_path=""):
@@ -22,13 +23,13 @@ class DIMKT(Module):
         if emb_type.startswith("qid"):
             self.interaction_emb = Embedding(self.num_c * 2, self.emb_size)
 
-        self.knowledge = Variable(torch.randn(1,self.emb_size),requires_grad = True)
+        self.knowledge = nn.Parameter(nn.init.xavier_uniform_(torch.empty(1, self.emb_size)), requires_grad=True)
 
-        self.q_emb = Embedding(self.num_q+1,self.emb_size,device=self.device,padding_idx=0)
-        self.c_emb = Embedding(self.num_c+1,self.emb_size,device=self.device,padding_idx=0)
-        self.sd_emb = Embedding(self.difficult_levels+1,self.emb_size,device=self.device,padding_idx=0)
-        self.qd_emb = Embedding(self.difficult_levels+1,self.emb_size,device=self.device,padding_idx=0)
-        self.a_emb = Embedding(2,self.emb_size,device=self.device)
+        self.q_emb = Embedding(self.num_q+1,self.emb_size,padding_idx=0)
+        self.c_emb = Embedding(self.num_c+1,self.emb_size,padding_idx=0)
+        self.sd_emb = Embedding(self.difficult_levels+2,self.emb_size,padding_idx=0)
+        self.qd_emb = Embedding(self.difficult_levels+2,self.emb_size,padding_idx=0)
+        self.a_emb = Embedding(2,self.emb_size)
         
         self.linear_1 = Linear(4*self.emb_size,self.emb_size)
         self.linear_2 = Linear(1*self.emb_size,self.emb_size)
@@ -39,10 +40,8 @@ class DIMKT(Module):
         
             
     def forward(self,q,c,sd,qd,a,qshft,cshft,sdshft,qdshft):
-        
         if self.batch_size != len(q):
             self.batch_size = len(q)
-
         q_emb = self.q_emb(Variable(q))
         c_emb = self.c_emb(Variable(c))
         sd_emb = self.sd_emb(Variable(sd))
@@ -82,7 +81,8 @@ class DIMKT(Module):
         k = self.knowledge.repeat(self.batch_size,1).cuda()
         
         h = list()
-        for i in range(1,self.num_steps+1):
+        seqlen = q.size(1)
+        for i in range(1,seqlen+1):
             
             sd_1 = squeeze(slice_sd_embedding[i],1)
             a_1 = squeeze(slice_a_embedding[i],1)
@@ -122,4 +122,3 @@ class DIMKT(Module):
         y = self.sigmoid(logits)
         
         return y
-   

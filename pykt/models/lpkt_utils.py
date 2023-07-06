@@ -16,7 +16,7 @@ device = "cpu" if not torch.cuda.is_available() else "cuda"
 def generate_qmatrix(data_config, gamma=0.0):
     df_train = pd.read_csv(os.path.join(data_config["dpath"], "train_valid.csv"))
     df_test = pd.read_csv(os.path.join(data_config["dpath"], "test.csv"))
-    df = pd.concat([df_train, df_test])    
+    df = pd.concat([df_train, df_test])
 
     problem2skill = dict()
     for i, row in df.iterrows():
@@ -77,13 +77,17 @@ def _parser_row(row,data_config,ob_portions=0.5):
     times = [] if "timestamps" not in row else row["timestamps"].split(",")
     if times != []:
         times = [int(x) for x in times]
-        shft_times = [0] + times[:-1]
-        it_times = np.maximum(np.minimum((np.array(times) - np.array(shft_times)) // 60, 43200),-1)
+        # shft_times = [0] + times[:-1]
+        shft_times = times[:1] + times[:-1]
+        it_times = np.maximum(np.minimum((np.array(times) - np.array(shft_times)) // 1000 // 60, 43200),-1)
+        # print(f"it_times:{it_times}")
     else:
         it_times = np.ones(len(questions)).astype(int)
     
     at2idx, it2idx = generate_time2idx(data_config)
+    # it_times = [it2idx.get(str(t),len(it2idx)) for t in it_times]
     it_times = [it2idx.get(str(t)) for t in it_times]
+    # print(f"it_times:{it_times}")
 
     concept_list = []
     for concept in row["concepts"].split(","):

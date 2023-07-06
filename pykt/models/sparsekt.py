@@ -11,7 +11,6 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, Transf
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
 import random
-from entmax import sparsemax, entmax15, entmax_bisect, EntmaxBisect
 import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -529,13 +528,16 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, emb_type="qid", sparse_rati
 
     if emb_type.find("sparseattn") != -1:
         # scorted_attention
-        scores_a = scores[:, :, :k_index, :]
-        scores_b = scores[:, :, k_index:, :].reshape(bs*head*(seqlen-k_index), -1)
-        sorted_scores,sorted_idx = torch.sort(scores_b,descending=True)
-        scores_t = sorted_scores[:,k_index-1:k_index].repeat(1,seqlen)
-        scores_b = torch.where(scores_b - scores_t >= torch.tensor(0).to(device), scores_b, torch.tensor(-1e32).to(device)).reshape(bs,head,seqlen-k_index,-1)
-        scores = torch.cat([scores_a, scores_b], dim=2)
-        scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
+        if k_index >= seqlen:
+            scores = scores
+        else:
+            scores_a = scores[:, :, :k_index, :]
+            scores_b = scores[:, :, k_index:, :].reshape(bs*head*(seqlen-k_index), -1)
+            sorted_scores,sorted_idx = torch.sort(scores_b,descending=True)
+            scores_t = sorted_scores[:,k_index-1:k_index].repeat(1,seqlen)
+            scores_b = torch.where(scores_b - scores_t >= torch.tensor(0).to(device), scores_b, torch.tensor(-1e32).to(device)).reshape(bs,head,seqlen-k_index,-1)
+            scores = torch.cat([scores_a, scores_b], dim=2)
+            scores = F.softmax(scores, dim=-1)  # BS,8,seqlen,seqlen
 
     elif emb_type.find("accumulative") != -1:
         # print(f"running local accumulative-attn")

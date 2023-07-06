@@ -1,31 +1,33 @@
 import pandas as pd
 from torch.utils.data import Dataset
-from torch.cuda import FloatTensor, LongTensor
+# from torch.cuda import FloatTensor, LongTensor
+from torch import FloatTensor, LongTensor
 import os
 import numpy as np
 from tqdm import tqdm
 import csv
 
 class DIMKTDataset(Dataset):
-    def __init__(self,dpath,file_path,input_type,folds,qtest=False):
+    def __init__(self,dpath,file_path,input_type,folds,qtest=False, diff_level=None):
         super(DIMKTDataset,self).__init__()
         self.sequence_path = file_path
         self.input_type = input_type
         self.qtest = qtest
-        skills_difficult_path = dpath+'/skills_difficult.csv'
-        questions_difficult_path =  dpath+'/questions_difficult.csv'
+        self.diff_level = diff_level
+        skills_difficult_path = dpath+f'/skills_difficult_{diff_level}.csv'
+        questions_difficult_path =  dpath+f'/questions_difficult_{diff_level}.csv'
         if not os.path.exists(skills_difficult_path) or not os.path.exists(questions_difficult_path):
             print("start compute difficults")
             train_file_path = dpath+"/train_valid_sequences.csv"
             df = pd.read_csv(train_file_path)
-            difficult_compute(df,skills_difficult_path,questions_difficult_path)
+            difficult_compute(df,skills_difficult_path,questions_difficult_path,diff_level=self.diff_level)
             
         folds = sorted(list(folds)) 
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
-            processed_data = file_path + folds_str + "_dimkt_qtest.pkl"
+            processed_data = file_path + folds_str + f"_dimkt_qtest_{diff_level}.pkl"
         else:
-            processed_data = file_path + folds_str + "_dimkt.pkl"
+            processed_data = file_path + folds_str + f"_dimkt_{diff_level}.pkl"
 
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
@@ -43,7 +45,7 @@ class DIMKTDataset(Dataset):
             else:
                 self.dori = pd.read_pickle(processed_data)
                 
-        print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}")
+        print(f"file path: {file_path}, qlen: {len(self.dori['qseqs'])}, clen: {len(self.dori['cseqs'])}, rlen: {len(self.dori['rseqs'])}, sdlen: {len(self.dori['sdseqs'])}, qdlen:{len(self.dori['qdseqs'])}")
 
 
     def __len__(self):
@@ -179,24 +181,31 @@ class DIMKTDataset(Dataset):
             return dori, dqtest
         return dori    
 
-def difficult_compute(df,sds_path,qds_path):
-    df2 = pd.DataFrame(data=None,columns=['concepts','questions','responses'])
+def difficult_compute(df,sds_path,qds_path,diff_level):
+    concepts = []
+    questions = []
+    responses = []
     for i,row in tqdm(df.iterrows()):
-        concepts = [int(_) for _ in row["concepts"].split(",")]
-        questions = [int(_) for _ in row["questions"].split(",")]
-        responses = [int(_) for _ in row["responses"].split(",")]
-
-        for j in range(len(responses)):
-            if responses[j] == -1:
+        concept = [int(_) for _ in row["concepts"].split(",")]
+        question = [int(_) for _ in row["questions"].split(",")]
+        response = [int(_) for _ in row["responses"].split(",")]
+        length = len(response)
+        index = -1
+        for j in range(length):
+            if response[length - j - 1] != -1:
+                index = length - j
                 break
-            series = pd.Series({'concepts':concepts[j],'questions':questions[j],'responses':responses[j]})
-            df2 = df2.append(series,ignore_index=True)
-    skill_difficult(df2,sds_path,'concepts','responses')
-    question_difficult(df2,qds_path,'questions','responses')
+        concepts = concepts+concept[:index]
+        questions = questions+question[:index]
+        responses = responses+response[:index]
+    df2 = pd.DataFrame({'concepts':concepts,'questions':questions,'responses':responses})
+        
+    skill_difficult(df2,sds_path,'concepts','responses',diff_level=diff_level)
+    question_difficult(df2,qds_path,'questions','responses',diff_level=diff_level)
     
     return
     
-def skill_difficult(df,sds_path,concepts,responses):
+def skill_difficult(df,sds_path,concepts,responses,diff_level):
     sd = {}
     df = df.reset_index(drop=True)
     set_skills = set(np.array(df[concepts]))
@@ -215,7 +224,7 @@ def skill_difficult(df,sds_path,concepts,responses):
                 sd[i] = 1
                 continue
             else:
-                avg = int((count/len(correct_1))*100)+1
+                avg = int((count/len(correct_1))*diff_level)+1
                 sd[i] = avg
     with open(sds_path,'w',newline='',encoding='UTF8') as f:
         writer = csv.writer(f)
@@ -224,7 +233,7 @@ def skill_difficult(df,sds_path,concepts,responses):
         
     return 
 
-def question_difficult(df,qds_path,questions,responses):
+def question_difficult(df,qds_path,questions,responses,diff_level):
     qd = {}
     df = df.reset_index(drop=True)
     set_questions = set(np.array(df[questions]))
@@ -243,7 +252,7 @@ def question_difficult(df,qds_path,questions,responses):
                 qd[i] = 1
                 continue
             else:
-                avg = int((count/len(correct_1))*100)+1
+                avg = int((count/len(correct_1))*diff_level)+1
                 qd[i] = avg
     with open(qds_path,'w',newline='',encoding='UTF8') as f:
         writer = csv.writer(f)

@@ -2,15 +2,20 @@ import pandas as pd
 import random
 import os
 from .utils import sta_infos, write_txt
+from tqdm import tqdm
 
 KEYS = ["user_id", "tags", "question_id"]
 
 
-def read_data_from_csv(read_file, write_file):
+def read_data_from_csv(read_file, write_file,dataset_name=None):
+    if not dataset_name is None:
+        write_file = write_file.replace("/ednet/", f"/{dataset_name}/")
+        write_dir = read_file.replace("/ednet/", f"/{dataset_name}")
+        print(f"write_dir is {write_dir}")
+        print(f"write_file is {write_file}")
     stares = []
 
     file_list = list()
-
 
     random.seed(2)
     samp = [i for i in range(840473)]
@@ -18,7 +23,7 @@ def read_data_from_csv(read_file, write_file):
 
     count = 0
 
-    for unum in samp:
+    for unum in tqdm(samp):
         str_unum = str(unum)
         df_path = os.path.join(read_file, f"KT1/u{str_unum}.csv")
         if os.path.exists(df_path):
@@ -28,14 +33,23 @@ def read_data_from_csv(read_file, write_file):
             file_list.append(df)
             count = count + 1
 
-        if count == 5000:
+        if dataset_name == "ednet" and count == 5000:
+            start_i = 0
             break
-
-    print(count)
-    all_sa = pd.concat(file_list)
+        elif dataset_name == "ednet5w" and count == 50000+5000:
+            start_i = 5000
+            break
+        
+    print(f"total user num: {count}")
+    all_sa = pd.concat(file_list[start_i:])
+    print(f"after sub all_sa: {len(all_sa)}")
     all_sa["index"] = range(all_sa.shape[0])
-    all_sa.to_csv(os.path.join(read_file, 'ednet_sample.csv'), index=False)
     ca = pd.read_csv(os.path.join(read_file, 'contents', 'questions.csv'))
+    
+    if not dataset_name is None:
+        read_file = write_dir 
+
+    all_sa.to_csv(os.path.join(read_file, 'ednet_sample.csv'), index=False)
     ca['tags'] = ca['tags'].apply(lambda x:x.replace(";","_"))
     ca = ca[ca['tags']!='-1']
     co = all_sa.merge(ca, sort=False,how='left')
@@ -55,7 +69,7 @@ def read_data_from_csv(read_file, write_file):
     ui_df = co.groupby(['user_id'], sort=False)
 
     user_inters = []
-    for ui in ui_df:
+    for ui in tqdm(ui_df):
         user, tmp_inter = ui[0], ui[1]
         tmp_inter = tmp_inter.sort_values(by=["timestamp", "index"])
         seq_len = len(tmp_inter)
@@ -72,6 +86,6 @@ def read_data_from_csv(read_file, write_file):
 
     write_txt(write_file, user_inters)
     print("\n".join(stares))
-    return
+    return write_dir, write_file
 
 

@@ -27,7 +27,7 @@ def process_raw_data(dataset_name,dname2paths):
         from .assist2017_preprocess import read_data_from_csv
     elif dataset_name == "junyi2015":
         from .junyi2015_preprocess import read_data_from_csv, load_q2c
-    elif dataset_name == "ednet":
+    elif dataset_name in ["ednet","ednet5w"]:
         from .ednet_preprocess import read_data_from_csv
     elif dataset_name == "peiyou":
         from .aaai2022_competition import read_data_from_csv, load_q2c
@@ -39,7 +39,9 @@ def process_raw_data(dataset_name,dname2paths):
         fname = readf.split("/")[-1]
         dq2c = load_q2c(readf.replace(fname,"questions.json"))
         read_data_from_csv(readf, writef, dq2c)
-    elif dataset_name != "nips_task34":
+    elif dataset_name == "ednet5w":
+        dname, writef = read_data_from_csv(readf, writef, dataset_name=dataset_name)
+    elif dataset_name != "nips_task34":#default case
         read_data_from_csv(readf, writef)
     else:
         metap = os.path.join(dname, "metadata")
