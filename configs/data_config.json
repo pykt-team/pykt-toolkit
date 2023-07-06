@@ -427,7 +427,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "pretrain": {
-        "dpath": "../pykt-toolkit/data/pretrain",
+        "dpath": "../data/pretrain",
         "num_q": 340614,
         "num_c": 1838,
         "input_type": [
