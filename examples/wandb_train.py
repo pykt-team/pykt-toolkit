@@ -43,6 +43,8 @@ def main(params, args=None):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
+        if model_name in ["gpt4kt"]:
+            train_config["batch_size"] = 16 ## because of OOM
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt", "bakt_time", "bakt_qikt","simplekt_sr", "stosakt", "parkt", "mikt"]:

@@ -131,7 +131,6 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path, args=None):
     model = init_model(model_name, model_config, data_config, emb_type, args)
-    print(f"model_parameter:{sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())}")
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
     return model

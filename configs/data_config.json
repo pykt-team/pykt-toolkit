@@ -63,7 +63,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "assist2009": {
-        "dpath": "../data/assist2009",
+        "dpath": "/root/autodl-nas/huangshuyan/attention/pykt-toolkit/data/assist2009",
         "num_q": 17737,
         "num_c": 123,
         "input_type": [
@@ -427,7 +427,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "pretrain": {
-        "dpath": "../data/pretrain",
+        "dpath": "../pykt-toolkit/data/pretrain",
         "num_q": 340614,
         "num_c": 1838,
         "input_type": [
@@ -453,7 +453,7 @@
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv",
         "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
-        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel_1024.csv",
         "test_file_quelevel": "test_sequences_quelevel.csv",
         "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
         "test_original_file_quelevel": "test_quelevel.csv"

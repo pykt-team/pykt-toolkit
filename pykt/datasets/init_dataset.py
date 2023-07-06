@@ -205,7 +205,7 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
     # try:
     if model_name in ["dkt_forget", "bakt_time"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        # test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
+        # test_window_dataset = DktForgetDataset(os.path.join(data_config[n"dpath"], data_config["test_window_file"]),
         #                                 data_config["input_type"], {-1})
         max_rgap, max_sgap, max_pcount, max_it = update_gap(max_rgap, max_sgap, max_pcount, max_it, test_dataset)
     elif model_name in ["parkt", "mikt"]:
