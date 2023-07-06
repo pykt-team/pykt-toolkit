@@ -7,7 +7,7 @@ from re import L
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from torch.cuda import FloatTensor, LongTensor
+from torch import FloatTensor, LongTensor
 import numpy as np
 
 ModelConf = {
