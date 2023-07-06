@@ -1,6 +1,6 @@
 {
     "assist2015": {
-        "dpath": "../data/assist2015",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/assist2015",
         "num_q": 0,
         "num_c": 100,
         "input_type": [
@@ -29,7 +29,7 @@
         "test_original_file_quelevel": "test_quelevel.csv"
     },
     "algebra2005": {
-        "dpath": "../data/algebra2005",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/algebra2005",
         "num_q": 173113,
         "num_c": 112,
         "input_type": [
@@ -63,7 +63,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "assist2009": {
-        "dpath": "../data/assist2009",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/assist2009",
         "num_q": 17737,
         "num_c": 123,
         "input_type": [
@@ -228,7 +228,7 @@
         "test_question_window_file": "test_question_window_sequences.csv"
     },
     "bridge2algebra2006": {
-        "dpath": "../data/bridge2algebra2006",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/bridge2algebra2006",
         "num_q": 129263,
         "num_c": 493,
         "input_type": [
@@ -262,7 +262,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "ednet": {
-        "dpath": "../data/ednet",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/ednet",
         "num_q": 11901,
         "num_c": 188,
         "input_type": [
@@ -296,7 +296,7 @@
         "test_window_file_quelevel_pretrain":"test_window_sequences_quelevel_pretrain.csv"
     },
     "nips_task34": {
-        "dpath": "../data/nips_task34",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/nips_task34",
         "num_q": 948,
         "num_c": 57,
         "input_type": [
@@ -359,7 +359,7 @@
         "test_original_file_quelevel": "test_quelevel.csv"
     },
     "peiyou": {
-        "dpath": "../data/peiyou",
+        "dpath": "/root/autodl-nas/project/pykt_nips2022/data/peiyou",
         "num_q": 7652,
         "num_c": 865,
         "input_type": [
@@ -453,7 +453,7 @@
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv",
         "train_valid_original_file_quelevel": "train_valid_quelevel.csv",
-        "train_valid_file_quelevel": "train_valid_sequences_quelevel.csv",
+        "train_valid_file_quelevel": "train_valid_sequences_quelevel_200.csv",
         "test_file_quelevel": "test_sequences_quelevel.csv",
         "test_window_file_quelevel": "test_window_sequences_quelevel.csv",
         "test_original_file_quelevel": "test_quelevel.csv"
