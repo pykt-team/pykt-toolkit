@@ -231,7 +231,7 @@ def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     # train_loader = DataLoader(curtrain, batch_size=batch_size)
     return simple_size, bn
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None):    
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=8.0):    
     max_auc, best_epoch = 0, -1
     train_step = 0
     if model.model_name=='lpkt':
@@ -258,26 +258,14 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 loss = model_forward(model, data, attn_grads)
             else:
                 loss = model_forward(model, data, i)
-            opt.zero_grad()
-            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
-            #     model.attn_weights.retain_grad()
+            
+            loss = loss /gradient_accumulation_steps
+            # print(f"loss:{loss}")
             loss.backward()#compute gradients 
-            # print(loss.item())
-            # for name, param in model.named_parameters():
-            #     print('Gradient of ', name, ' is', param.grad[-5:])
-                # break
-            # if model.model_name == "bakt" and model.emb_type.find("grad") != -1 or model.emb_type == "qid":
-            #     if j == len(train_loader) - 1:
-            #         pre_attn_grads = attn_grads
-            #         # print(f"pre_attn_grads:{pre_attn_grads.shape}")
-            #     attn_grads = model.attn_weights.grad
-            #     # print(f"after_training_attn_grads:{attn_grads.shape}")
-            #     if j == len(train_loader) - 1:
-            #         attn_weights = torch.cat([model.attn_weights, pre_attn_weights[model.attn_weights.size(0):]])               
-            #         attn_grads = torch.cat([attn_grads, pre_attn_grads[attn_grads.size(0):]])   
-
-            opt.step()#update model’s parameters
-                
+            
+            if (j+1) % gradient_accumulation_steps == 0:  
+                opt.step()#update model’s parameters   
+                opt.zero_grad()
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
                 text = f"Total train step is {train_step}, the loss is {loss.item():.5}"
