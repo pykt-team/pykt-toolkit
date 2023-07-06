@@ -20,6 +20,14 @@ pykt.models.akt\_que module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.atdkt module
+------------------------
+
+.. automodule:: pykt.models.atdkt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.atkt module
 -----------------------
 
@@ -28,10 +36,26 @@ pykt.models.atkt module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.bakt\_time module
+-----------------------------
+
+.. automodule:: pykt.models.bakt_time
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.deep\_irt module
 ----------------------------
 
 .. automodule:: pykt.models.deep_irt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.dimkt module
+------------------------
+
+.. automodule:: pykt.models.dimkt
    :members:
    :undoc-members:
    :show-inheritance:
@@ -56,14 +80,6 @@ pykt.models.dkt\_plus module
 ----------------------------
 
 .. automodule:: pykt.models.dkt_plus
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pykt.models.dkt\_que module
----------------------------
-
-.. automodule:: pykt.models.dkt_que
    :members:
    :undoc-members:
    :show-inheritance:
@@ -180,6 +196,14 @@ pykt.models.qdkt module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.qikt module
+-----------------------
+
+.. automodule:: pykt.models.qikt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.que\_base\_model module
 -----------------------------------
 
@@ -212,10 +236,26 @@ pykt.models.sakt module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.simplekt module
+---------------------------
+
+.. automodule:: pykt.models.simplekt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.skvmn module
 ------------------------
 
 .. automodule:: pykt.models.skvmn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pykt.models.sparsekt module
+---------------------------
+
+.. automodule:: pykt.models.sparsekt
    :members:
    :undoc-members:
    :show-inheritance:
