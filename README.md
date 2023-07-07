@@ -22,7 +22,11 @@ source activate pykt
 
 ```
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
+
 ```
+
+## Hyper parameter tunning results
+The hyper parameter tunning results of our experiments about all the DLKT models on various datasets can be found at https://drive.google.com/drive/folders/1MWYXj73Ke3zC6bm3enu1gxQQKAHb37hz?usp=drive_link.
 
 ## References
 ### Projects
