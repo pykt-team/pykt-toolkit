@@ -312,7 +312,7 @@ tagging prediction task and individualized prior knowledge prediction task.
    :alt: 
 
 `Liu, Zitao, et al. "Enhancing deep knowledge tracing with auxiliary tasks."
-Proceedings of the ACM Web Conference 2023.
+Proceedings of the ACM Web Conference.
 2023. <https://dl.acm.org/doi/pdf/10.1145/3543507.3583866>`__
 
 simpleKT
