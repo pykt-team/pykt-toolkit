@@ -85,7 +85,7 @@ Next, add your `uid` and `api_key` into `configs/wandb.json`.
 
 ### Sweep Configuration
 
-`python generate_wandb.py [parameter]`
+`[wandb_key] python generate_wandb.py [parameter]`
 
 ```shell
 Args:
@@ -93,11 +93,18 @@ Args:
        --project_name: Project name on wandb, default: kt_toolkits
        --dataset_names: Dataset names, you can fill in multiple, separated by commas ",", default: "assist2015"
        --model_names: Model names, you can fill in multiple, separated by commas ",", default: dkt
+       --emb_type: Default:qid
        --folds: Default: "0,1,2,3,4"
+       --batch_size: Default: 128
        --save_dir_suffix: Add extra characters to the model storage path name, default: ""
        --all_dir: Generate the configuration file of the model for this dataset, default: "all_wandbs"
        --launch_file: Generated sweep startup script, default: "all_start.sh"
        --generate_all: The input is "True" or "False", indicating whether to generate the wandb startup files of all datasets and models in the all_dir directory (True means: generate the startup files of all data models in the all_dir directory, False means: only the current execution is generated data model startup file), default: "False"
+```
+Example:
+
+```shell
+WANDB_API_KEY=xxx python generate_wandb.py --dataset_names "assist2009,assist2015"  --project_name hawkes --model_names "dkt,dkt+" 
 ```
 
 ### Start Sweep
@@ -114,7 +121,6 @@ sh [launch_file] > [Directed log] 2>&1
 Example:
 
 ```shell
-python generate_wandb.py --dataset_names="assist2009,assist2015" --model_names="dkt,dkt+"
 sh all_start.sh > log.all 2>&1
 (You need to define the log file. )
 ```
@@ -122,7 +128,7 @@ sh all_start.sh > log.all 2>&1
 **Step 2:** `sh run_all.sh [parameter]`
 
 ```shell
-sh run_all.sh [Directed log] [start_sweep] [end_sweep] [dataset_name] [model_name] [gpu_ids] [project_name]
+[wandb_key] sh run_all.sh [Directed log] [start_sweep] [end_sweep] [dataset_name] [model_name] [gpu_ids] [project_name]
 
     - [Directed log]: Required, execute the sweep in the log
     - [start_sweep]: Required, the start id to start a sweep
@@ -138,7 +144,7 @@ sh run_all.sh [Directed log] [start_sweep] [end_sweep] [dataset_name] [model_nam
 Example:
 
 ```shell
-sh run_all.sh log.all 0 5 assist2015 dkt 0,1,2,3,4
+WANDB_API_KEY=xxx sh run_all.sh rerun.log 0 5 assist2009 dkt 0,1,2,3,4 nips2022-assist2009
 ```
 
 ### Start Agents
@@ -149,26 +155,86 @@ sh start_sweep_0_5.sh
 ```
 ### Tuning Protocol
 
-We use the Bayes search method to find the best hyperparameter, it is expensive to run all the hyperparameter combinations. Hence, you can run the `get_wandb_new` file to check whether to stop the searching. We default to stop the searching if the number of the tuned hyperparameter combinations in each data fold is larger than 300 and there is no AUC improvement on the testing data in the last 100 rounds (output "end!").
+We use the Bayes search method to find the best hyperparameter, it is expensive to run all the hyperparameter combinations. Hence, you can run the `pykt-toolkit/examples/check_wandb_status.ipynb` file to check whether to stop the searching. We default to stop the searching if the number of the tuned hyperparameter combinations in each data fold is larger than 300 and there is no AUC improvement on the testing data in the last 100 rounds (output "end!").
 
 ### Start Evaluation
 
-
-Run the `get_wandb_new` file to generate the `{modal name}_{emb type}_pred.yaml` file, modify the program keyword in the YAML file, and change the model path to `./wandb_predict.py` or `wandb_predict.py`.
-
-Then, execute the following command:
-
+* Extract best model
 ```shell
-WANDB_API_KEY=xxx wandb sweep all_wandbs/dkt_qid_pred.yaml -p pykt_wandb 
-#(xxx is your api_key, pykt_wandb is your wandb project name)
-
-#e.g.,
-CUDA_VISIBLE_DEVICES=0 WANDB_API_KEY=xxx nohup wandb agent swwwish/pykt_wandb/qn91y02m &
-# qn91y02m is the agent name generated after the first command line is executed
+def extract_best_models(self, df, dataset_name, model_name, emb_type="qid", eval_test=True, fpath="./seedwandb/predict.yaml", CONFIG_FILE="../configs/best_model.json", wandb_key="", pred_dir="pred_wandbs", launch_file="start_predict.sh", generate_all=False):
+      """extracting the best models which performance best performance on the validation data for testing 
+      
+      Args:
+          df: dataframe of best results in each fold
+          dataset_name: dataset_name
+          model_name: model_name
+          emb_type: embedding_type, default:qid
+          eval_test: evaluating on testing set, default:True
+          fpath: the yaml template for prediction in wandb, default: "./seedwandb/predict.yaml"
+          config_file: the config template of generating prediction file, default: "../configs/best_model.json"
+          wandb_key: the key of wandb account
+          pred_wandbs: the directory of prediction yaml files, default: "pred_wandbs"
+          launch_file: the launch file of starting the wandb prediction, default: "start_predict.sh"
+          generate_all: starting all the files on the pred_wandbs directory or not, default:False
+          
+      Returns:
+          the launch file (e.g., "start_predict.sh") for wandb prediction of the best models in each fold
+      """
+    if not os.path.exists(pred_dir):
+        os.makedirs(pred_dir)
+    model_path_fold_first = []
+    dconfig = dict()
+    for i, row in df.iterrows():
+        fold, model_path = row["fold"], row["model_save_path"]
+        model_path = model_path.rstrip("qid_model.ckpt")
+        print(f">>> The best model of {dataset_name}_{model_name}_{fold}:{model_path}")
+        model_path_fold_first.append(model_path)
+    ftarget = os.path.join(pred_dir, "{}_{}_{}_fold_first_predict.yaml".format(dataset_name, model_name, emb_type))
+    if eval_test:
+        self.generate_wandb(fpath, ftarget, model_path_fold_first)
+        dconfig["model_path_fold_first"] = model_path_fold_first
+        self.write_config(dataset_name, dconfig, CONFIG_FILE)
+        self.generate_sweep(wandb_key, pred_dir, launch_file, ftarget, generate_all)
 ```
 
-![](../pics/predict.png)
+Example:
 
+```shell
+df = wandb_api.get_best_run(dataset_name="assist2015",model_name="dkt")
+wandb_api.extract_best_models(df, dataset_name, model_name,
+                              fpath="../examples/seedwandb/predict.yaml",wandb_key=wandb_key)
+```
+
+* `sh [launch_file] [parameter]`
+
+After extracting the best model, we can get the lauch file for evaluation automatically, the default filename is "start_pred.sh". Then we can start sweep for prediction.
+
+```shell
+sh [launch_file] > [Directed log] 2>&1
+   
+    - [launch_file]: required, the user submits the script of sweep to wandbs, and directs the execution output to [directed log])
+    - [Directed log]: Required, execute the sweep in the log
+```
+
+Example:
+
+```shell
+sh start_predict.sh > pred.log 2>&1
+(You need to define the log file. )
+```
+* `sh run_all.sh [parameter]`
+
+Example:
+
+```shell
+WANDB_API_KEY=xxx sh run_all.sh pred.log 0 1 assist2009 dkt 0 nips2022-assist2009
+```
+
+### Start Agents
+
+```shell
+sh start_sweep_0_1.sh
+```
 
 There are only 5 sweeps to be run without any parameter tuning in this stage, with each sweep corresponding to the evaluation of each fold of the training data. Finally, you can export the evaluation results externally or call the wandb API for statistical 5- folds results, and calculate the mean and standard deviation of each metric, i.e., ***mean ± standard deviation***
 
