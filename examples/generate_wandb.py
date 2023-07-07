@@ -8,8 +8,9 @@ def str2bool(str):
 
 # 生成启动sweep的脚本
 def main(params):
-    src_dir, project_name, dataset_names, model_names, folds, save_dir_suffix, all_dir, launch_file, generate_all = params["src_dir"], params["project_name"], params["dataset_names"], \
-    params["model_names"], params["folds"], params["save_dir_suffix"], params["all_dir"], params["launch_file"], params["generate_all"]
+    src_dir, project_name, dataset_names, model_names, folds, save_dir_suffix, all_dir, launch_file, generate_all, emb_types = params["src_dir"], params["project_name"], params["dataset_names"], \
+    params["model_names"], params["folds"], params["save_dir_suffix"], params["all_dir"], params["launch_file"], params["generate_all"], params["emb_types"]
+    emb_types = [x for x in emb_types.split(",")]
     if not os.path.exists(all_dir):
         os.makedirs(all_dir)
     with open("../configs/wandb.json") as fin,\
@@ -23,11 +24,11 @@ def main(params):
         for dataset_name in dataset_names.split(","):
             files = os.listdir(src_dir)
             for m in model_names.split(","):
-                for _type in [["qid"]]:
+                for _type in emb_types:
                     
                     for fold in folds.split(","):
-                        _type = [str(k) for k in _type]
-                        fname = dataset_name + "_" + m + "_" + _type[0].replace("linear", "") + "_" + str(fold) + ".yaml"
+                        # _type = [str(k) for k in _type]
+                        fname = dataset_name + "_" + m + "_" + _type.replace("linear", "") + "_" + str(fold) + ".yaml"
                         ftarget = os.path.join(all_dir, fname)
                         fpath = m + ".yaml"
                         fpath = os.path.join(src_dir, fpath)
@@ -41,7 +42,7 @@ def main(params):
                             if "[\"qid" in data and "[\"qid\"]" not in data: 
                                 pass
                             else:
-                                data = data.replace("[\"qid\"]", str(_type))
+                                data = data.replace("[\"qid\"]", str(f"['{_type}']"))
                             data = data.replace("[0, 1, 2, 3, 4]", str([fold]))
                             data = data.replace('BATCH_SIZE',str(params["batch_size"]))
                             fout.write("name: " + fname.split(".")[0] + "\n")
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_name", type=str, default="kt_toolkits")
     parser.add_argument("--dataset_names", type=str, default="assist2015")
     parser.add_argument("--model_names", type=str, default="dkt,dkt+,dkt_forget,kqn,atktfix,dkvmn,sakt,saint,akt,gkt")
+    parser.add_argument("--emb_types", type=str, default="qid")
     parser.add_argument("--folds", type=str, default="0,1,2,3,4")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--save_dir_suffix", type=str, default="")
