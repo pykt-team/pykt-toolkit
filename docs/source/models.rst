@@ -302,7 +302,7 @@ tracing." arXiv preprint arXiv:2005.12442
 (2020). <https://arxiv.org/pdf/2005.12442.pdf>`__
 
 AT-DKT
-----
+--------
 
 AT-DKT improve the prediction performance of the original deep knowledge
 tracing model with two auxiliary learning tasks including question
@@ -311,8 +311,9 @@ tagging prediction task and individualized prior knowledge prediction task.
 .. figure:: ../pics/atdkt.png
    :alt: 
 
-`Liu, Zitao, et al. "Enhancing deep knowledge tracing with auxiliary tasks." Proceedings of the ACM Web Conference 2023.
- 2023. <https://dl.acm.org/doi/pdf/10.1145/3543507.3583866>`__
+`Liu, Zitao, et al. "Enhancing deep knowledge tracing with auxiliary tasks."
+Proceedings of the ACM Web Conference 2023.
+2023. <https://dl.acm.org/doi/pdf/10.1145/3543507.3583866>`__
 
 simpleKT
 ----
@@ -321,7 +322,8 @@ simpleKT is a strong but simple baseline method to deal with the KT task by mode
 and use the ordinary dot-product attention function to extract the time-aware information embedded in the student learning interactions.
 
 `Liu, Zitao, et al. "simpleKT: A Simple But Tough-to-Beat Baseline for Knowledge Tracing." 
-The Eleventh International Conference on Learning Representations. 2022. <https://arxiv.org/pdf/2302.06881.pdf>`__
+The Eleventh International Conference on Learning Representations. 
+2022. <https://arxiv.org/pdf/2302.06881.pdf>`__
 
 QIKT
 ----
@@ -333,8 +335,9 @@ a question-centric knowledge acquisition module and a question-centric problem s
 .. figure:: ../pics/qikt.png
    :alt: 
 
-`Chen, Jiahao, et al. "Improving interpretability of deep sequential knowledge tracing models with question-centric cognitive representations." arXiv preprint arXiv:2302.06885 (2023).
- <https://arxiv.org/pdf/2302.06885.pdf>`__
+`Chen, Jiahao, et al. "Improving interpretability of deep sequential knowledge tracing models with question-centric cognitive 
+representations." The 37th AAAI Conference on Artificial Intelligence.
+2023. <https://arxiv.org/pdf/2302.06885.pdf>`__
 
 sparseKT-soft/topK
 ----
@@ -344,15 +347,20 @@ sparseKT incorporate a k-selection module to only pick items with the highest at
 .. figure:: ../pics/sparsekt.png
    :alt: 
 
-`Shuyan Huang, et al. "Towards Robust Knowledge Tracing Models via k-Sparse Attention." Proceedings of the 46th International ACM SIGIR Conference on Research and Development in Information Retrieval. 2023.
+`Shuyan Huang, et al. "Towards Robust Knowledge Tracing Models via k-Sparse Attention." 
+Proceedings of the 46th International ACM SIGIR Conference on Research and Development in Information Retrieval. 
+2023.
 
 RKT
 ----
 
-RKT contains a relation-aware self-attention layer that incorporates the contextual information including both the exercise relation information through their textual content as well as student performance data and the forget behavior information through modeling an exponentially decaying kernel function.
+RKT contains a relation-aware self-attention layer that incorporates the contextual information including 
+both the exercise relation information through their textual content as well as student performance data 
+and the forget behavior information through modeling an exponentially decaying kernel function.
 
 .. figure:: ../pics/rkt.png
    :alt: 
 
-`Pandey, Shalini, and Jaideep Srivastava. "RKT: relation-aware self-attention for knowledge tracing." Proceedings of the 29th ACM International Conference on Information & Knowledge Management. 2020.
- <https://dl.acm.org/doi/pdf/10.1145/3340531.3411994>`__
+`Pandey, Shalini, and Jaideep Srivastava. "RKT: relation-aware self-attention for knowledge tracing." 
+Proceedings of the 29th ACM International Conference on Information & Knowledge Management. 
+2020. <https://dl.acm.org/doi/pdf/10.1145/3340531.3411994>`__
