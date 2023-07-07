@@ -230,7 +230,7 @@ Example:
 WANDB_API_KEY=xxx sh run_all.sh pred.log 0 1 assist2009 dkt 0 nips2022-assist2009
 ```
 
-### Start Agents
+* Start Agents
 
 ```shell
 sh start_sweep_0_1.sh
