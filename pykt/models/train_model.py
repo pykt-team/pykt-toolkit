@@ -46,7 +46,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "gnn4kt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -101,7 +101,7 @@ def model_forward(model, data, attn_grads=None):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-    if model_name in ["cdkt"]:
+    elif model_name in ["cdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
         if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
@@ -196,6 +196,9 @@ def model_forward(model, data, attn_grads=None):
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
         ys.append(y)  
+    elif model_name == "gnn4kt":
+        y = model(dcur)
+        ys.append(y)          
     # cal loss
     elif model_name == "lpkt":
         # y = model(cq.long(), cr.long(), cat, cit.long())
@@ -212,7 +215,7 @@ def model_forward(model, data, attn_grads=None):
     
     # if model_name in ["simplekt_sr"] and model.emb_type.find("mt") == -1:
     #     loss = cal_loss(model, ys, r, rshft, sm, preloss)
-    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models:
+    if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models or model_name in ["gnn4kt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
 
@@ -247,7 +250,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         for j,data in enumerate(train_loader):
             # if j>=1: break
             if simple_size != 1 and j > cl_bn:continue
-            if model.model_name in que_type_models:
+            if model.model_name in que_type_models and model.model_name not in ["gnn4kt"]:
                 model.model.train()
             else:
                 model.train()

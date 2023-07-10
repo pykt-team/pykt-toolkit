@@ -43,6 +43,7 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
             test_question_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)  
     elif model_name in que_type_models:
+        print(f"model_name:{model_name}")
         if model_name not in ["gpt4kt"]:
             test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
                             input_type=data_config["input_type"], folds=[-1], 
@@ -92,13 +93,13 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
-    if "test_question_file" in data_config:
-        print(f"has test_question_file!")
-        test_question_loader,test_question_window_loader = None,None
-        if not test_question_dataset is None:
-            test_question_loader = DataLoader(test_question_dataset, batch_size=batch_size, shuffle=False)
-        if not test_question_window_dataset is None:
-            test_question_window_loader = DataLoader(test_question_window_dataset, batch_size=batch_size, shuffle=False)
+    # if "test_question_file" in data_config:
+    #     print(f"has test_question_file!")
+    #     test_question_loader,test_question_window_loader = None,None
+    #     if not test_question_dataset is None:
+    #         test_question_loader = DataLoader(test_question_dataset, batch_size=batch_size, shuffle=False)
+    #     if not test_question_window_dataset is None:
+    #         test_question_window_loader = DataLoader(test_question_window_dataset, batch_size=batch_size, shuffle=False)
 
     return test_loader, test_window_loader, test_question_loader, test_question_window_loader
 
