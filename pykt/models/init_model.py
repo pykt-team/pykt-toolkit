@@ -26,6 +26,7 @@ from .qdkt import QDKT
 from .qikt import QIKT
 from .dimkt import DIMKT
 from .sparsekt import sparseKT
+from .rkt import RKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -103,7 +104,9 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "dimkt":
         model = DIMKT(data_config["num_q"],data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "sparsekt":
-        model = sparseKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)          
+        model = sparseKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "rkt":
+        model = RKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)          
     else:
         print("The wrong model name was used...")
         return None

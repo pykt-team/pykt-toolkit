@@ -44,7 +44,7 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
     return "\n".join(results)
 
-def evaluate(model, test_loader, model_name, save_path=""):
+def evaluate(model, test_loader, model_name, rel=None, save_path=""):
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
     with torch.no_grad():
@@ -68,7 +68,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 qshft, cshft, rshft= dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models and model_name != "lpkt":
+            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
                 model.model.eval()
             else:
                 model.eval()
@@ -87,6 +87,11 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 '''
                 y = model(dcur)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["rkt"]:
+                y, attn = model(dcur, rel)
+                y = y[:,1:]
+                if q.numel() > 0:
+                    c,cshft = q,qshft   #question level 
             elif model_name in ["bakt_time"]:
                 y = model(dcur, dgaps)
                 y = y[:,1:]
@@ -1375,3 +1380,4 @@ def save_currow_question_res(idx, dcres, dqres, qidxs, ctrues, cpreds, uid, fout
         late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)
         # print("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]))
         fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")
+

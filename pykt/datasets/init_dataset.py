@@ -15,7 +15,8 @@ from .dimkt_dataloader import DIMKTDataset
 
 
 def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
-    print(f"model_name is {model_name}")
+    dataset_name = data_config["dataset_name"]
+    print(f"model_name is {model_name}, dataset_name is {dataset_name}")
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget", "bakt_time"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
@@ -31,6 +32,12 @@ def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
         test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {-1})
         test_question_dataset = None
         test_question_window_dataset= None
+    elif model_name in ["rkt"] and dataset_name in ["statics2011", "assist2015", "poj"]:
+        test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+        if "test_question_file" in data_config:
+            test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
+            test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     elif model_name in que_type_models:
         test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
                         input_type=data_config["input_type"], folds=[-1], 
@@ -96,6 +103,9 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
         #     json_file2.write(json_str_2)
         curvalid = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {i})
         curtrain = LPKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]), at2idx, it2idx, data_config["input_type"], all_folds - {i})
+    elif model_name in ["rkt"] and dataset_name in ["statics2011", "assist2015", "poj"]:
+        curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
+        curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     elif model_name in que_type_models:
         curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                         input_type=data_config["input_type"], folds={i}, 

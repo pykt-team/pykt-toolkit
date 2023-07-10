@@ -2,15 +2,16 @@ import os, sys
 import torch
 import torch.nn as nn
 from torch.nn.functional import one_hot, binary_cross_entropy, cross_entropy
+from torch.nn.utils.clip_grad import clip_grad_norm_
 import numpy as np
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
+import pandas as pd
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
@@ -31,7 +32,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-    elif model_name in ["dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -63,7 +64,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(model, data):
+def model_forward(model, data, rel=None):
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -85,6 +86,9 @@ def model_forward(model, data):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
+    elif model_name in ["rkt"]:
+        y, attn = model(dcur, rel, train=True)
+        ys.append(y[:,1:])
     if model_name in ["atdkt"]:
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
@@ -154,33 +158,52 @@ def model_forward(model, data):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models and model_name != "lpkt":
+    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
         y,loss = model.train_one_step(data)
     elif model_name == "dimkt":
         y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
         ys.append(y) 
 
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name == "lpkt":
+    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, data_config=None, fold=None):
     max_auc, best_epoch = 0, -1
     train_step = 0
+
+    rel = None
+    if model.model_name == "rkt":
+        dpath = data_config["dpath"]
+        dataset_name = dpath.split("/")[-1]
+        tmp_folds = set(data_config["folds"]) - {fold}
+        folds_str = "_" + "_".join([str(_) for _ in tmp_folds])
+        if dataset_name in ["algebra2005", "bridge2algebra2006"]:
+            fname = "phi_dict" + folds_str + ".pkl"
+            rel = pd.read_pickle(os.path.join(dpath, fname))
+        else:
+            fname = "phi_array" + folds_str + ".pkl" 
+            rel = pd.read_pickle(os.path.join(dpath, fname))
+
     if model.model_name=='lpkt':
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
     for i in range(1, num_epochs + 1):
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name in que_type_models and model.model_name != "lpkt":
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"]:
                 model.model.train()
             else:
                 model.train()
-            loss = model_forward(model, data)
+            if model.model_name=='rkt':
+                loss = model_forward(model, data, rel)
+            else:
+                loss = model_forward(model, data)
             opt.zero_grad()
-            loss.backward()#compute gradients 
+            loss.backward()#compute gradients
+            if model.model_name == "rkt":
+                clip_grad_norm_(model.parameters(), model.grad_clip)
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())
@@ -191,7 +214,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
         
-        auc, acc = evaluate(model, valid_loader, model.model_name)
+        if model.model_name=='rkt':
+            auc, acc = evaluate(model, valid_loader, model.model_name, rel)
+        else:
+            auc, acc = evaluate(model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
