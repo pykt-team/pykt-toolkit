@@ -1,20 +1,20 @@
 wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_0.yaml
-wandb: Created sweep with ID: prnvfrmq
-wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/prnvfrmq
-wandb: Run sweep agent with: wandb agent shyann/gpt4kt/prnvfrmq
+wandb: Created sweep with ID: un70o4na
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/un70o4na
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/un70o4na
 wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_1.yaml
-wandb: Created sweep with ID: btvof4ah
-wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/btvof4ah
-wandb: Run sweep agent with: wandb agent shyann/gpt4kt/btvof4ah
+wandb: Created sweep with ID: 4yvaq2ud
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/4yvaq2ud
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/4yvaq2ud
 wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_2.yaml
-wandb: Created sweep with ID: m6gtnqs8
-wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/m6gtnqs8
-wandb: Run sweep agent with: wandb agent shyann/gpt4kt/m6gtnqs8
+wandb: Created sweep with ID: rgwdnf16
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/rgwdnf16
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/rgwdnf16
 wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_3.yaml
-wandb: Created sweep with ID: ee1sbq4l
-wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/ee1sbq4l
-wandb: Run sweep agent with: wandb agent shyann/gpt4kt/ee1sbq4l
+wandb: Created sweep with ID: r07t027m
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/r07t027m
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/r07t027m
 wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_4.yaml
-wandb: Created sweep with ID: 5fsjhua4
-wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/5fsjhua4
-wandb: Run sweep agent with: wandb agent shyann/gpt4kt/5fsjhua4
+wandb: Created sweep with ID: tw49xosl
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/tw49xosl
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/tw49xosl

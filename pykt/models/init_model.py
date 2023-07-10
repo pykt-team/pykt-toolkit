@@ -28,6 +28,8 @@ from .stosakt import StosaKT
 from .parKT import parKT
 from .mikt import MIKT
 from .gpt4kt import GPT4KT
+from .gnn4kt import GNN4KT
+from .gnn4kt_util import load_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -65,6 +67,14 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "gnn4kt":
+        fname = f"gnn4kt_graph.txt"
+        graph_path = os.path.join(data_config["dpath"], fname)
+        print(f"graph_path:{graph_path}")
+        num_q = data_config["num_q"]
+        adj = load_graph(graph_path, num_q)
+        adj = adj.to(device)
+        model = GNN4KT(data_config["num_c"], data_config["num_q"], **model_config, graph=adj,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "lpkt":
         qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
         if os.path.exists(qmatrix_path):
