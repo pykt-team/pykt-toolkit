@@ -185,8 +185,11 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
             elif model_name == "gnn4kt":
-                y = model(dcur) 
-                y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
+                y = model(dcur)
+                if model.emb_type.find("lstm") != -1:
+                    y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
+                else:
+                    y = y[:, 1:]
                 c,cshft = q,qshft#question level 
             elif model_name == "lpkt":
                 # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)

@@ -198,8 +198,11 @@ def model_forward(model, data, attn_grads=None):
         ys.append(y)  
     elif model_name == "gnn4kt":
         y = model(dcur)
-        y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
-        ys.append(y) # first: yshft     
+        if model.emb_type.find("lstm") != -1:
+            y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
+            ys.append(y) # first: yshft     
+        else:
+            ys.append(y[:, 1:]) # first: yshft                 
     # cal loss
     elif model_name == "lpkt":
         # y = model(cq.long(), cr.long(), cat, cit.long())
