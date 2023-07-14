@@ -4,7 +4,7 @@ from wandb_train import main
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="algebra2005")
-    parser.add_argument("--model_name", type=str, default="simplekt")
+    parser.add_argument("--model_name", type=str, default="gpt4kt")
     parser.add_argument("--emb_type", type=str, default="qid")
     parser.add_argument("--save_dir", type=str, default="saved_model")
     # parser.add_argument("--learning_rate", type=float, default=1e-5)
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("--final_fc_dim", type=int, default=256)
     parser.add_argument("--final_fc_dim2", type=int, default=256)
     parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--nheads", type=int, default=4)
+    parser.add_argument("--nheads", type=int, default=8)
     parser.add_argument("--loss1", type=float, default=0.5)
     parser.add_argument("--loss2", type=float, default=0.5)
     parser.add_argument("--loss3", type=float, default=0.5)
@@ -23,12 +23,13 @@ if __name__ == "__main__":
     
     parser.add_argument("--d_model", type=int, default=256)
     parser.add_argument("--d_ff", type=int, default=256)
-    parser.add_argument("--num_attn_heads", type=int, default=4)
-    parser.add_argument("--n_blocks", type=int, default=2)
+    parser.add_argument("--num_attn_heads", type=int, default=8)
+    parser.add_argument("--n_blocks", type=int, default=4)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
-    parser.add_argument("--sparse_ratio", type=float, default=0.8)
-    parser.add_argument("--k_index", type=int, default=5)
-    parser.add_argument("--stride", type=int, default=1)
+
+    # multi-task
+    parser.add_argument("--cf_weight", type=float, default=0.1)
+    parser.add_argument("--t_weight", type=float, default=0.1)
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)

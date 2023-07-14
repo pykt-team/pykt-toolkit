@@ -10,6 +10,8 @@ from .utils import transformer_FFN, ut_mask, pos_encode, get_clones
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, LayerNorm, TransformerEncoder, TransformerEncoderLayer, \
         MultiLabelMarginLoss, MultiLabelSoftMarginLoss, CrossEntropyLoss, BCELoss, MultiheadAttention
 from torch.nn.functional import one_hot, cross_entropy, multilabel_margin_loss, binary_cross_entropy
+from .que_base_model import QueBaseModel,QueEmb
+from torch.utils.checkpoint import checkpoint
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,45 +20,11 @@ class Dim(IntEnum):
     seq = 1
     feature = 2
 
-class timeGap2(nn.Module):
-    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
-        super().__init__()
-        self.num_rgap, self.num_sgap, self.num_pcount = num_rgap, num_sgap, num_pcount
-        if num_rgap != 0:
-            self.rgap_eye = torch.eye(num_rgap)
-        if num_sgap != 0:
-            self.sgap_eye = torch.eye(num_sgap)
-        if num_pcount != 0:
-            self.pcount_eye = torch.eye(num_pcount)
-
-        input_size = num_rgap + num_sgap + num_pcount
-        
-        print(f"self.num_rgap: {self.num_rgap}, self.num_sgap: {self.num_sgap}, self.num_pcount: {self.num_pcount}, input_size: {input_size}")
-
-        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
-
-    def forward(self, rgap, sgap, pcount):
-        infs = []
-        if self.num_rgap != 0:
-            rgap = self.rgap_eye[rgap].to(device)
-            infs.append(rgap)
-        if self.num_sgap != 0:
-            sgap = self.sgap_eye[sgap].to(device)
-            infs.append(sgap)
-        if self.num_pcount != 0:
-            pcount = self.pcount_eye[pcount].to(device)
-            infs.append(pcount)
-
-        tg = torch.cat(infs, -1)
-        tg_emb = self.time_emb(tg)
-
-        return tg_emb
-
-class BAKTTime(nn.Module):
-    def __init__(self, n_question, n_pid, num_rgap, num_sgap, num_pcount, 
+class GPT4KT(nn.Module):
+    def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
-            loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=200, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
+            loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=1024, 
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, cf_weight=0.3, t_weight=0.3, num_sgap=None, c0=0, max_epoch=0):
         super().__init__()
         """
         Input:
@@ -66,7 +34,7 @@ class BAKTTime(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
-        self.model_name = "bakt_time"
+        self.model_name = "gpt4kt"
         print(f"model_name: {self.model_name}, emb_type: {emb_type}")
         self.n_question = n_question
         self.dropout = dropout
@@ -76,19 +44,19 @@ class BAKTTime(nn.Module):
         self.model_type = self.model_name
         self.separate_qa = separate_qa
         self.emb_type = emb_type
-        embed_l = d_model
-        if self.n_pid > 0:
-            self.difficult_param = nn.Embedding(self.n_pid+1, embed_l) # 题目难度
-            self.q_embed_diff = nn.Embedding(self.n_question+1, embed_l) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
-            self.qa_embed_diff = nn.Embedding(2 * self.n_question + 1, embed_l) # interaction emb, 同上
+        self.ce_loss = CrossEntropyLoss()
+        self.cf_weight = cf_weight
+        self.t_weight = t_weight
+        self.num_sgap = num_sgap
         
-        if emb_type.startswith("qid"):
-            # n_question+1 ,d_model
-            self.q_embed = nn.Embedding(self.n_question, embed_l)
-            if self.separate_qa: 
-                    self.qa_embed = nn.Embedding(2*self.n_question+1, embed_l)
-            else: # false default
-                self.qa_embed = nn.Embedding(2, embed_l)
+        embed_l = d_model
+
+        self.que_emb = QueEmb(num_q=self.n_pid,num_c=self.n_question,emb_size=embed_l,emb_type=self.emb_type,model_name=self.model_name,device=device,
+                    emb_path=emb_path,pretrain_dim=pretrain_dim)
+        self.qa_embed = nn.Embedding(2, embed_l)
+        
+        if self.emb_type.find("pt") != -1:
+            self.time_emb = nn.Embedding(self.num_sgap+1, embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
@@ -100,39 +68,23 @@ class BAKTTime(nn.Module):
             ), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim2, 1)
         )
-        if emb_type.endswith("hasw") != -1:
-            self.c_weight = nn.Linear(d_model, d_model)
-        
-        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
-            self.c_weight = nn.Linear(d_model, d_model)
-            self.t_weight = nn.Linear(d_model, d_model)
-        
-        if emb_type.endswith("onlyrgap"):
-            self.time_emb = timeGap2(num_rgap, 0, 0, d_model)
-        if emb_type.endswith("onlysgap"):
-            self.time_emb = timeGap2(0, num_sgap, 0, d_model)
-        if emb_type.endswith("onlypcount"):
-            self.time_emb = timeGap2(0, 0, num_pcount, d_model)
+        if emb_type.find("predc") != -1:
+            self.qclasifier = nn.Sequential(
+                nn.Linear(d_model + embed_l,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, self.n_pid)
+            )
             
-        if emb_type.endswith("rsgap"):
-            self.time_emb = timeGap2(num_rgap, num_sgap, 0, d_model)
-        if emb_type.endswith("rpgap"):
-            self.time_emb = timeGap2(num_rgap, 0, num_pcount, d_model)
-        if emb_type.endswith("spgap"):
-            self.time_emb = timeGap2(0, num_sgap, num_pcount, d_model)
-            
-        if emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
-            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
-                                    dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
-                                    kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
-
-        if self.emb_type == "qid":
-            self.c_weight = nn.Linear(d_model, d_model)
-            self.t_weight = nn.Linear(d_model, d_model)
-            self.time_emb = timeGap(num_rgap, num_sgap, num_pcount, d_model)
-            self.model2 = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads,
-                                       dropout=dropout, d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,
-                                       kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
+        if emb_type.find("pt") != -1: 
+            self.t_out = nn.Sequential(
+                nn.Linear(d_model + embed_l,
+                        final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+                ), nn.Dropout(self.dropout),
+                nn.Linear(final_fc_dim2, 1)
+            )
 
         self.reset()
 
@@ -141,107 +93,79 @@ class BAKTTime(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def base_emb(self, q_data, target):
-        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
-        if self.separate_qa:
-            qa_data = q_data + self.n_question * target
-            qa_embed_data = self.qa_embed(qa_data)
-        else:
-            # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            target_emb = self.qa_embed(target)
-            qa_embed_data = self.qa_embed(target)+q_embed_data
-        return q_embed_data, qa_embed_data, target_emb
-
-    def get_attn_pad_mask(self, sm):
-        batch_size, l = sm.size()
-        pad_attn_mask = sm.data.eq(0).unsqueeze(1)
-        pad_attn_mask = pad_attn_mask.expand(batch_size, l, l)
-        return pad_attn_mask.repeat(self.nhead, 1, 1)
-
-    def forward(self, dcur, dgaps, qtest=False, train=False, dic_emb=None):
+    def forward(self, dcur, qtest=False, train=False, dgaps=None):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
-
-        emb_type = self.emb_type
-
+        
         # Batch First
-        if emb_type.startswith("qid"):
-            q_embed_data, qa_embed_data, target_emb = self.base_emb(q_data, target)
-        if self.n_pid > 0: # have problem id
-            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
-            q_embed_data = q_embed_data + pid_embed_data * \
-                q_embed_diff_data  # uq *d_ct + c_ct # question encoder
-
-            target_emb_matrix = self.qa_embed.weight.detach().cpu()
-            # np.savez("target_emb_matrix.npz",target_emb_matrix)
-            # np.save('embeddings/algebra2006_temb_matrix',target_emb_matrix) 
-            # print("save done")
-
-            merge_emb = q_embed_data 
-            bs, seqlen = q_data.size(0), q_data.size(1)
-            cids = q_data.reshape(bs*seqlen).detach().cpu().tolist()
-            y_emb = qa_embed_data.reshape(-1,merge_emb.size(2)).detach().cpu()
-            merge_emb = merge_emb.reshape(-1,merge_emb.size(2)).detach().cpu()
-            for i in range(merge_emb.size(0)):
-                # dic_emb["xemb"][cids[i]] = merge_emb[i].tolist()
-                # dic_emb["yemb"][cids[i]] = y_emb[i].tolist()
-                # dic_emb["temb"][cids[i]] = y_emb[i].tolist()
-                dic_emb[cids[i]] = merge_emb[i].tolist()
-
-        if emb_type == "qid" or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
-            rg, sg, p = dgaps["rgaps"].long(), dgaps["sgaps"].long(), dgaps["pcounts"].long()
-            rgshft, sgshft, pshft = dgaps["shft_rgaps"].long(), dgaps["shft_sgaps"].long(), dgaps["shft_pcounts"].long()
-
-            r_gaps = torch.cat((rg[:, 0:1], rgshft), dim=1)
+        if pid_data.size(1) == 0:
+            pid_data,q_data = q_data, pid_data
+        _, emb_qca, emb_qc, emb_q, emb_c = self.que_emb(pid_data, q_data, target)
+        if q_data.size(1) == 0:
+            q_embed_data = emb_q
+        else:
+            q_embed_data = emb_q + emb_c
+        # print(f"emb_q:{emb_q.shape}")
+        if self.emb_type.find("pt") != -1:
+            sg, sgshft = dgaps["sgaps"].long(), dgaps["shft_sgaps"].long()
             s_gaps = torch.cat((sg[:, 0:1], sgshft), dim=1)
-            pcounts = torch.cat((p[:, 0:1], pshft), dim=1)
-
-            temb = self.time_emb(r_gaps, s_gaps, pcounts)
-            # time attention
-            # t_out = self.model2(temb, self.qa_embed(target)+temb)
-            t_out = self.model2(temb, qa_embed_data) # 计算时间信息和基本信息的attention？
+            emb_t = self.time_emb(s_gaps)
+            q_embed_data += emb_t
+        qa_embed_data = self.qa_embed(target)
+        qa_embed_data = q_embed_data + qa_embed_data
 
         # BS.seqlen,d_model
         # Pass to the decoder
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
+        d_output = self.model((q_embed_data, qa_embed_data))
+        concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+        output = self.out(concat_q).squeeze(-1)
+        m = nn.Sigmoid()
+        preds = m(output)
+
+        cl_losses = 0
+        if self.emb_type.find("predc") != -1 and train:
+            sm = dcur["smasks"].long()
+            start = 0
+            cpreds = self.qclasifier(concat_q[:,start:,:])
+            # print(f"cpreds:{cpreds.shape}")
+            flag = sm[:,start:]==1
+            # print(f"flag:{flag.shape}")
+            # print(f"cpreds:{cpreds[:,:-1,:][flag].shape}")
+            # print(f"qtag:{q[:,start:][flag].shape}")
+            cl_loss = self.ce_loss(cpreds[:,:-1,:][flag], q[:,start:][flag])
+            cl_losses += self.cf_weight * cl_loss
         
-        # elif emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]
-        if emb_type == "qid" or emb_type in ["qidonlyrgap", "qidonlysgap", "qidonlypcount", "qidrsgap", "qidrpgap", "qidspgap"]:
-            d_output = self.model(q_embed_data, qa_embed_data)
-
-            w = torch.sigmoid(self.c_weight(d_output) + self.t_weight(t_out)) # w = sigmoid(基本信息编码 + 时间信息编码)，每一维设置为0-1之间的数值
-            d_output = w * d_output + (1 - w) * t_out # 每一维加权平均后的综合信息
-            q_embed_data = q_embed_data + temb # 原始的题目信息和时间信息
-
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
-        elif emb_type.endswith("hasw"):
-            d_output = self.model(q_embed_data, qa_embed_data)
+        if self.emb_type.find("pt") != -1 and train:
+            t_label= dgaps["shft_pretlabel"].double()
+            t_combined = torch.cat((d_output, emb_t), -1)
+            t_output = self.t_out(t_combined).squeeze(-1)
+            t_pred = m(t_output)[:,1:]
+            # print(f"t_pred:{t_pred}")
+            sm = dcur["smasks"]
+            ty = torch.masked_select(t_pred, sm)
+            # print(f"min_y:{torch.min(ty)}")
+            tt = torch.masked_select(t_label, sm)
+            # print(f"min_t:{torch.min(tt)}")
+            t_loss = binary_cross_entropy(ty.double(), tt.double())
+            # t_loss = mse_loss(ty.double(), tt.double())
+            # print(f"t_loss:{t_loss}")
+            cl_losses += self.t_weight * t_loss
             
-            w = torch.sigmoid(self.c_weight(d_output))
-            d_output = w * d_output
-            
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
-
         if train:
-            return preds, y2, y3
+            if self.emb_type == "iekt":
+                return preds, y2, y3
+            else:
+                return preds, y2, y3, cl_losses
         else:
             if qtest:
-                return preds, concat_q, dic_emb, self.n_question
+                return preds, concat_q
             else:
-                qemb = q_embed_data.detach().cpu()
-                qhemb = d_output.detach().cpu()
-                return preds, qemb, qhemb, dic_emb
+                return preds
 
 class Architecture(nn.Module):
     def __init__(self, n_question,  n_blocks, d_model, d_feature,
@@ -256,7 +180,7 @@ class Architecture(nn.Module):
         self.d_model = d_model
         self.model_type = model_type
 
-        if model_type in {'bakt_time'}:
+        if model_type in {'gpt4kt'}:
             self.blocks_2 = nn.ModuleList([
                 TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
@@ -264,8 +188,9 @@ class Architecture(nn.Module):
             ])
         self.position_emb = CosinePositionalEmbedding(d_model=self.d_model, max_len=seq_len)
 
-    def forward(self, q_embed_data, qa_embed_data):
+    def forward(self, inputs):
         # target shape  bs, seqlen
+        q_embed_data, qa_embed_data = inputs
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
         q_posemb = self.position_emb(q_embed_data)
@@ -283,9 +208,17 @@ class Architecture(nn.Module):
         # encoder
         
         for block in self.blocks_2:
-            x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
+            # x.requires_grad_(True)
+            # y.requires_grad_(True)
+            # def run_block(mask, query, key, values, apply_pos):
+            #     return block(mask, query, key, values, apply_pos)
+            # x = checkpoint(run_block, mask, x, x, y, apply_pos)
+            
+            x = checkpoint(block, x, x, y)
+            # x = block(mask=0, query=x, key=x, values=y, apply_pos=True) # True: +FFN+残差+laynorm 非第一层与0~t-1的的q的attention, 对应图中Knowledge Retriever
             # mask=0，不能看到当前的response, 在Knowledge Retrever的value全为0，因此，实现了第一题只有question信息，无qa信息的目的
             # print(x[0,0,:])
+            # x = input_data[1]
         return x
 
 class TransformerLayer(nn.Module):
@@ -312,7 +245,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True):
+    def forward(self, query, key, values):
         """
         Input:
             block : object of type BasicBlock(nn.Module). It contains masked_attn_head objects which is of type MultiHeadAttention(nn.Module).
@@ -325,7 +258,8 @@ class TransformerLayer(nn.Module):
             query: Input gets changed over the layer and returned.
 
         """
-
+        mask = 0
+        apply_pos=True
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
@@ -455,8 +389,8 @@ class CosinePositionalEmbedding(nn.Module):
         super().__init__()
         # Compute the positional encodings once in log space.
         pe = 0.1 * torch.randn(max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1).float()
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+        position = torch.arange(0, max_len).unsqueeze(1).long()
+        div_term = torch.exp(torch.arange(0, d_model, 2).long() *
                              -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
@@ -465,24 +399,3 @@ class CosinePositionalEmbedding(nn.Module):
 
     def forward(self, x):
         return self.weight[:, :x.size(Dim.seq), :]  # ( 1,seq,  Feature)
-
-class timeGap(nn.Module):
-    def __init__(self, num_rgap, num_sgap, num_pcount, emb_size) -> None:
-        super().__init__()
-        self.rgap_eye = torch.eye(num_rgap)
-        self.sgap_eye = torch.eye(num_sgap)
-        self.pcount_eye = torch.eye(num_pcount)
-
-        input_size = num_rgap + num_sgap + num_pcount
-
-        self.time_emb = nn.Linear(input_size, emb_size, bias=False)
-
-    def forward(self, rgap, sgap, pcount):
-        rgap = self.rgap_eye[rgap].to(device)
-        sgap = self.sgap_eye[sgap].to(device)
-        pcount = self.pcount_eye[pcount].to(device)
-
-        tg = torch.cat((rgap, sgap, pcount), -1)
-        tg_emb = self.time_emb(tg)
-
-        return tg_emb

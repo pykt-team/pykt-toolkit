@@ -1,0 +1,20 @@
+wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_0.yaml
+wandb: Created sweep with ID: un70o4na
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/un70o4na
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/un70o4na
+wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_1.yaml
+wandb: Created sweep with ID: 4yvaq2ud
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/4yvaq2ud
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/4yvaq2ud
+wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_2.yaml
+wandb: Created sweep with ID: rgwdnf16
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/rgwdnf16
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/rgwdnf16
+wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_3.yaml
+wandb: Created sweep with ID: r07t027m
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/r07t027m
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/r07t027m
+wandb: Creating sweep from: all_wandbs/pretrain_gpt4kt_iekt_4.yaml
+wandb: Created sweep with ID: tw49xosl
+wandb: View sweep at: https://wandb.ai/shyann/gpt4kt/sweeps/tw49xosl
+wandb: Run sweep agent with: wandb agent shyann/gpt4kt/tw49xosl

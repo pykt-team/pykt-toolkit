@@ -73,11 +73,16 @@ class QueEmb(nn.Module):
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
 
 
-        if emb_type == "iekt":
-            self.que_emb = nn.Embedding(self.num_q, self.emb_size)#question embeding
+        if emb_type.find("iekt") != -1:
+            self.que_emb = nn.Embedding(self.num_q+1, self.emb_size)#question embeding
             # self.que_emb.weight.requires_grad = False
-            self.concept_emb = nn.Parameter(torch.randn(self.num_c, self.emb_size).to(device), requires_grad=True)#concept embeding
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c+1, self.emb_size).to(device), requires_grad=True)#concept embeding
             self.que_c_linear = nn.Linear(2*self.emb_size,self.emb_size)
+
+        if emb_type.find("qid") != -1:
+            self.que_emb = nn.Embedding(self.num_q+1, self.emb_size)#question embeding
+            # self.que_emb.weight.requires_grad = False
+            self.concept_emb = nn.Parameter(torch.randn(self.num_c+1, self.emb_size).to(device), requires_grad=True)#concept embeding
         
         self.output_emb_dim = emb_size
 
@@ -144,17 +149,27 @@ class QueEmb(nn.Module):
             que_c_emb = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
             xemb = self.que_c_linear(xemb)
             return xemb,emb_q,emb_c
-        elif emb_type == "iekt":
+        elif emb_type.find("iekt") != -1:
             emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
             emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
-            emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
-            xemb = self.que_c_linear(emb_qc)
-            # print(f"emb_qc shape is {emb_qc.shape}")
-            # print(f"r shape is {r.shape}")
-            # print(f"(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2) shape is {(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2).shape}")
-            emb_qca = torch.cat([emb_qc.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
-                                emb_qc.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
+            # print(f"emb_c:{emb_c.shape}")
+            # print(f"emb_c:{emb_c}")s
+            if emb_c.shape != emb_q.shape:
+                xemb, emb_qca, emb_qc, emb_c = None, None, None, None
+            else:
+                emb_qc = torch.cat([emb_q,emb_c],dim=-1)#[batch,max_len-1,2*emb_size]
+                xemb = self.que_c_linear(emb_qc)
+                # print(f"emb_qc shape is {emb_qc.shape}")
+                # print(f"r shape is {r.shape}")
+                # print(f"(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2) shape is {(1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2).shape}")
+                emb_qca = torch.cat([emb_qc.mul((1-r).unsqueeze(-1).repeat(1,1, self.emb_size * 2)),
+                                    emb_qc.mul((r).unsqueeze(-1).repeat(1,1, self.emb_size * 2))], dim = -1)# s_t 扩展，分别对应正确的错误的情况
             return xemb,emb_qca,emb_qc,emb_q,emb_c
+        elif emb_type.find("qkid") != -1:
+            emb_c = self.get_avg_skill_emb(c)#[batch,max_len-1,emb_size]
+            emb_q = self.que_emb(q)#[batch,max_len-1,emb_size]
+            
+            return emb_q,emb_c
 
         return xemb
 

@@ -1,22 +1,16 @@
-#!/usr/bin/env python
-# coding=utf-8
-
-import os, sys
-import pandas as pd
+import random
 import torch
+import os
+from .data_augmentation import RecWithContrastiveLearningDataset
 from torch.utils.data import Dataset
-# if torch.cuda.is_available():
-#     from torch.cuda import FloatTensor, LongTensor
-# else:
-from torch import FloatTensor, LongTensor
-import numpy as np
+import copy
+import pandas as pd
+if torch.cuda.is_available():
+    from torch.cuda import FloatTensor, LongTensor
+else:
+    from torch import FloatTensor, LongTensor
 
-# if torch.cuda.is_available():
-#     from torch.cuda import FloatTensor, LongTensor
-# else:
-#     from torch import FloatTensor, LongTensor
-
-class KTDataset(Dataset):
+class CL4KTDataset(Dataset):
     """Dataset for KT
         can use to init dataset for: (for models except dkt_forget)
             train data, valid data
@@ -27,18 +21,22 @@ class KTDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds, qtest=False):
-        super(KTDataset, self).__init__()
+    def __init__(self, file_path, input_type, num_c, num_q, folds, qtest=False, args=None):
+        super(CL4KTDataset, self).__init__()
         sequence_path = file_path
-        # sequence_df = df
         self.input_type = input_type
         self.qtest = qtest
+        self.num_c = num_c
+        self.num_q = num_q
+        # print(f"self.num_c:{num_c}")
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
-            processed_data = file_path + folds_str + "_qtest.pkl"
+            processed_data = file_path + "_cl" + folds_str + "_qtest.pkl"
         else:
-            processed_data = file_path + folds_str + ".pkl"
+            processed_data = file_path + "_cl" + folds_str + ".pkl"
+        
+        self.cl_data = RecWithContrastiveLearningDataset(args=args)
 
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
@@ -93,12 +91,18 @@ class KTDataset(Dataset):
                 dcur["shft_"+key] = self.dori[key]
                 continue
             # print(f"key: {key}, len: {len(self.dori[key])}")
-            seqs = self.dori[key][index][:-1] * mseqs
-            shft_seqs = self.dori[key][index][1:] * mseqs
-            dcur[key] = seqs
-            dcur["shft_"+key] = shft_seqs
+            if key not in ["cseqs_cl", "qseqs_cl", "rseqs_cl", "uid"]:
+                seqs = self.dori[key][index][:-1] * mseqs
+                shft_seqs = self.dori[key][index][1:] * mseqs
+                dcur[key] = seqs
+                dcur["shft_"+key] = shft_seqs
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
+        dcur["cseqs_cl"] = self.dori["cseqs_cl"][index]
+        dcur["rseqs_cl"] = self.dori["rseqs_cl"][index]
+        dcur["uid"] = self.dori["uid"][index]
+        if self.num_q != 0:
+            dcur["qseqs_cl"] = self.dori["qseqs_cl"][index]
         # print("tseqs", dcur["tseqs"])
         if not self.qtest:
             return dcur
@@ -123,7 +127,7 @@ class KTDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [], "cseqs_cl":[], "qseqs_cl":[], "rseqs_cl":[], "uid":[]}
 
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
         df = pd.read_csv(sequence_path)#[0:1000]
@@ -133,36 +137,57 @@ class KTDataset(Dataset):
         dqtest = {"qidxs": [], "rests":[], "orirow":[]}
         for i, row in df.iterrows():
             #use kc_id or question_id as input
+            dori["uid"].append([int(row["uid"])])
+            dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
+            seqlen = dori["smasks"][-1].count(1)
             if "concepts" in self.input_type:
-                dori["cseqs"].append([int(_) for _ in row["concepts"].split(",")])
+                cseqs = [int(_) for _ in row["concepts"].split(",")]
+                dori["cseqs"].append(cseqs)
+                # cseqs_cl = self.cl_data.processed(cseqs, seqlen, self.num_c)
+                # dori["cseqs_cl"].append(cseqs_cl)
             if "questions" in self.input_type:
-                dori["qseqs"].append([int(_) for _ in row["questions"].split(",")])
+                qseqs = [int(_) for _ in row["questions"].split(",")]
+                dori["qseqs"].append(qseqs)
+                # qseqs_cl = self.cl_data.processed(qseqs, seqlen, self.num_c)
+                # dori["qseqs_cl"].append(qseqs_cl)
             if "timestamps" in row:
                 dori["tseqs"].append([int(_) for _ in row["timestamps"].split(",")])
             if "usetimes" in row:
                 dori["utseqs"].append([int(_) for _ in row["usetimes"].split(",")])
-                
-            dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
-            dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
-
+            rseqs = [int(_) for _ in row["responses"].split(",")]
+            dori["rseqs"].append(rseqs)
             interaction_num += dori["smasks"][-1].count(1)
+
+            # cl data
+            if "questions" in self.input_type:
+                input_ids = [(x[0], x[1], x[2]) for x in zip(cseqs, qseqs, rseqs)]
+                cseqs_cl, qseqs_cl, rseqs_cl = self.cl_data.processed(input_ids, seqlen, self.num_c, self.num_q)
+            else:
+                qseqs = [0 for x in range(len(rseqs))]
+                input_ids = [(x[0], x[1], x[2]) for x in zip(cseqs, qseqs, rseqs)]
+                cseqs_cl, qseqs_cl, rseqs_cl = self.cl_data.processed(input_ids, seqlen, self.num_c, self.num_q)
+            dori["cseqs_cl"].append(cseqs_cl)
+            dori["qseqs_cl"].append(qseqs_cl)
+            dori["rseqs_cl"].append(rseqs_cl)
 
             if self.qtest:
                 dqtest["qidxs"].append([int(_) for _ in row["qidxs"].split(",")])
                 dqtest["rests"].append([int(_) for _ in row["rest"].split(",")])
                 dqtest["orirow"].append([int(_) for _ in row["orirow"].split(",")])
         for key in dori:
-            if key not in ["rseqs"]:#in ["smasks", "tseqs"]:
+            # print(f"key:{key}")
+            if key.find("cl") != -1:
+                continue
+            elif key not in ["rseqs"]:#in ["smasks", "tseqs"]:
                 dori[key] = LongTensor(dori[key])
             else:
                 dori[key] = FloatTensor(dori[key])
-        # print(f"dori:{dori}")
 
         mask_seqs = (dori["cseqs"][:,:-1] != pad_val) * (dori["cseqs"][:,1:] != pad_val)
         dori["masks"] = mask_seqs
 
         dori["smasks"] = (dori["smasks"][:, 1:] != pad_val)
-        print(f"interaction_num: {interaction_num}")
+        # print(f"interaction_num: {interaction_num}")
         # print("load data tseqs: ", dori["tseqs"])
 
         if self.qtest:
@@ -171,4 +196,3 @@ class KTDataset(Dataset):
             
             return dori, dqtest
         return dori
-        

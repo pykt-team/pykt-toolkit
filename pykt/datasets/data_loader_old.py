@@ -5,16 +5,11 @@ import os, sys
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-# if torch.cuda.is_available():
-#     from torch.cuda import FloatTensor, LongTensor
-# else:
-from torch import FloatTensor, LongTensor
+if torch.cuda.is_available():
+    from torch.cuda import FloatTensor, LongTensor
+else:
+    from torch import FloatTensor, LongTensor
 import numpy as np
-
-# if torch.cuda.is_available():
-#     from torch.cuda import FloatTensor, LongTensor
-# else:
-#     from torch import FloatTensor, LongTensor
 
 class KTDataset(Dataset):
     """Dataset for KT
@@ -27,26 +22,25 @@ class KTDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds, qtest=False):
+    def __init__(self, file_path, df, input_type, folds, qtest=False):
         super(KTDataset, self).__init__()
-        sequence_path = file_path
-        # sequence_df = df
+        sequence_df = df
         self.input_type = input_type
         self.qtest = qtest
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
-            processed_data = file_path + folds_str + "_qtest.pkl"
+            processed_data = file_path + folds_str + "_qtest_cl.pkl"
         else:
-            processed_data = file_path + folds_str + ".pkl"
+            processed_data = file_path + folds_str + "_cl.pkl"
 
         if not os.path.exists(processed_data):
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
             if self.qtest:
-                self.dori, self.dqtest = self.__load_data__(sequence_path, folds)
+                self.dori, self.dqtest = self.__load_data__(sequence_df, folds)
                 save_data = [self.dori, self.dqtest]
             else:
-                self.dori = self.__load_data__(sequence_path, folds)
+                self.dori = self.__load_data__(sequence_df, folds)
                 save_data = self.dori
             pd.to_pickle(save_data, processed_data)
         else:
@@ -108,10 +102,10 @@ class KTDataset(Dataset):
                 dqtest[key] = self.dqtest[key][index]
             return dcur, dqtest
 
-    def __load_data__(self, sequence_path, folds, pad_val=-1):
+    def __load_data__(self, sequence_df, folds, pad_val=-1):
         """
         Args:
-            sequence_path (str): file path of the sequences
+            sequence_df (str): file path of the sequences
             folds (list[int]): 
             pad_val (int, optional): pad value. Defaults to -1.
         Returns: 
@@ -126,7 +120,8 @@ class KTDataset(Dataset):
         dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
 
         # seq_qids, seq_cids, seq_rights, seq_mask = [], [], [], []
-        df = pd.read_csv(sequence_path)#[0:1000]
+        # df = pd.read_csv(sequence_df)#[0:1000]
+        df = sequence_df
         df = df[df["fold"].isin(folds)]
         interaction_num = 0
         # seq_qidxs, seq_rests = [], []
@@ -171,4 +166,3 @@ class KTDataset(Dataset):
             
             return dori, dqtest
         return dori
-        
