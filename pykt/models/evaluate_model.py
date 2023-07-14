@@ -112,7 +112,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models and model.model_name not in ["lpkt", "gpt4kt"]:
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "gnn4kt", "gpt4kt"]:
                 model.model.eval()
             else:
                 model.eval()
@@ -184,6 +184,10 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
+            elif model_name == "gnn4kt":
+                y = model(dcur) 
+                y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
+                c,cshft = q,qshft#question level 
             elif model_name == "lpkt":
                 # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)
                 cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
@@ -195,7 +199,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-            elif model_name in que_type_models:
+            elif model_name in que_type_models and model_name not in ["lpkt", "gpt4kt", "gnn4kt"]:
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
@@ -626,8 +630,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             acc = metrics.accuracy_score(ts, prelabels)
             aucs[key] = auc
             accs[key] = acc
-        with open(f"./embeddings/{dataset_name}emb_json.json", "w") as f:
-            json.dump(dic_emb, f)
+        # with open(f"./embeddings/{dataset_name}emb_json.json", "w") as f:
+        #     json.dump(dic_emb, f)
     return aucs, accs
 
 

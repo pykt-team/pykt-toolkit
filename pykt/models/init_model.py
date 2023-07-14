@@ -29,7 +29,7 @@ from .parKT import parKT
 from .mikt import MIKT
 from .gpt4kt import GPT4KT
 from .gnn4kt import GNN4KT
-from .gnn4kt_util import load_graph
+from .gnn4kt_util import build_graph, load_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -68,8 +68,11 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "gnn4kt":
-        fname = f"gnn4kt_graph.txt"
+        topk = model_config["topk"]
+        fname = f"gnn4kt_graph_{topk}.txt"
         graph_path = os.path.join(data_config["dpath"], fname)
+        if not os.path.exists(graph_path):
+            build_graph(data_config, topk)
         print(f"graph_path:{graph_path}")
         num_q = data_config["num_q"]
         adj = load_graph(graph_path, num_q)

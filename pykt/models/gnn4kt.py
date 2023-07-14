@@ -2,111 +2,111 @@ from __future__ import print_function, division
 import argparse
 import random
 import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.metrics.cluster import normalized_mutual_info_score as nmi_score
-from sklearn.metrics import adjusted_rand_score as ari_score
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.optim import Adam
-from torch.utils.data import DataLoader
 from torch.nn import Linear
 from .gnn4kt_util import GNNLayer
-from .que_base_model import QueBaseModel,QueEmb
-# from evaluation import eva
-from collections import Counter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# torch.cuda.set_device(1)
+class MLP(nn.Module):
+    '''
+    classifier decoder implemented with mlp
+    '''
+    def __init__(self, n_layer, hidden_dim, output_dim, dpo):
+        super().__init__()
 
-# auto-encoder
-# class AE(nn.Module):
+        self.lins = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim)
+            for _ in range(n_layer)
+        ])
+        self.dropout = nn.Dropout(p = dpo)
+        self.out = nn.Linear(hidden_dim, output_dim)
+        self.act = torch.nn.Sigmoid()
 
-#     def __init__(self, n_enc_1, n_enc_2, n_enc_3, n_dec_1, n_dec_2, n_dec_3,
-#                  n_input, n_z):
-#         super(AE, self).__init__()
-#         self.enc_1 = Linear(n_input, n_enc_1)
-#         self.enc_2 = Linear(n_enc_1, n_enc_2)
-#         self.enc_3 = Linear(n_enc_2, n_enc_3)
-#         self.z_layer = Linear(n_enc_3, n_z)
-
-#         self.dec_1 = Linear(n_z, n_dec_1)
-#         self.dec_2 = Linear(n_dec_1, n_dec_2)
-#         self.dec_3 = Linear(n_dec_2, n_dec_3)
-#         self.x_bar_layer = Linear(n_dec_3, n_input)
-
-#     def forward(self, x):
-#         enc_h1 = F.relu(self.enc_1(x))
-#         enc_h2 = F.relu(self.enc_2(enc_h1))
-#         enc_h3 = F.relu(self.enc_3(enc_h2))
-#         z = self.z_layer(enc_h3)
-
-#         dec_h1 = F.relu(self.dec_1(z))
-#         dec_h2 = F.relu(self.dec_2(dec_h1))
-#         dec_h3 = F.relu(self.dec_3(dec_h2))
-#         x_bar = self.x_bar_layer(dec_h3)
-
-#         return x_bar, enc_h1, enc_h2, enc_h3, z
+    def forward(self, x):
+        for lin in self.lins:
+            x = F.relu(lin(x))
+        return self.out(self.dropout(x))
 
 class LSTMLayer(nn.Module):
-    def __init__(self, emb_size, hidden_size, n_layer):
+    def __init__(self, input_size, hidden_size, num_layers):
         super(LSTMLayer, self).__init__()
-        self.lstm = nn.LSTM(emb_size, hidden_size, n_layer, batch_first=True)
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.LSTM(input_size, hidden_size, batch_first=True))
+        for _ in range(1, num_layers):
+            self.layers.append(nn.LSTM(hidden_size, hidden_size, batch_first=True))
+        # self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
 
-    def forward(self, input_emb):
-        h, _ = self.lstm(input_emb)
-        print(f"h:{h.shape}")
-        print(f"hidden:{_[0].shape}")
-        
-        return h
-    
+    def forward(self, x):
+        outputs = []
+        h, c = None, None
+        for i in range(self.num_layers):
+            x, (h, c) = self.layers[i](x)
+            outputs.append(x)
+        outputs = torch.stack(outputs, dim=0)
+        # outputs,_ = self.lstm(x)
+        return outputs
 
 class GNN4KT(nn.Module):
 
     def __init__(self, n_question, n_pid, embed_l, hidden_size, dropout, num_layers=5, seq_len=200, 
-    final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, emb_path="", pretrain_dim=768):
+    final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, mlp_layer_num=1, sigma=0.1, topk=10, emb_path="", pretrain_dim=768): #
         super(GNN4KT, self).__init__()
-
-        # # autoencoder for intra information
-        # self.ae = AE(
-        #     n_enc_1=n_enc_1,
-        #     n_enc_2=n_enc_2,
-        #     n_enc_3=n_enc_3,
-        #     n_dec_1=n_dec_1,
-        #     n_dec_2=n_dec_2,
-        #     n_dec_3=n_dec_3,
-        #     n_input=n_input,
-        #     n_z=n_z)
-        # self.ae.load_state_dict(torch.load(args.pretrain_path, map_location='cpu'))
 
         self.model_name = "gnn4kt"
         self.emb_type = emb_type
         self.dropout = dropout
+        self.num_layers = num_layers
+        self.num_q = n_pid
+        self.num_c = n_question
+        self.sigma = sigma
+        self.emb_size = embed_l
 
-        self.que_emb = QueEmb(num_q=n_pid,num_c=n_question,emb_size=embed_l,emb_type=self.emb_type,model_name=self.model_name,device=device,
-                    emb_path=emb_path,pretrain_dim=pretrain_dim)
+        self.que_emb = nn.Embedding(self.num_q+1, embed_l)#question embeding
+        self.concept_emb = nn.Parameter(torch.randn(self.num_c+1, embed_l).to(device), requires_grad=True)#concept embeding
+
         self.qa_embed = nn.Embedding(2, embed_l)
 
-        self.lstm_layer = LSTMLayer(emb_size=embed_l, hidden_size=hidden_size, n_layer=num_layers)
+        self.lstm_layer = LSTMLayer(input_size=embed_l, hidden_size=hidden_size, num_layers=num_layers)
+        # self.graph = nn.Parameter(torch.randn(200, 200).to(device), requires_grad=True)
 
-        self.graph = graph
+        # self.graph = graph.to_dense()
         # GCN for inter information
-        self.gnn_1 = GNNLayer(hidden_size, hidden_size) #一层gnn对应其中一个auto encoder
-        self.gnn_2 = GNNLayer(hidden_size, hidden_size)
-        self.gnn_3 = GNNLayer(hidden_size, hidden_size)
-        self.gnn_4 = GNNLayer(hidden_size, hidden_size)
-        self.gnn_5 = GNNLayer(hidden_size, hidden_size)
-
-        self.out = nn.Sequential(
-            nn.Linear(embed_l*2,
-                    final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
-            ), nn.Dropout(self.dropout),
-            nn.Linear(final_fc_dim2, 1)
-        )
+        # self.gc = nn.ModuleList([GNNLayer(hidden_size, hidden_size) if _ != 0 else GNNLayer(embed_l, hidden_size) for _ in range(num_layers)])
+        # self.out = nn.Sequential(
+        #     nn.Linear(embed_l+hidden_size,
+        #             final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
+        #     nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
+        #     ), nn.Dropout(self.dropout),
+        #     nn.Linear(final_fc_dim2, 1)
+        # )
+        self.out_question_all = MLP(mlp_layer_num, hidden_size+embed_l,self.num_q, self.dropout)
         self.m = nn.Sigmoid()
+
+    def get_avg_skill_emb(self,c):
+        # add zero for padding
+        concept_emb_cat = torch.cat(
+            [torch.zeros(1, self.emb_size).to(device), 
+            self.concept_emb], dim=0)
+        # shift c
+
+        related_concepts = (c+1).long()
+        #[batch_size, seq_len, emb_dim]
+        concept_emb_sum = concept_emb_cat[related_concepts, :].sum(
+            axis=-2)
+
+        #[batch_size, seq_len,1]
+        concept_num = torch.where(related_concepts != 0, 1, 0).sum(
+            axis=-1).unsqueeze(-1)
+        concept_num = torch.where(concept_num == 0, 1, concept_num)
+        concept_avg = (concept_emb_sum / concept_num)
+        return concept_avg
 
 
     def forward(self, dcur):
@@ -116,149 +116,47 @@ class GNN4KT(nn.Module):
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
-        # Batch First
-        if pid_data.size(1) == 0:
-            pid_data,q_data = q_data, pid_data
-        _, emb_qca, emb_qc, emb_q, emb_c = self.que_emb(pid_data, q_data, target)
-        if q_data.size(1) == 0:
-            q_embed_data = emb_q
-        else:
-            q_embed_data = emb_q + emb_c
+        emb_q = self.que_emb(pid_data)#[batch,max_len-1,emb_size]
+        emb_c = self.get_avg_skill_emb(q_data)#[batch,max_len-1,emb_size]
+        q_embed_data = emb_q + emb_c
         qa_embed_data = self.qa_embed(target)
-        qa_embed_data = q_embed_data + qa_embed_data
 
-        # DNN Module
-        # x_bar, tra1, tra2, tra3, z = self.ae(x) #获取auto-encoder得到emb
+
+        bs, seqlen = pid_data.size(0), pid_data.size(1)
+
+
+        # idx = torch.reshape(pid_data,(1, bs*seqlen))[0]
+
+        # for i in range(self.num_layers):
+        #     if i == 0:
+        #         # qa_embed_data_ = torch.reshape(qa_embed_data, (bs*seqlen, -1))
+        #         # print(f"qa_embed_data:{qa_embed_data.shape}")
+        #         # print(f"sub_graph:{sub_graph.shape}")
+        #         sub_graph = self.graph
+        #         h = self.gc[i](self.que_emb.weight, sub_graph)#.reshape(bs*self.num_q,-1)[idx]
+        #     # elif i == self.num_layers - 1:
+        #     #     h = self.gc[i]((1-self.sigma)*h + self.sigma*output[i-1], sub_graph, active=False).reshape(bs*self.num_q,-1)[idx]
+        #     # else:
+        #     #     h = self.gc[i]((1-self.sigma)*h + self.sigma*output[i-1], sub_graph).reshape(bs*self.num_q,-1)[idx]
+        # h = torch.reshape(h[idx], (bs, seqlen, -1))
+        # qa_embed_data = h + qa_embed_data
 
         #利用lstm得到每层的emb
-        output = self.lstm_layer(qa_embed_data)
-        print(f"output:{output.shape}")
-        print(f"output:{output[0].shape}")
-        
-        sigma = 0.5
+        output = self.lstm_layer(qa_embed_data) #[num_layers, batch_size, seqlen, hidden_size]
 
-        # GCN Module
+        # # GCN Module
+        # # 根据当前数据构建小矩阵
+        # output = torch.reshape(output, (self.num_layers, bs*seqlen, -1))
+        # idx = torch.reshape(pid_data,(1, bs*seqlen))[0]
+        # graph_ = self.graph[idx]
+        # sub_graph = graph_[:, idx]
 
-        # 移动到数据加载
-        h = self.gnn_1(output[0], self.graph)
-        h = self.gnn_2((1-sigma)*h + sigma*output[1], self.graph)
-        h = self.gnn_3((1-sigma)*h + sigma*output[2], self.graph)
-        h = self.gnn_4((1-sigma)*h + sigma*output[3], self.graph)
-        h = self.gnn_5((1-sigma)*h + sigma*output[4], self.graph, active=False)
         
-        input_combined = torch.cat((h, q_embed_data[:,1:,:]), -1)
-        y = self.out(input_combined)
+        # print(f"h:{h.shape}")
+        input_combined = torch.cat((output[-1, :,:-1,:], q_embed_data[:,1:,:]), -1)
+        y = self.out_question_all(input_combined)
+        # y = self.out(input_combined)
         y = self.m(y)
 
         return y
 
-
-def target_distribution(q):
-    weight = q**2 / q.sum(0)
-    return (weight.t() / weight.sum(1)).t()
-
-
-def train_sdcn(dataset):
-    model = SDCN(500, 500, 2000, 2000, 500, 500,
-                n_input=args.n_input,
-                n_z=args.n_z,
-                n_clusters=args.n_clusters,
-                v=1.0).to(device)
-    print(model)
-
-    optimizer = Adam(model.parameters(), lr=args.lr)
-
-    # KNN Graph
-    adj = load_graph(args.name, args.k)
-    adj = adj.cuda()
-
-    # cluster parameter initiate
-    data = torch.Tensor(dataset.x).to(device)
-    y = dataset.y
-    with torch.no_grad():
-        _, _, _, _, z = model.ae(data) 
-
-    kmeans = KMeans(n_clusters=args.n_clusters, n_init=20)
-    y_pred = kmeans.fit_predict(z.data.cpu().numpy())
-    y_pred_last = y_pred
-    model.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(device)
-    eva(y, y_pred, 'pae')
-
-    for epoch in range(200):
-        if epoch % 1 == 0:
-        # update_interval
-            _, tmp_q, pred, _ = model(data, adj)
-            tmp_q = tmp_q.data
-            p = target_distribution(tmp_q)
-        
-            res1 = tmp_q.cpu().numpy().argmax(1)       #Q
-            res2 = pred.data.cpu().numpy().argmax(1)   #Z
-            res3 = p.data.cpu().numpy().argmax(1)      #P
-            eva(y, res1, str(epoch) + 'Q')
-            eva(y, res2, str(epoch) + 'Z')
-            eva(y, res3, str(epoch) + 'P')
-
-        x_bar, q, pred, _ = model(data, adj)
-
-        kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
-        ce_loss = F.kl_div(pred.log(), p, reduction='batchmean')
-        re_loss = F.mse_loss(x_bar, data)
-
-        loss = 0.1 * kl_loss + 0.01 * ce_loss + re_loss
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='train',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--name', type=str, default='reut')
-    parser.add_argument('--k', type=int, default=3)
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--n_clusters', default=3, type=int)
-    parser.add_argument('--n_z', default=10, type=int)
-    parser.add_argument('--pretrain_path', type=str, default='pkl')
-    args = parser.parse_args()
-    args.cuda = torch.cuda.is_available()
-    print("use cuda: {}".format(args.cuda))
-    device = torch.device("cuda" if args.cuda else "cpu")
-
-    args.pretrain_path = 'data/{}.pkl'.format(args.name)
-    dataset = load_data(args.name)
-
-    if args.name == 'usps':
-        args.n_clusters = 10
-        args.n_input = 256
-
-    if args.name == 'hhar':
-        args.k = 5
-        args.n_clusters = 6
-        args.n_input = 561
-
-    if args.name == 'reut':
-        args.lr = 1e-4
-        args.n_clusters = 4
-        args.n_input = 2000
-
-    if args.name == 'acm':
-        args.k = None
-        args.n_clusters = 3
-        args.n_input = 1870
-
-    if args.name == 'dblp':
-        args.k = None
-        args.n_clusters = 4
-        args.n_input = 334
-
-    if args.name == 'cite':
-        args.lr = 1e-4
-        args.k = None
-        args.n_clusters = 6
-        args.n_input = 3703
-
-
-    print(args)
-    train_sdcn(dataset)

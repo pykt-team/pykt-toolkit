@@ -44,12 +44,12 @@ def main(params, args=None):
         config = json.load(f)
         train_config = config["train_config"]
         if model_name in ["gpt4kt"]:
-            train_config["batch_size"] = 16 ## because of OOM
+            train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt", "bakt_time", "bakt_qikt","simplekt_sr", "stosakt", "parkt", "mikt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["gkt"]:
+        if model_name in ["gkt","gnn4kt"]:
             train_config["batch_size"] = 16 
         if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
