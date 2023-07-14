@@ -78,7 +78,7 @@ def main(params):
     
 
     window_testauc, window_testacc = -1, -1
-    if dataset_name in ["statics2011", "assist2015", "poj"] or model_name in ["lpkt"]:
+    if dataset_name in ["statics2011", "assist2015", "poj"] or model_name in ["lpkt", "gnn4kt"]:
         # init_weight = torch.zeros(data_config["num_c"]+1,data_config["num_c"]+1)
         # np.save(f"/root/autodl-nas/huangshuyan/attention/pykt-toolkit/examples/new_attn_distribution/{dataset_name}_{fold}_{emb_type}", init_weight)
         # attn_cnt_path = f"/root/autodl-nas/huangshuyan/attention/pykt-toolkit/examples/new_attn_distribution/{dataset_name}_{fold}_{emb_type}.npy"
@@ -115,7 +115,7 @@ def main(params):
     #     for key in q_testaccs:
     #         dres["oriacc"+key] = q_testaccs[key]
 
-    if dataset_name in ["nips_task34", "assist2009", "algebra2005","bridge2algebra2006", "peiyou", "ednet"]:     
+    if dataset_name in ["nips_task34", "assist2009", "algebra2005","bridge2algebra2006", "peiyou", "ednet", "ednet5w"]:     
         if "test_question_window_file" in data_config and not test_question_window_loader is None:
             save_test_question_window_path = os.path.join(save_dir, model.emb_type+"_test_question_window_predictions.txt")
             qw_testaucs, qw_testaccs = evaluate_question(model, test_question_window_loader, model_name, fusion_type, save_test_question_window_path, dataset_name, fold)
