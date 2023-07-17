@@ -3,6 +3,7 @@ import argparse
 import json
 import copy
 import torch
+import pandas as pd
 
 from pykt.models import evaluate,evaluate_question,load_model
 from pykt.datasets import init_test_datasets
@@ -28,6 +29,7 @@ def main(params):
             if remove_item in model_config:
                 del model_config[remove_item]    
         trained_params = config["params"]
+        fold = trained_params["fold"]
         model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
         if model_name in ["saint", "sakt", "atdkt"]:
             train_config = config["train_config"]
@@ -58,12 +60,32 @@ def main(params):
     model = load_model(model_name, model_config, data_config, emb_type, save_dir)
 
     save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
-    testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
+
+    if model.model_name == "rkt":
+        dpath = data_config["dpath"]
+        dataset_name = dpath.split("/")[-1]
+        tmp_folds = set(data_config["folds"]) - {fold}
+        folds_str = "_" + "_".join([str(_) for _ in tmp_folds])
+        rel = None
+        if dataset_name in ["algebra2005", "bridge2algebra2006"]:
+            fname = "phi_dict" + folds_str + ".pkl"
+            rel = pd.read_pickle(os.path.join(dpath, fname))
+        else:
+            fname = "phi_array" + folds_str + ".pkl" 
+            rel = pd.read_pickle(os.path.join(dpath, fname))                
+
+    if model.model_name == "rkt":
+        testauc, testacc = evaluate(model, test_loader, model_name, rel, save_test_path)
+    else:
+        testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
     print(f"testauc: {testauc}, testacc: {testacc}")
 
     window_testauc, window_testacc = -1, -1
     save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
-    window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
+    if model.model_name == "rkt":
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, rel, save_test_window_path)
+    else:
+        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
     print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
     # question_testauc, question_testacc = -1, -1
