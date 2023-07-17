@@ -78,6 +78,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     return max_rgap, max_sgap, max_pcount
 
 def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None):
+    print(f"dataset_name:{dataset_name}")
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name in ["dkt_forget", "bakt_time"]:
