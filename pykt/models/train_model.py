@@ -73,8 +73,8 @@ def model_forward(model, data, rel=None):
     else:
         dcur = data
     if model_name in ["dimkt"]:
-        q, c, r, t,sd,qd = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"],dcur["sdseqs"],dcur["qdseqs"]
-        qshft, cshft, rshft, tshft,sdshft,qdshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"],dcur["shft_sdseqs"],dcur["shft_qdseqs"]
+        q, c, r, t,sd,qd = dcur["qseqs"].to(device), dcur["cseqs"].to(device), dcur["rseqs"].to(device), dcur["tseqs"].to(device),dcur["sdseqs"].to(device),dcur["qdseqs"].to(device)
+        qshft, cshft, rshft, tshft,sdshft,qdshft = dcur["shft_qseqs"].to(device), dcur["shft_cseqs"].to(device), dcur["shft_rseqs"].to(device), dcur["shft_tseqs"].to(device),dcur["shft_sdseqs"].to(device),dcur["shft_qdseqs"].to(device)
     else:
         q, c, r, t = dcur["qseqs"].to(device), dcur["cseqs"].to(device), dcur["rseqs"].to(device), dcur["tseqs"].to(device)
         qshft, cshft, rshft, tshft = dcur["shft_qseqs"].to(device), dcur["shft_cseqs"].to(device), dcur["shft_rseqs"].to(device), dcur["shft_tseqs"].to(device)
