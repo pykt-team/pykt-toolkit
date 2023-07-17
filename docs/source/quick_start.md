@@ -144,7 +144,7 @@ sh all_start.sh > log.all 2>&1
 Example:
 
 ```shell
-WANDB_API_KEY=xxx sh run_all.sh rerun.log 0 5 assist2009 dkt 0,1,2,3,4 nips2022-assist2009
+WANDB_API_KEY=xxx sh run_all.sh log.all 0 5 assist2009 dkt 0,1,2,3,4 nips2022-assist2009
 ```
 
 ### Start Agents
@@ -155,7 +155,7 @@ sh start_sweep_0_5.sh
 ```
 ### Tuning Protocol
 
-We use the Bayes search method to find the best hyperparameter, it is expensive to run all the hyperparameter combinations. Hence, you can run the `pykt-toolkit/examples/check_wandb_status.ipynb` file to check whether to stop the searching. We default to stop the searching if the number of the tuned hyperparameter combinations in each data fold is larger than 300 and there is no AUC improvement on the testing data in the last 100 rounds (output "end!").
+We use the Bayes search method to find the best hyperparameter, it is expensive to run all the hyperparameter combinations. Hence, you can run the `pykt-toolkit/examples/check_wandb_status.ipynb` file to check whether to stop the searching. We default to stop the searching if the number of the tuned hyperparameter combinations in each data fold is larger than 200 and there is no AUC improvement on the testing data in the last 100 rounds (output "end!").
 
 ### Start Evaluation
 
