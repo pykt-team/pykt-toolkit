@@ -38,7 +38,7 @@ class MLP(nn.Module):
 
 class LSTM4Graph(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers):
-        super(LSTMLayer, self).__init__()
+        super(LSTM4Graph, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.layers = nn.ModuleList()
@@ -59,7 +59,7 @@ class LSTM4Graph(nn.Module):
 
 class GNN4KT(nn.Module):
 
-    def __init__(self, n_question, n_pid, embed_l, hidden_size, dropout, num_layers=5, seq_len=200, final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, mlp_layer_num=1, sigma=0.1, topk=10, num_attn_heads=8, d_ff=256, n_blocks=4, emb_path="", kq_same=1, pretrain_dim=768): #
+    def __init__(self, n_question, n_pid, embed_l, hidden_size, dropout, num_layers=5, seq_len=200, final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, mlp_layer_num=1, sigma=0.1, topk=10, num_attn_heads=8, d_ff=256, emb_path="", kq_same=1, pretrain_dim=768): #
         super(GNN4KT, self).__init__()
 
         self.model_name = "gnn4kt"
@@ -131,8 +131,8 @@ class GNN4KT(nn.Module):
 
     def forward(self, dcur):
         # input_data
-        q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
-        qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
+        q, c, r = dcur["qseqs"].long().to(device), dcur["cseqs"].long().to(device), dcur["rseqs"].long().to(device)
+        qshft, cshft, rshft = dcur["shft_qseqs"].long().to(device), dcur["shft_cseqs"].long().to(device), dcur["shft_rseqs"].long().to(device)
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
@@ -168,7 +168,7 @@ class GNN4KT(nn.Module):
                 else:
                     h = self.gc[i]((1-self.sigma)*h + self.sigma*output[i-1], sub_graph)
             if self.emb_type.find("lstm") != -1:
-                output = self.lstm_layer(h + qa_embed_data)
+                output, _ = self.lstm_layer(h + qa_embed_data)
             elif self.emb_type.find("trf") != -1:
                 output, _ = self.model(q_embed_data, qa_embed_data+h)
         if self.emb_type.find("lstm") != -1:

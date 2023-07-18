@@ -30,14 +30,8 @@ def main(params):
             if remove_item in model_config:
                 del model_config[remove_item]    
         trained_params = config["params"]
-<<<<<<< HEAD
-        fold = trained_params["fold"]
-        model_name, dataset_name, emb_type = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"]
-        if model_name in ["saint", "sakt", "atdkt"]:
-=======
         model_name, dataset_name, emb_type, fold = trained_params["model_name"], trained_params["dataset_name"], trained_params["emb_type"], trained_params["fold"]
         if model_name in ["saint", "sakt", "cdkt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
             train_config = config["train_config"]
             seq_len = train_config["seq_len"]
             model_config["seq_len"] = seq_len   
@@ -60,21 +54,12 @@ def main(params):
         elif model_name in ["lpkt"]:
             print("running  prediction")
             data_config["num_at"] = config["data_config"]["num_at"]
-<<<<<<< HEAD
-            data_config["num_it"] = config["data_config"]["num_it"]    
-    if model_name not in ["dimkt"]:        
-        test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
-    else:
-        diff_level = trained_params["difficult_levels"]
-        test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size, diff_level=diff_level)
-=======
             data_config["num_it"] = config["data_config"]["num_it"] 
         elif model_name in ["gpt4kt"]:
             data_config["num_q"] = config["data_config"]["num_q"]
             data_config["num_c"] = config["data_config"]["num_c"] 
             
     test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size,fold,win200)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
 
     print(f"Start predicting model: {model_name}, embtype: {emb_type}, save_dir: {save_dir}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")
@@ -85,43 +70,12 @@ def main(params):
     else:
         model = load_model(model_name, model_config, data_config, emb_type, save_dir)
 
-<<<<<<< HEAD
-    save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
-
-    if model.model_name == "rkt":
-        dpath = data_config["dpath"]
-        dataset_name = dpath.split("/")[-1]
-        tmp_folds = set(data_config["folds"]) - {fold}
-        folds_str = "_" + "_".join([str(_) for _ in tmp_folds])
-        rel = None
-        if dataset_name in ["algebra2005", "bridge2algebra2006"]:
-            fname = "phi_dict" + folds_str + ".pkl"
-            rel = pd.read_pickle(os.path.join(dpath, fname))
-        else:
-            fname = "phi_array" + folds_str + ".pkl" 
-            rel = pd.read_pickle(os.path.join(dpath, fname))                
-
-    if model.model_name == "rkt":
-        testauc, testacc = evaluate(model, test_loader, model_name, rel, save_test_path)
-    else:
-        testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
-    print(f"testauc: {testauc}, testacc: {testacc}")
-
-    window_testauc, window_testacc = -1, -1
-    save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions.txt")
-    if model.model_name == "rkt":
-        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, rel, save_test_window_path)
-    else:
-        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path)
-    print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
-=======
     testauc, testacc = -1, -1
 
     # save_test_path = os.path.join(save_dir, model.emb_type+"_test_predictions.txt")
     # testauc, testacc = evaluate(model, test_loader, model_name, save_test_path)
     # print(f"testauc: {testauc}, testacc: {testacc}")
     
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
 
     window_testauc, window_testacc = -1, -1
     if dataset_name in ["statics2011", "assist2015", "poj"] or model_name in ["lpkt", "gnn4kt"]:

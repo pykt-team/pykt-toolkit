@@ -146,22 +146,22 @@ class GNNLayer(Module):
         super(GNNLayer, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        # self.fc1 = nn.Linear(self.in_features, self.out_features)
-        self.params = Parameter(torch.FloatTensor(in_features, out_features))
-        torch.nn.init.xavier_uniform_(self.params)
+        self.fc1 = nn.Linear(self.in_features, self.out_features)
+        # self.params = Parameter(torch.FloatTensor(in_features, out_features))
+        # torch.nn.init.xavier_uniform_(self.params)
 
     def forward(self, features, adj, active=True):
-        support = torch.mm(features, self.params)
-        # print(f"support:{support.shape}")
-        # print(f"adj:{adj.shape}")
-        output = torch.spmm(adj, support)
-        if active:
-            output = F.relu(output)
-        return output
-        # GCN 步骤
-        # support = torch.matmul(adj, features)
-        # output = torch.matmul(adj, support)
-        # output = self.fc1(output)
+        # support = torch.mm(features, self.params)
+        # # print(f"support:{support.shape}")
+        # # print(f"adj:{adj.shape}")
+        # output = torch.spmm(adj, support)
         # if active:
         #     output = F.relu(output)
         # return output
+        # GCN 步骤
+        support = torch.matmul(adj, features)
+        output = torch.matmul(adj, support)
+        output = self.fc1(output)
+        if active:
+            output = F.relu(output)
+        return output

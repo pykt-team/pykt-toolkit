@@ -73,13 +73,6 @@ def main(params, args=None):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-<<<<<<< HEAD
-    if model_name not in ["dimkt"]:
-        train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
-    else:
-        diff_level = params["difficult_levels"]
-        train_loader, valid_loader, *_ = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size, diff_level=diff_level)
-=======
     if model_name not in ["simplekt_sr", "parkt"]:
         train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
         # print(f"curtrain:{len(curtrain)}")
@@ -90,7 +83,6 @@ def main(params, args=None):
             train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args)
         else:
             train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
 
     params_str = "_".join([str(v) for k,v in params.items() if not k in ['other_config']])
 
@@ -106,18 +98,10 @@ def main(params, args=None):
     print(f"model_config: {model_config}")
     print(f"train_config: {train_config}")
 
-<<<<<<< HEAD
-    if model_name in ["dimkt"]:
-        # del model_config['num_epochs']
-        del model_config['weight_decay']
-
-    save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
-=======
     if model_name in ["stosakt"]:
         save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path, args)
     else:
         save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     learning_rate = params["learning_rate"]
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
@@ -163,19 +147,11 @@ def main(params, args=None):
     
     debug_print(text = "train model",fuc_name="main")
     
-<<<<<<< HEAD
-    if model_name == "rkt":
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = \
-            train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, data_config[dataset_name], fold)
-    else:
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model)
-=======
     if emb_type.find("cl") != -1:
         # print(f"curtrain:{len(curtrain)}")
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size)
     else:
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     
     if save_model:
         if model_name not in ["parkt"]:

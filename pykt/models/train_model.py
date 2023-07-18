@@ -47,12 +47,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         else:
             loss = loss1
 
-<<<<<<< HEAD
-    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
-
-=======
     elif model_name in ["dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "gnn4kt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
@@ -87,11 +82,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-<<<<<<< HEAD
-def model_forward(model, data, rel=None):
-=======
 def model_forward(model, data, attn_grads=None):
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     model_name = model.model_name
     # if model_name in ["dkt_forget", "lpkt"]:
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -101,19 +92,9 @@ def model_forward(model, data, attn_grads=None):
         dcur, dgaps = data
     else:
         dcur = data
-<<<<<<< HEAD
-    if model_name in ["dimkt"]:
-        q, c, r, t,sd,qd = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"],dcur["sdseqs"],dcur["qdseqs"]
-        qshft, cshft, rshft, tshft,sdshft,qdshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"],dcur["shft_sdseqs"],dcur["shft_qdseqs"]
-    else:
-        q, c, r, t = dcur["qseqs"].to(device), dcur["cseqs"].to(device), dcur["rseqs"].to(device), dcur["tseqs"].to(device)
-        qshft, cshft, rshft, tshft = dcur["shft_qseqs"].to(device), dcur["shft_cseqs"].to(device), dcur["shft_rseqs"].to(device), dcur["shft_tseqs"].to(device)
+    q, c, r, t = dcur["qseqs"].to(device), dcur["cseqs"].to(device), dcur["rseqs"].to(device), dcur["tseqs"].to(device)
+    qshft, cshft, rshft, tshft = dcur["shft_qseqs"].to(device), dcur["shft_cseqs"].to(device), dcur["shft_rseqs"].to(device), dcur["shft_tseqs"].to(device)
     m, sm = dcur["masks"].to(device), dcur["smasks"].to(device)
-=======
-    q, c, r, t = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"], dcur["tseqs"]
-    qshft, cshft, rshft, tshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"], dcur["shft_tseqs"]
-    m, sm = dcur["masks"], dcur["smasks"]
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
 
     ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
@@ -121,14 +102,7 @@ def model_forward(model, data, attn_grads=None):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
     if model_name in ["hawkes"]:
         ct = torch.cat((t[:,0:1], tshft), dim=1)
-<<<<<<< HEAD
-    elif model_name in ["rkt"]:
-        y, attn = model(dcur, rel, train=True)
-        ys.append(y[:,1:])
-    if model_name in ["atdkt"]:
-=======
     elif model_name in ["cdkt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
         # is_repeat = dcur["is_repeat"]
         y, y2, y3 = model(dcur, train=True)
         if model.emb_type.find("bkt") == -1 and model.emb_type.find("addcshft") == -1:
@@ -241,28 +215,15 @@ def model_forward(model, data, attn_grads=None):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-<<<<<<< HEAD
-    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
-        y,loss = model.train_one_step(data)
-    elif model_name == "dimkt":
-        y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
-        ys.append(y) 
-
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
-=======
     elif model_name in que_type_models:
         y,loss = model.train_one_step(data)
     
     # if model_name in ["simplekt_sr"] and model.emb_type.find("mt") == -1:
     #     loss = cal_loss(model, ys, r, rshft, sm, preloss)
     if model_name not in ["atkt", "atktfix","bakt_qikt"]+que_type_models or model_name in ["gnn4kt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
 
-<<<<<<< HEAD
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, data_config=None, fold=None):
-=======
 def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     # print(f"curtrain:{type(curtrain)}")
     print(f"curtrain:{len(curtrain)}")
@@ -279,7 +240,6 @@ def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     return simple_size, bn
 
 def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=8.0):    
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     max_auc, best_epoch = 0, -1
     train_step = 0
 
@@ -302,24 +262,6 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
     cl_bn = 10000
     for i in range(1, num_epochs + 1):
         loss_mean = []
-<<<<<<< HEAD
-        for data in train_loader:
-            train_step+=1
-            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"]:
-                model.model.train()
-            else:
-                model.train()
-            if model.model_name=='rkt':
-                loss = model_forward(model, data, rel)
-            else:
-                loss = model_forward(model, data)
-            opt.zero_grad()
-            loss.backward()#compute gradients
-            if model.model_name == "rkt":
-                clip_grad_norm_(model.parameters(), model.grad_clip)
-            opt.step()#update model’s parameters
-                
-=======
         if model.emb_type.find("cl") != -1:
             # a = 1
             if simple_size != 1:
@@ -346,7 +288,6 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             if (j+1) % gradient_accumulation_steps == 0:  
                 opt.step()#update model’s parameters   
                 opt.zero_grad()
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
                 text = f"Total train step is {train_step}, the loss is {loss.item():.5}"

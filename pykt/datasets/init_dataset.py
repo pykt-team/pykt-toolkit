@@ -34,14 +34,6 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
         test_window_dataset = LPKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]), at2idx, it2idx, data_config["input_type"], {-1})
         test_question_dataset = None
         test_question_window_dataset= None
-<<<<<<< HEAD
-    elif model_name in ["rkt"] and dataset_name in ["statics2011", "assist2015", "poj"]:
-        test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
-        if "test_question_file" in data_config:
-            test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
-            test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-=======
     elif model_name in ["parkt", "mikt"]:
         # print(f"model_name in parkt")
         test_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
@@ -50,7 +42,6 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
         if "test_question_file" in data_config:
             test_question_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)  
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     elif model_name in que_type_models:
         print(f"model_name:{model_name}")
         if model_name not in ["gpt4kt"]:
@@ -88,19 +79,8 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
         test_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         test_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
         if "test_question_file" in data_config:
-<<<<<<< HEAD
-            test_question_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
-            test_question_window_dataset = ATDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
-    elif model_name in ["dimkt"]:
-        test_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1}, diff_level=diff_level)
-        test_window_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1}, diff_level=diff_level)
-        if "test_question_file" in data_config:
-            test_question_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True, diff_level=diff_level)
-            test_question_window_dataset = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True, diff_level=diff_level)
-=======
             test_question_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     else:
         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         all_folds = set(data_config["folds"])
@@ -130,12 +110,8 @@ def update_gap(max_rgap, max_sgap, max_pcount, max_it, cur):
     max_it = cur.max_it if cur.max_it > max_it else max_it
     return max_rgap, max_sgap, max_pcount, max_it
 
-<<<<<<< HEAD
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None):
-=======
 def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch_size, args=None):
     # print(f"dataset_name:{dataset_name}")
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if emb_type.find("cl") != -1:
@@ -178,20 +154,6 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     elif model_name in que_type_models:
-<<<<<<< HEAD
-        curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds={i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-        curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=all_folds - {i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-    elif model_name in ["atdkt"]:
-        curvalid = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
-    elif model_name == "dimkt":
-        curvalid = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i}, diff_level=diff_level)
-        curtrain = DIMKTDataset(data_config["dpath"],os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i}, diff_level=diff_level)
-=======
         if emb_type.find("pt") != -1:
             max_rgap, max_sgap, max_pcount, max_it = 0, 0, 0, 0
             curvalid = KTQueDataset4PT(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
@@ -231,7 +193,6 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         else:
             curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
             curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})   
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     else:
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})

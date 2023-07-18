@@ -87,11 +87,7 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
     return "\n".join(results)
 
-<<<<<<< HEAD
-def evaluate(model, test_loader, model_name, rel=None, save_path=""):
-=======
 def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold="", attn_cnt_path=""):
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
     with torch.no_grad():
@@ -116,11 +112,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-<<<<<<< HEAD
-            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
-=======
             if model.model_name in que_type_models and model.model_name not in ["lpkt", "gnn4kt", "gpt4kt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
                 model.model.eval()
             else:
                 model.eval()
@@ -139,16 +131,8 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 '''
                 y, rpreds, qh = model(dcur)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
-<<<<<<< HEAD
-            elif model_name in ["rkt"]:
-                y, attn = model(dcur, rel)
-                y = y[:,1:]
-                if q.numel() > 0:
-                    c,cshft = q,qshft   #question level 
-=======
             elif model_name in ["bakt_qikt"]:
                 y = model(dcur)
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
             elif model_name in ["bakt_time"]:
                 y, qemb, qhemb, dic_emb = model(dcur, dgaps, dic_emb=dic_emb)
                 y = y[:,1:]
@@ -1514,25 +1498,11 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             curqd = finalqds[bidx: bidx+bz]
             curqdshft = finalqdshfts[bidx: bidx+bz]             
         ## start predict
-<<<<<<< HEAD
-        if model_name == "dimkt":
-            ccq = curq
-            ccc = curc
-            ccr = curr
-            cct = curt
-        else:
-            ccq = torch.cat((curq[:,0:1], curqshft), dim=1)
-            ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
-            ccr = torch.cat((curr[:,0:1], currshft), dim=1)
-            cct = torch.cat((curt[:,0:1], curtshft), dim=1)
-        if model_name in ["dkt_forget", "bakt_time"]:
-=======
         ccq = torch.cat((curq[:,0:1], curqshft), dim=1)
         ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
         ccr = torch.cat((curr[:,0:1], currshft), dim=1)
         cct = torch.cat((curt[:,0:1], curtshft), dim=1)
         if model_name in ["dkt_forget", "bakt_time", "parkt", "mikt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
             dgaps = dict()
             for key in curd:
                 dgaps[key] = curd[key]
@@ -1580,18 +1550,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
             y = model(ccq.long(), ccr.long(), ccit.long())
             y = y[:, 1:]
-<<<<<<< HEAD
-        elif model_name == "dimkt":
-            # ccsd = torch.cat((cursd[:,0:1], cursdshft), dim=1)
-            # ccqd = torch.cat((curqd[:,0:1], curqdshft), dim=1)
-            # print(f"ccqd:{ccqd.shape}")
-            ccsd = cursd
-            ccqd = curqd
-            y = model(ccq.long(),ccc.long(),ccsd.long(),ccqd.long(),ccr.long(),curqshft.long(),curcshft.long(),cursdshft.long(),curqdshft.long())
-        elif model_name in ["bakt_time"]:
-=======
         elif model_name in ["bakt_time", "parkt", "mikt"]:
->>>>>>> 5e86868e69fb5edf3ffeb05088687e7b2ca3137a
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             # print(f"finald: {finald.keys()}")
