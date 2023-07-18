@@ -51,8 +51,9 @@ class GPT4KT(nn.Module):
         
         embed_l = d_model
 
-        self.que_emb = QueEmb(num_q=self.n_pid,num_c=self.n_question,emb_size=embed_l,emb_type=self.emb_type,model_name=self.model_name,device=device,
-                    emb_path=emb_path,pretrain_dim=pretrain_dim)
+        self.que_emb = nn.Embedding(self.num_q+1, embed_l)#question embeding
+        self.concept_emb = nn.Parameter(torch.randn(self.num_c+1, embed_l).to(device), requires_grad=True)#concept embeding
+
         self.qa_embed = nn.Embedding(2, embed_l)
         
         if self.emb_type.find("pt") != -1:
@@ -93,22 +94,45 @@ class GPT4KT(nn.Module):
             if p.size(0) == self.n_pid+1 and self.n_pid > 0:
                 torch.nn.init.constant_(p, 0.)
 
+    def get_avg_skill_emb(self,c):
+        # add zero for padding
+        concept_emb_cat = torch.cat(
+            [torch.zeros(1, self.emb_size).to(device), 
+            self.concept_emb], dim=0)
+        # shift c
+
+        related_concepts = (c+1).long()
+        #[batch_size, seq_len, emb_dim]
+        concept_emb_sum = concept_emb_cat[related_concepts, :].sum(
+            axis=-2)
+
+        #[batch_size, seq_len,1]
+        concept_num = torch.where(related_concepts != 0, 1, 0).sum(
+            axis=-1).unsqueeze(-1)
+        concept_num = torch.where(concept_num == 0, 1, concept_num)
+        concept_avg = (concept_emb_sum / concept_num)
+        return concept_avg
+
     def forward(self, dcur, qtest=False, train=False, dgaps=None):
         q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
         qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
+
+        emb_q = self.que_emb(pid_data)#[batch,max_len-1,emb_size]
+        emb_c = self.get_avg_skill_emb(q_data)#[batch,max_len-1,emb_size]
+        q_embed_data = emb_q + emb_c
         
-        # Batch First
-        if pid_data.size(1) == 0:
-            pid_data,q_data = q_data, pid_data
-        _, emb_qca, emb_qc, emb_q, emb_c = self.que_emb(pid_data, q_data, target)
-        if q_data.size(1) == 0:
-            q_embed_data = emb_q
-        else:
-            q_embed_data = emb_q + emb_c
-        # print(f"emb_q:{emb_q.shape}")
+        # # Batch First
+        # if pid_data.size(1) == 0:
+        #     pid_data,q_data = q_data, pid_data
+        # _, emb_qca, emb_qc, emb_q, emb_c = self.que_emb(pid_data, q_data, target)
+        # if q_data.size(1) == 0:
+        #     q_embed_data = emb_q
+        # else:
+        #     q_embed_data = emb_q + emb_c
+        # # print(f"emb_q:{emb_q.shape}")
         if self.emb_type.find("pt") != -1:
             sg, sgshft = dgaps["sgaps"].long(), dgaps["shft_sgaps"].long()
             s_gaps = torch.cat((sg[:, 0:1], sgshft), dim=1)
