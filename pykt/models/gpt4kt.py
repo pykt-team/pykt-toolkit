@@ -114,12 +114,12 @@ class GPT4KT(nn.Module):
         return concept_avg
 
     def forward(self, dcur, qtest=False, train=False, dgaps=None):
-        q, c, r = dcur["qseqs"].long(), dcur["cseqs"].long(), dcur["rseqs"].long()
-        qshft, cshft, rshft = dcur["shft_qseqs"].long(), dcur["shft_cseqs"].long(), dcur["shft_rseqs"].long()
+        q, c, r = dcur["qseqs"].long().to(device), dcur["cseqs"].long().to(device), dcur["rseqs"].long().to(device)
+        qshft, cshft, rshft = dcur["shft_qseqs"].long().to(device), dcur["shft_cseqs"].long().to(device), dcur["shft_rseqs"].long().to(device)
         pid_data = torch.cat((q[:,0:1], qshft), dim=1)
         q_data = torch.cat((c[:,0:1], cshft), dim=1)
         target = torch.cat((r[:,0:1], rshft), dim=1)
-
+        # print(f"pid_data:{pid_data}")
         emb_q = self.que_emb(pid_data)#[batch,max_len-1,emb_size]
         emb_c = self.get_avg_skill_emb(q_data)#[batch,max_len-1,emb_size]
         q_embed_data = emb_q + emb_c
@@ -181,7 +181,7 @@ class GPT4KT(nn.Module):
             cl_losses += self.t_weight * t_loss
             
         if train:
-            if self.emb_type == "iekt":
+            if self.emb_type == "qid":
                 return preds, y2, y3
             else:
                 return preds, y2, y3, cl_losses

@@ -113,7 +113,7 @@ def model_forward(model, data, attn_grads=None):
         y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["gpt4kt"]:
-        if model.emb_type == "iekt":
+        if model.emb_type == "qid":
             y, y2, y3 = model(dcur, train=True)
         elif model.emb_type.find("pt") == -1:
             y, y2, y3, preloss = model(dcur, train=True)

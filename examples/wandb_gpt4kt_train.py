@@ -31,6 +31,8 @@ if __name__ == "__main__":
     parser.add_argument("--cf_weight", type=float, default=0.1)
     parser.add_argument("--t_weight", type=float, default=0.1)
 
+    parser.add_argument("--seq_len", type=int, default=1024)
+
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
     
