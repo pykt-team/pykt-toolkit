@@ -49,21 +49,21 @@ class GPT4KT(nn.Module):
         self.t_weight = t_weight
         self.num_sgap = num_sgap
         
-        embed_l = d_model
+        self.embed_l = d_model
 
-        self.que_emb = nn.Embedding(self.num_q+1, embed_l)#question embeding
-        self.concept_emb = nn.Parameter(torch.randn(self.num_c+1, embed_l).to(device), requires_grad=True)#concept embeding
+        self.que_emb = nn.Embedding(self.n_pid+1, self.embed_l)#question embeding
+        self.concept_emb = nn.Parameter(torch.randn(self.n_question+1, self.embed_l).to(device), requires_grad=True)#concept embeding
 
-        self.qa_embed = nn.Embedding(2, embed_l)
+        self.qa_embed = nn.Embedding(2, self.embed_l)
         
         if self.emb_type.find("pt") != -1:
-            self.time_emb = nn.Embedding(self.num_sgap+1, embed_l)
+            self.time_emb = nn.Embedding(self.num_sgap+1, self.embed_l)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type, seq_len=seq_len)
 
         self.out = nn.Sequential(
-            nn.Linear(d_model + embed_l,
+            nn.Linear(d_model + self.embed_l,
                       final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
             nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
             ), nn.Dropout(self.dropout),
@@ -71,7 +71,7 @@ class GPT4KT(nn.Module):
         )
         if emb_type.find("predc") != -1:
             self.qclasifier = nn.Sequential(
-                nn.Linear(d_model + embed_l,
+                nn.Linear(d_model + self.embed_l,
                         final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
                 nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
                 ), nn.Dropout(self.dropout),
@@ -80,7 +80,7 @@ class GPT4KT(nn.Module):
             
         if emb_type.find("pt") != -1: 
             self.t_out = nn.Sequential(
-                nn.Linear(d_model + embed_l,
+                nn.Linear(d_model + self.embed_l,
                         final_fc_dim), nn.ReLU(), nn.Dropout(self.dropout),
                 nn.Linear(final_fc_dim, final_fc_dim2), nn.ReLU(
                 ), nn.Dropout(self.dropout),
@@ -97,7 +97,7 @@ class GPT4KT(nn.Module):
     def get_avg_skill_emb(self,c):
         # add zero for padding
         concept_emb_cat = torch.cat(
-            [torch.zeros(1, self.emb_size).to(device), 
+            [torch.zeros(1, self.embed_l).to(device), 
             self.concept_emb], dim=0)
         # shift c
 
