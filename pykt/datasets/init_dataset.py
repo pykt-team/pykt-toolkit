@@ -110,8 +110,9 @@ def update_gap(max_rgap, max_sgap, max_pcount, max_it, cur):
     max_it = cur.max_it if cur.max_it > max_it else max_it
     return max_rgap, max_sgap, max_pcount, max_it
 
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None):
+def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch_size, args=None):
     print(f"dataset_name:{dataset_name}")
+    print(f"data_conf:{data_config}")
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if emb_type.find("cl") != -1:
@@ -164,13 +165,22 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
                             concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])  
             max_sgap = curtrain.max_sgap if curtrain.max_sgap > max_sgap else max_sgap
             max_sgap = curvalid.max_sgap if curvalid.max_sgap > max_sgap else max_sgap        
-        else:            
-            curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                            input_type=data_config["input_type"], folds={i}, 
-                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-            curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                            input_type=data_config["input_type"], folds=all_folds - {i}, 
-                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        else:
+            if model_name == "gpt4kt":
+                seq_len = args.seq_len
+                curvalid = KTQueDataset(os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}.csv"),
+                                input_type=data_config["input_type"], folds={i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                                input_type=data_config["input_type"], folds=all_folds - {i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            else:        
+                curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                                input_type=data_config["input_type"], folds={i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                                input_type=data_config["input_type"], folds=all_folds - {i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     elif model_name in ["cdkt"]:
         curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})

@@ -49,7 +49,7 @@ def main(params, args=None):
                 if params["d_model"] <= 1024:
                     train_config["batch_size"] = 16 ## because of OOM
                 else:
-                    train_config["batch_size"] = 1 ## because of OOM
+                    train_config["batch_size"] = 32 ## because of OOM
             elif seqlen == 200:
                 train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "gnn4kt"]:
@@ -80,10 +80,10 @@ def main(params, args=None):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    if model_name not in ["simplekt_sr", "parkt"]:
+    if model_name not in ["simplekt_sr", "parkt", "gpt4kt"]:
         train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
         # print(f"curtrain:{len(curtrain)}")
-    elif model_name in ["simplekt_sr"]:
+    elif model_name in ["simplekt_sr", "gpt4kt"]:
         train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args)
     elif model_name in ["parkt"]:
         if emb_type.find("cl") != -1 or emb_type.find("uid") != -1:
