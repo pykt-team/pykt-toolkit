@@ -100,11 +100,11 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            if model_name in ["dkt_forget", "parkt", "mikt"] and model.emb_type.find("time") != -1:
+            if model_name in ["dkt_forget", "parkt", "mikt"] and model.module.emb_type.find("time") != -1:
                 dcur, dgaps = data
             elif model_name in ["bakt_time"]:
                 dcur, dgaps = data
-            elif model_name in ["gpt4kt"] and model.emb_type.find("pt") != -1:
+            elif model_name in ["gpt4kt"] and model.module.emb_type.find("pt") != -1:
                 dcur, dgaps = data
             else:
                 dcur = data
@@ -112,10 +112,10 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models and model.model_name not in ["lpkt", "gnn4kt", "gpt4kt"]:
-                model.model.eval()
+            if model.module.model_name in que_type_models and model.module.model_name not in ["lpkt", "gnn4kt", "gpt4kt"]:
+                model.module.eval()
             else:
-                model.eval()
+                model.module.eval()
 
             # print(f"before y: {y.shape}")
             cq = torch.cat((q[:,0:1], qshft), dim=1)
@@ -126,11 +126,11 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 y = model(dcur) 
                 import pickle
                 with open(f"{test_mini_index}_result.pkl",'wb') as f:
-                    data = {"y":y,"cshft":cshft,"num_c":model.num_c,"rshft":rshft,"qshft":qshft,"sm":sm}
+                    data = {"y":y,"cshft":cshft,"num_c":model.module.num_c,"rshft":rshft,"qshft":qshft,"sm":sm}
                     pickle.dump(data,f)
                 '''
                 y, rpreds, qh = model(dcur)
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["bakt_qikt"]:
                 y = model(dcur)
             elif model_name in ["bakt_time"]:
@@ -139,7 +139,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 qemb = qemb[:,1:,:]
                 qhemb = qhemb[:,1:,:]
             elif model_name in ["simplekt_sr", "parkt", "mikt"]:
-                if model.emb_type.find("time") != -1:
+                if model.module.emb_type.find("time") != -1:
                     y = model(dcur, dgaps=dgaps)
                 else:
                     y = model(dcur)
@@ -147,7 +147,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
             elif model_name in ["stosakt"]:
                 y = model(dcur)
             elif model_name in ["bakt"]:
-                if model.emb_type.find("grad") != -1:
+                if model.module.emb_type.find("grad") != -1:
                     save_grad_path = f"./save_attn/{dataset_name}_save_grad_fold_{fold}.npz"
                     save_attn_path = f"./save_attn/{dataset_name}_save_attnweight_fold_{fold}.npz"
                     y = model(dcur, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
@@ -155,7 +155,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                     y = model(dcur, attn_cnt_path=attn_cnt_path)
                 y = y[:,1:]
             elif model_name in ["gpt4kt"]:
-                if model.emb_type.find("pt") != -1:
+                if model.module.emb_type.find("pt") != -1:
                     y = model(dcur, dgaps=dgaps)
                 else:
                     y = model(dcur)
@@ -164,10 +164,10 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                     c,cshft = q,qshft#question level 
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), dgaps)
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["dkvmn","deep_irt", "skvmn","deep_irt"]:
                 y = model(cc.long(), cr.long())
                 y = y[:,1:]
@@ -181,13 +181,13 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 y = y[:,1:]
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
             elif model_name == "gnn4kt":
                 y = model(dcur)
-                if model.emb_type.find("lstm") != -1:
-                    y = (y * one_hot(qshft.long(), model.num_q)).sum(-1)
+                if model.module.emb_type.find("lstm") != -1:
+                    y = (y * one_hot(qshft.long(), model.module.num_q)).sum(-1)
                 else:
                     y = y[:, 1:]
                 c,cshft = q,qshft#question level 
@@ -203,7 +203,7 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
             elif model_name in que_type_models and model_name not in ["lpkt", "gpt4kt", "gnn4kt"]:
-                y = model.predict_one_step(data)
+                y = model.module.predict_one_step(data)
                 c,cshft = q,qshft#question level 
             # print(f"after y: {y.shape}")
             # save predict result
@@ -238,35 +238,35 @@ def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold
 
 def early_fusion(curhs, model, model_name):
     if model_name in ["dkvmn","skvmn"]:
-        p = model.p_layer(model.dropout_layer(curhs[0]))
+        p = model.module.p_layer(model.module.dropout_layer(curhs[0]))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
     elif model_name in ["deep_irt"]:
-        p = model.p_layer(curhs[0])
-        stu_ability = model.ability_layer(curhs[0])#equ 12
-        que_diff = model.diff_layer(curhs[1])#equ 13
+        p = model.module.p_layer(curhs[0])
+        stu_ability = model.module.ability_layer(curhs[0])#equ 12
+        que_diff = model.module.diff_layer(curhs[1])#equ 13
         p = torch.sigmoid(3.0*stu_ability-que_diff)#equ 14
         p = p.squeeze(-1)
     elif model_name in ["akt", "bakt", "bakt_time", "simplekt_sr", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
-        output = model.out(curhs[0]).squeeze(-1)
+        output = model.module.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
     elif model_name in ["parkt", "mikt"]:
-        output = model.i2o(curhs[0]).squeeze(-1)
+        output = model.module.i2o(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
     elif model_name == "saint":
-        p = model.out(model.dropout(curhs[0]))
+        p = model.module.out(model.module.dropout(curhs[0]))
         p = torch.sigmoid(p).squeeze(-1)
     elif model_name == "sakt":
-        p = torch.sigmoid(model.pred(model.dropout_layer(curhs[0]))).squeeze(-1)
+        p = torch.sigmoid(model.module.pred(model.module.dropout_layer(curhs[0]))).squeeze(-1)
     elif model_name == "kqn":
         logits = torch.sum(curhs[0] * curhs[1], dim=1) # (batch_size, max_seq_len)
-        p = model.sigmoid(logits)
+        p = model.module.sigmoid(logits)
     elif model_name == "hawkes":
         p = curhs[0].sigmoid()
     elif model_name == "lpkt":
-        p = model.sig(model.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / model.d_k
+        p = model.module.sig(model.module.linear_5(torch.cat((curhs[1], curhs[0]), 1))).sum(1) / model.module.d_k
     return p
 
 def late_fusion(dcur, curdf, fusion_type=["mean", "vote", "all"]):
@@ -459,7 +459,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         lenc = 0
         dic_emb = dict()
         for data in test_loader:
-            if model_name in ["dkt_forget", "bakt_time"] or model.emb_type.find("time") != -1:
+            if model_name in ["dkt_forget", "bakt_time"] or model.module.emb_type.find("time") != -1:
                 dcurori, dgaps, dqtest = data
             else:
                 dcurori, dqtest = data
@@ -472,7 +472,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             lenc += q.shape[0]
             # print("="*20)
             # print(f"start predict seqlen: {lenc}")
-            model.eval()
+            model.module.eval()
 
             # print(f"before y: {y.shape}")
             cq = torch.cat((q[:,0:1], qshft), dim=1)
@@ -501,7 +501,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name in ["bakt_qikt"]:
                 y = model(dcurori, qtest=True, train=False)
             elif model_name in ["simplekt_sr", "parkt", "mikt"]:
-                if model.emb_type.find("time") != -1:
+                if model.module.emb_type.find("time") != -1:
                     y, h = model(dcurori, qtest=True, train=False, dgaps=dgaps)
                 else:
                     y, h = model(dcurori, qtest=True, train=False)
@@ -509,7 +509,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name in ["stosakt"]:
                 y, seq_mean_emb, seq_cov_emb, mean_sequence_emb, cov_sequence_emb = model(dcurori, qtest=True, train=False)
             elif model_name in ["bakt"]:
-                if model.emb_type.find("grad") != -1:
+                if model.module.emb_type.find("grad") != -1:
                     save_grad_path = f"./save_attn/{dataset_name}_save_grad_fold_{fold}.npz"
                     save_attn_path = f"./save_attn/{dataset_name}_save_attnweight_fold_{fold}.npz"
                     y, h = model(dcurori, qtest=True, train=False, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
@@ -535,16 +535,16 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 es = torch.cat((start_hemb, es), dim=1) # add the first hidden emb  
             elif model_name in ["cdkt"]:
                 y, _, _ = model(dcurori)#c.long(), r.long(), q.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["dkt", "dkt+"]:
                 y, _, _ = model(c.long(), r.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), dgaps)
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
             elif model_name == "hawkes":
@@ -850,7 +850,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             # if idx == 2:
             #     import sys
             #     sys.exit()
-            model.eval()
+            model.module.eval()
 
             dataset_name = data_config["dpath"].split("/")[-1]
             dforget = dict() if model_name not in ["dkt_forget", "bakt_time", "parkt", "mikt"] else get_info_dkt_forget(row, data_config, model_name, dataset_name)
@@ -883,13 +883,13 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
                 sds = {}
                 qds = {}
                 dataset_name = data_config["dpath"].split("/")[-1]
-                with open(f'/root/autodl-nas/project/pykt_nips2022/data/{dataset_name}/skills_difficult_{model.difficult_levels}.csv','r',encoding="UTF8") as f:
+                with open(f'/root/autodl-nas/project/pykt_nips2022/data/{dataset_name}/skills_difficult_{model.module.difficult_levels}.csv','r',encoding="UTF8") as f:
                     reader = csv.reader(f)
                     sds_keys = next(reader)
                     sds_vals = next(reader)
                     for i in range(len(sds_keys)):
                         sds[int(sds_keys[i])] = int(sds_vals[i])
-                with open(f'/root/autodl-nas/project/pykt_nips2022/data/{dataset_name}/questions_difficult_{model.difficult_levels}.csv','r',encoding="UTF8") as f:
+                with open(f'/root/autodl-nas/project/pykt_nips2022/data/{dataset_name}/questions_difficult_{model.module.difficult_levels}.csv','r',encoding="UTF8") as f:
                     reader = csv.reader(f)
                     qds_keys = next(reader)
                     qds_vals = next(reader)
@@ -1511,18 +1511,18 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             # print(f"dgaps:{dgaps}")
         if model_name in ["cdkt"]:
             # y = model(curc.long(), curr.long(), curq.long())
-            # y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            # y = (y * one_hot(curcshft.long(), model.module.num_c)).sum(-1)
             # create input
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr}
             y, _, _ = model(dcurinfos)
-            y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            y = (y * one_hot(curcshft.long(), model.module.num_c)).sum(-1)
         elif model_name in ["dkt", "dkt+"]:
             y = model(curc.long(), curr.long())
-            y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            y = (y * one_hot(curcshft.long(), model.module.num_c)).sum(-1)
         elif model_name in ["dkt_forget"]:
             y = model(curc.long(), curr.long(), dgaps)
             # y = model(curc.long(), curr.long(), curd, curdshft)
-            y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            y = (y * one_hot(curcshft.long(), model.module.num_c)).sum(-1)
         elif model_name in ["dkvmn","deep_irt", "skvmn"]:
             y = model(ccc.long(), ccr.long())
             y = y[:,1:]
@@ -1545,7 +1545,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
                 curr = torch.cat((curr, pad), axis=1)
                 curcshft = torch.cat((curcshft, pad), axis=1)
             y, _ = model(curc.long(), curr.long())
-            y = (y * one_hot(curcshft.long(), model.num_c)).sum(-1)
+            y = (y * one_hot(curcshft.long(), model.module.num_c)).sum(-1)
         elif model_name == "lpkt":
             ccit = torch.cat((curit[:,0:1], curitshft), dim=1)
             y = model(ccq.long(), ccr.long(), ccit.long())
