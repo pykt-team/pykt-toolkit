@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from .dkt import DKT
 from .dkt_plus import DKTPlus
@@ -19,18 +20,22 @@ from .lpkt_utils import generate_qmatrix
 from .skvmn import SKVMN
 from .hawkes import HawkesKT
 from .iekt import IEKT
-from .atdkt import ATDKT
-from .simplekt import simpleKT
 from .bakt_time import BAKTTime
 from .qdkt import QDKT
 from .qikt import QIKT
-from .dimkt import DIMKT
-from .sparsekt import sparseKT
-from .rkt import RKT
+from .bakt_qikt import BAKT_QIKT
+from .simplekt_sr import simpleKT_SR
+from .stosakt import StosaKT
+from .parKT import parKT
+from .mikt import MIKT
+from .gpt4kt import GPT4KT
+from .gnn4kt import GNN4KT
+from .gnn4kt_util import build_graph, load_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
+torch.distributed.init_process_group(backend='nccl')
 
-def init_model(model_name, model_config, data_config, emb_type):
+def init_model(model_name, model_config, data_config, emb_type, args=None, num_stu=None):
     if model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -64,6 +69,17 @@ def init_model(model_name, model_config, data_config, emb_type):
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "gnn4kt":
+        topk = model_config["topk"]
+        fname = f"gnn4kt_graph_{topk}.txt"
+        graph_path = os.path.join(data_config["dpath"], fname)
+        if not os.path.exists(graph_path):
+            build_graph(data_config, topk)
+        print(f"graph_path:{graph_path}")
+        num_q = data_config["num_q"]
+        adj = load_graph(graph_path, num_q)
+        adj = adj.to(device)
+        model = GNN4KT(data_config["num_c"], data_config["num_q"], **model_config, graph=adj,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "lpkt":
         qmatrix_path = os.path.join(data_config["dpath"], "qmatrix.npz")
         if os.path.exists(qmatrix_path):
@@ -95,25 +111,44 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "qikt":
         model = QIKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
-    elif model_name == "atdkt":
-        model = ATDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "cdkt":
+        model = CDKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "bakt_time":
         model = BAKTTime(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "simplekt":
-        model = simpleKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "dimkt":
-        model = DIMKT(data_config["num_q"],data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "sparsekt":
-        model = sparseKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
-    elif model_name == "rkt":
-        model = RKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)          
+    elif model_name == "bakt":
+        model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "gpt4kt":
+        # 2） 配置每个进程的gpu
+        torch.cuda.set_device(args.local_rank)
+        if emb_type.find("pt") == -1:
+            model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        else:
+            model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_sgap=data_config["num_sgap"]).to(device)
+        model = DDP(model)
+    elif model_name == "bakt_qikt":
+        model = BAKT_QIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "simplekt_sr":
+        model = simpleKT_SR(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "parkt":
+        if emb_type.find("time") == -1:
+            model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        else:
+            model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"]).to(device)
+            # model = parKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"], num_it=data_config["num_it"]).to(device)
+    elif model_name == "mikt":
+        if emb_type.find("time") == -1:
+            model = MIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        else:
+            model = MIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_rgap=data_config["num_rgap"], num_sgap=data_config["num_sgap"], num_pcount=data_config["num_pcount"]).to(device)
+    elif model_name == "stosakt":
+        model = StosaKT(data_config["num_c"], args, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None
     return model
 
-def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
-    model = init_model(model_name, model_config, data_config, emb_type)
+def load_model(model_name, model_config, data_config, emb_type, ckpt_path, args=None):
+    model = init_model(model_name, model_config, data_config, emb_type, args)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
     return model

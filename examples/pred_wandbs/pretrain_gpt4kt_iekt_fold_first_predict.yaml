@@ -1,0 +1,20 @@
+method: grid
+metric:
+  goal: maximize
+  name: testauc
+name: pretrain_gpt4kt_iekt_prediction
+parameters:
+  bz:
+    values:
+    - 32
+  dataset_name:
+    values:
+    - ednet5w
+  save_dir:
+    values:
+    - ./best_model_path/pretrain/gpt4kt/gpt4kt_tiaocan_pretrain_3407_0_0.5_64_64_2_4_0.5_0.5_0.5_50_256_256_4_2_0.0001_1.0_0.3_1_1_5bd31d27-e4b0-4cb1-93dd-7ab7fcfbbb7e
+    - ./best_model_path/pretrain/gpt4kt/gpt4kt_tiaocan_pretrain_42_1_0.1_256_64_2_4_0.5_0.5_0.5_50_256_256_4_2_0.0001_0.5_1.0_1_1_a4fb12f7-d4b1-41cf-987b-0b27062bb54a
+    - ./best_model_path/pretrain/gpt4kt/gpt4kt_tiaocan_pretrain_3407_2_0.3_64_256_2_4_0.5_0.5_0.5_50_256_64_8_2_0.0001_0.01_0.5_1_1_b9552e01-4c18-49fb-b03c-ae24e92a0fad
+    - ./best_model_path/pretrain/gpt4kt/gpt4kt_tiaocan_pretrain_42_3_0.1_256_256_2_4_0.5_0.5_0.5_50_256_256_4_2_0.0001_0.5_0.01_1_1_f8d08d84-6d8e-4ecc-bff4-f17000dd2fa4
+    - ./best_model_path/pretrain/gpt4kt/gpt4kt_tiaocan_pretrain_3407_4_0.05_64_256_2_4_0.5_0.5_0.5_50_64_64_4_2_0.001_0.7_0.5_1_1_0a10359a-0679-499d-a3c4-91233a2662a6
+program: wandb_predict.py
