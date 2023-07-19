@@ -59,7 +59,7 @@ class LSTM4Graph(nn.Module):
 
 class GNN4KT(nn.Module):
 
-    def __init__(self, n_question, n_pid, embed_l, hidden_size, dropout, num_layers=5, seq_len=200, final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, mlp_layer_num=1, sigma=0.1, topk=10, num_attn_heads=8, d_ff=256, emb_path="", kq_same=1, pretrain_dim=768): #
+    def __init__(self, n_question, n_pid, embed_l, hidden_size, dropout, num_layers=5, seq_len=200, final_fc_dim=512, final_fc_dim2=256, emb_type="iekt", graph=None, mlp_layer_num=1, sigma=0.1, topk=10, num_attn_heads=8, d_ff=256, local_rank=1, emb_path="", kq_same=1, pretrain_dim=768): #
         super(GNN4KT, self).__init__()
 
         self.model_name = "gnn4kt"

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from .dkt import DKT
 from .dkt_plus import DKTPlus
@@ -32,6 +33,7 @@ from .gnn4kt import GNN4KT
 from .gnn4kt_util import build_graph, load_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
+torch.distributed.init_process_group(backend='nccl')
 
 def init_model(model_name, model_config, data_config, emb_type, args=None, num_stu=None):
     if model_name == "dkt":
@@ -116,10 +118,13 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
     elif model_name == "bakt":
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "gpt4kt":
+        # 2） 配置每个进程的gpu
+        torch.cuda.set_device(args.local_rank)
         if emb_type.find("pt") == -1:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
         else:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_sgap=data_config["num_sgap"]).to(device)
+        model = DDP(model)
     elif model_name == "bakt_qikt":
         model = BAKT_QIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "simplekt_sr":
