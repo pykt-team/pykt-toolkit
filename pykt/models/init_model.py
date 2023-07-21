@@ -33,9 +33,8 @@ from .gnn4kt import GNN4KT
 from .gnn4kt_util import build_graph, load_graph
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
-torch.distributed.init_process_group(backend='nccl')
 
-def init_model(model_name, model_config, data_config, emb_type, args=None, num_stu=None):
+def init_model(model_name, model_config, data_config, emb_type, args=None, num_stu=None, mode="train", train_start=True):
     if model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -119,12 +118,15 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "gpt4kt":
         # 2） 配置每个进程的gpu
-        torch.cuda.set_device(args.local_rank)
+        if mode == "train" and train_start:
+            torch.distributed.init_process_group(backend='nccl')
+            torch.cuda.set_device(args.local_rank)
         if emb_type.find("pt") == -1:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
         else:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_sgap=data_config["num_sgap"]).to(device)
-        model = DDP(model)
+        if mode == "train" and train_start:
+            model = DDP(model)
     elif model_name == "bakt_qikt":
         model = BAKT_QIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "simplekt_sr":
@@ -148,7 +150,7 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
     return model
 
 def load_model(model_name, model_config, data_config, emb_type, ckpt_path, args=None):
-    model = init_model(model_name, model_config, data_config, emb_type, args)
-    net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
+    model = init_model(model_name, model_config, data_config, emb_type, args, mode="test")
+    net = torch.load(os.path.join(ckpt_path, emb_type+"_model.module.ckpt"))
     model.load_state_dict(net)
     return model

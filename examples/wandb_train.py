@@ -161,16 +161,18 @@ def main(params, args=None):
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
     
     if save_model:
-        if model_name not in ["parkt"]:
+        if model_name not in ["parkt","gpt4kt"]:
             best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
+        elif model_name in ["gpt4kt"]:
+            best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, train_start=False)
         else:
             best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)
-        net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
+        net = torch.load(os.path.join(ckpt_path, emb_type+"_model.module.ckpt"))
         best_model.load_state_dict(net)
 
     print("fold\tmodelname\tembtype\ttestauc\ttestacc\twindow_testauc\twindow_testacc\tvalidauc\tvalidacc\tbest_epoch")
     print(str(fold) + "\t" + model_name + "\t" + emb_type + "\t" + str(round(testauc, 4)) + "\t" + str(round(testacc, 4)) + "\t" + str(round(window_testauc, 4)) + "\t" + str(round(window_testacc, 4)) + "\t" + str(validauc) + "\t" + str(validacc) + "\t" + str(best_epoch))
-    model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
+    model_save_path = os.path.join(ckpt_path, emb_type+"_model.module.ckpt")
     print(f"end:{datetime.datetime.now()}")
     
     if params['use_wandb']==1:

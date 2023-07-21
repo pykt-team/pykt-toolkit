@@ -5,7 +5,7 @@ import copy
 import torch
 import numpy as np
 
-from pykt.models import evaluate,evaluate_question,load_model
+from pykt.models import evaluate,evaluate_question,load_model, evaluate_testset
 from pykt.datasets import init_test_datasets
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -37,8 +37,9 @@ def main(params):
             model_config["seq_len"] = seq_len   
         if model_name in ["stosakt"]:
             train_args = argparse.ArgumentParser()
-            args_dict = vars(train_args)
-            args_dict.update(config["train_args"])
+            print(f"train_args;{train_args}")
+            # args_dict = vars(train_args)
+            # args_dict.update(config["train_args"])
             # print(f"train_args:{train_args.hidden_size}")
 
     with open("../configs/data_config.json") as fin:
@@ -94,7 +95,7 @@ def main(params):
     
     if model_name in ["gpt4kt"]:
         save_test_window_path = os.path.join(save_dir, model.emb_type+"_test_window_predictions_pretrain.txt")
-        window_testauc, window_testacc = evaluate(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold)
+        window_testauc, window_testacc = evaluate_testset(model, test_window_loader, model_name, save_test_window_path, dataset_name, fold)
         # print(f"testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
         print(f"window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
@@ -144,6 +145,8 @@ if __name__ == "__main__":
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--dataset_name", type=str, default="algebra2005")
     parser.add_argument("--win200", type=bool, default=True)
+
+    parser.add_argument("--local-rank", type=int)
 
     args = parser.parse_args()
     print(args)

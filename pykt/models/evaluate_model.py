@@ -87,6 +87,155 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
     return "\n".join(results)
 
+def evaluate_testset(model, test_loader, model_name, save_path="", dataset_name="", fold="", attn_cnt_path=""):
+    if save_path != "":
+        fout = open(save_path, "w", encoding="utf8")
+    with torch.no_grad():
+        y_trues = []
+        y_scores = []
+        dres = dict()
+        test_mini_index = 0
+        dic_emb = {"xemb":{},"yemb":{}}
+        dic_emb = dict()
+        for data in test_loader:
+            # if model_name in ["dkt_forget", "lpkt"]:
+            #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
+            if model_name in ["dkt_forget", "parkt", "mikt"] and model.emb_type.find("time") != -1:
+                dcur, dgaps = data
+            elif model_name in ["bakt_time"]:
+                dcur, dgaps = data
+            elif model_name in ["gpt4kt"] and model.emb_type.find("pt") != -1:
+                dcur, dgaps = data
+            else:
+                dcur = data
+            q, c, r = dcur["qseqs"], dcur["cseqs"], dcur["rseqs"]
+            qshft, cshft, rshft = dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
+            m, sm = dcur["masks"], dcur["smasks"]
+            q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "gnn4kt", "gpt4kt"]:
+                model.module.eval()
+            else:
+                model.eval()
+
+            # print(f"before y: {y.shape}")
+            cq = torch.cat((q[:,0:1], qshft), dim=1)
+            cc = torch.cat((c[:,0:1], cshft), dim=1)
+            cr = torch.cat((r[:,0:1], rshft), dim=1)
+            if model_name in ["cdkt"]:
+                '''
+                y = model(dcur) 
+                import pickle
+                with open(f"{test_mini_index}_result.pkl",'wb') as f:
+                    data = {"y":y,"cshft":cshft,"num_c":model.module.num_c,"rshft":rshft,"qshft":qshft,"sm":sm}
+                    pickle.dump(data,f)
+                '''
+                y, rpreds, qh = model(dcur)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
+            elif model_name in ["bakt_qikt"]:
+                y = model(dcur)
+            elif model_name in ["bakt_time"]:
+                y, qemb, qhemb, dic_emb = model(dcur, dgaps, dic_emb=dic_emb)
+                y = y[:,1:]
+                qemb = qemb[:,1:,:]
+                qhemb = qhemb[:,1:,:]
+            elif model_name in ["simplekt_sr", "parkt", "mikt"]:
+                if model.module.emb_type.find("time") != -1:
+                    y = model(dcur, dgaps=dgaps)
+                else:
+                    y = model(dcur)
+                y = y[:,1:]
+            elif model_name in ["stosakt"]:
+                y = model(dcur)
+            elif model_name in ["bakt"]:
+                if model.module.emb_type.find("grad") != -1:
+                    save_grad_path = f"./save_attn/{dataset_name}_save_grad_fold_{fold}.npz"
+                    save_attn_path = f"./save_attn/{dataset_name}_save_attnweight_fold_{fold}.npz"
+                    y = model(dcur, save_attn_path=save_attn_path, save_grad_path=save_grad_path)
+                else:
+                    y = model(dcur, attn_cnt_path=attn_cnt_path)
+                y = y[:,1:]
+            elif model_name in ["gpt4kt"]:
+                if model.emb_type.find("pt") != -1:
+                    y = model(dcur, dgaps=dgaps)
+                else:
+                    y = model(dcur)
+                y = y[:,1:]
+                if q.size(1) != 0:
+                    c,cshft = q,qshft#question level 
+            elif model_name in ["dkt", "dkt+"]:
+                y = model(c.long(), r.long())
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
+            elif model_name in ["dkt_forget"]:
+                y = model(c.long(), r.long(), dgaps)
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
+            elif model_name in ["dkvmn","deep_irt", "skvmn","deep_irt"]:
+                y = model(cc.long(), cr.long())
+                y = y[:,1:]
+            elif model_name in ["kqn", "sakt"]:
+                y = model(c.long(), r.long(), cshft.long())
+            elif model_name == "saint":
+                y = model(cq.long(), cc.long(), r.long())
+                y = y[:, 1:]
+            elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:                                
+                y, reg_loss = model(cc.long(), cr.long(), cq.long())
+                y = y[:,1:]
+            elif model_name in ["atkt", "atktfix"]:
+                y, _ = model(c.long(), r.long())
+                y = (y * one_hot(cshft.long(), model.module.num_c)).sum(-1)
+            elif model_name == "gkt":
+                y = model(cc.long(), cr.long())
+            elif model_name == "gnn4kt":
+                y = model(dcur)
+                if model.module.emb_type.find("lstm") != -1:
+                    y = (y * one_hot(qshft.long(), model.module.num_q)).sum(-1)
+                else:
+                    y = y[:, 1:]
+                c,cshft = q,qshft#question level 
+            elif model_name == "lpkt":
+                # cat = torch.cat((d["at_seqs"][:,0:1], dshft["at_seqs"]), dim=1).to(device)
+                cit = torch.cat((dcur["itseqs"][:,0:1], dcur["shft_itseqs"]), dim=1)
+                y = model(cq.long(), cr.long(), cit.long())
+                y = y[:,1:]
+                c,cshft = q,qshft#question level 
+            elif model_name == "hawkes":
+                ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
+                # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
+                y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
+                y = y[:, 1:]
+            elif model_name in que_type_models and model_name not in ["lpkt", "gpt4kt", "gnn4kt"]:
+                y = model.module.predict_one_step(data)
+                c,cshft = q,qshft#question level 
+            # print(f"after y: {y.shape}")
+            # save predict result
+            if save_path != "":
+                if model_name not in ["bakt_time"]:
+                    result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
+                else:
+                    # print(f"save_path:{save_path}")
+                    result = save_cur_predict_result_emb(dres, c, r, cshft, rshft, qemb, qhemb, m, sm, y)
+                    # print(f"results:{result}")
+                fout.write(result+"\n")
+
+            y = torch.masked_select(y, sm).detach().cpu()
+            # print(f"pred_results:{y}")  
+            t = torch.masked_select(rshft, sm).detach().cpu()
+
+            y_trues.append(t.numpy())
+            y_scores.append(y.numpy())
+            test_mini_index+=1
+        ts = np.concatenate(y_trues, axis=0)
+        ps = np.concatenate(y_scores, axis=0)
+        print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
+        auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
+        prelabels = [1 if p >= 0.5 else 0 for p in ps]
+        acc = metrics.accuracy_score(ts, prelabels)
+        if model_name in ["bakt_time"]:
+            with open(f"./embeddings/{dataset_name}_emb_json.json", "w") as f:
+                json.dump(dic_emb, f)
+    # if save_path != "":
+    #     pd.to_pickle(dres, save_path+".pkl")
+    return auc, acc
+
 def evaluate(model, test_loader, model_name, save_path="", dataset_name="", fold="", attn_cnt_path=""):
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
