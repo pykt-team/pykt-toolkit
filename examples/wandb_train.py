@@ -110,7 +110,7 @@ def main(params, args=None):
     else:
         save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
+    for remove_item in ['use_wandb','learning_rate','add_uuid','l2','global_bs','num_gpus']:
         if remove_item in model_config:
             del model_config[remove_item]
     if model_name in ["saint","saint++", "sakt", "cdkt", "bakt", "bakt_time"]:
@@ -157,6 +157,11 @@ def main(params, args=None):
     if emb_type.find("cl") != -1:
         # print(f"curtrain:{len(curtrain)}")
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size)
+    elif model_name in ["gpt4kt"]:
+        global_bs = params['global_bs']
+        num_gpus = params['num_gpus']
+        gradient_accumulation_steps = global_bs/num_gpus/train_config["batch_size"]
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, gradient_accumulation_steps=gradient_accumulation_steps)
     else:
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
     

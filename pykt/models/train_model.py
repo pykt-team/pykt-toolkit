@@ -243,7 +243,7 @@ def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     # train_loader = DataLoader(curtrain, batch_size=batch_size)
     return simple_size, bn
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=8.0):    
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=4.0):    
     max_auc, best_epoch = 0, -1
     train_step = 0
 

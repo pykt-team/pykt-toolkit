@@ -37,6 +37,8 @@ if __name__ == "__main__":
     parser.add_argument("--add_uuid", type=int, default=1)
     
     parser.add_argument("--local-rank", type=int)
+    parser.add_argument("--num_gpus", type=int, default=8)
+    parser.add_argument("--global_bs", type=int, default=512)
 
     args = parser.parse_args()
 
