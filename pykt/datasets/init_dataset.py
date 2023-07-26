@@ -1,6 +1,7 @@
 import os, sys
 import json
 
+import torch
 from torch.utils.data import DataLoader
 import numpy as np
 from .data_loader import KTDataset
@@ -16,7 +17,7 @@ from pykt.config import que_type_models
 # from .simplekt_cl_dataloader import CL4KTDataset
 from .cl_utils import sort_samples
 from .cl_dataloader import CL4KTDataset
-from .pretrain_utils import get_pretrain_data
+from .pretrain_utils import get_pretrain_data, get_pretrain_test_data
 
 def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
     print(f"model_name is {model_name}")
@@ -60,7 +61,10 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
             dataset = data_config['dpath'].split("/")[-1]
             if win200:
                 if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]:
-                    test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
+                    test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"])
+                    if not os.path.exists(test_path):
+                        get_pretrain_test_data(seq_len, data_config)
+                    test_window_dataset = KTQueDataset(test_path,
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
                 else:
@@ -169,6 +173,7 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
             if model_name == "gpt4kt":
                 seq_len = args.seq_len
                 dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}.csv")
+                print(f"train_data_path:{dpath}")
                 if not os.path.exists(dpath):
                     print(f"loading pretrain data")
                     get_pretrain_data(seq_len, data_config)

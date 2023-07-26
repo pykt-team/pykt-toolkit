@@ -45,11 +45,12 @@ def main(params, args=None):
         train_config = config["train_config"]
         if model_name in ["gpt4kt"]:
             seqlen = params['seq_len']
+            train_config["seq_len"] = seqlen
             if seqlen == 1024:
                 if params["d_model"] <= 1024:
                     train_config["batch_size"] = 16 ## because of OOM
                 else:
-                    train_config["batch_size"] = 32 ## because of OOM
+                    train_config["batch_size"] = 16 ## because of OOM
             elif seqlen == 200:
                 train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "gnn4kt"]:
