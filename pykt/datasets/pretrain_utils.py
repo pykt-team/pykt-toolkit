@@ -10,17 +10,21 @@ def get_pretrain_data(seqlen, data_config):
     print(f"datapath:{data_config['dpath']}")
     uni_path = "/".join(data_config['dpath'].split("/")[:-1])
     full_data_path = os.path.join(data_config["dpath"], f"train_valid_quelevel_pretrain.csv")
+    datasets = ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]
     if not os.path.exists(full_data_path):    
-        datasets = ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]
         new_df = merge_data(uni_path, datasets)
         finaldf, dkeyid2idx = id_mapping_que(new_df)
+        if not os.path.exists(data_config["dpath"]):
+            os.mkdir(data_config["dpath"])
         finaldf.to_csv(full_data_path, index=None)
-        ins, ss, qs, cs, seqnum = calStatistics(df=finaldf, stares=[], key="original train+valid question level")
-        print(f"pretrain  sequences interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
-        for data in datasets:
-            final_sub_df = finaldf[finaldf.dataset==data]
-            ins_, ss_, qs_, cs_, seqnum_ = calStatistics(df=final_sub_df, stares=[], key="original train+valid question level")
-            print(f"dataset:{data}, ins_:{ins_}, ss_:{ss_}, qs_:{qs_}, cs_:{cs_}, seqnum_:{seqnum_}")
+    else:
+        finaldf = pd.read_csv(full_data_path)
+    ins, ss, qs, cs, seqnum = calStatistics(df=finaldf, stares=[], key="original train+valid question level")
+    print(f"pretrain  sequences interactions num: {ins}, select num: {ss}, qs: {qs}, cs: {cs}, seqnum: {seqnum}")
+    for data in datasets:
+        final_sub_df = finaldf[finaldf.dataset==data]
+        ins_, ss_, qs_, cs_, seqnum_ = calStatistics(df=final_sub_df, stares=[], key="original train+valid question level")
+        print(f"dataset:{data}, ins_:{ins_}, ss_:{ss_}, qs_:{qs_}, cs_:{cs_}, seqnum_:{seqnum_}")
 
     # build traning and valid set
     split_seqs = generate_sequences(df=finaldf, effective_keys={"uid","questions","concepts","responses","fold", "timestamps"}, min_seq_len=3, maxlen=seqlen)
@@ -32,73 +36,17 @@ def get_pretrain_data(seqlen, data_config):
     # map testing set
     return 
 
-def get_test_data(seqlen, dataset_name):
+def get_pretrain_test_data(seqlen, dataset_name):
     new_test_df = map_dataset(datasets)
     dpath = data_config["dpath"]
-    if os.path.exists(f"{dpath}/test_quelevel_pretrain.csv"):
-        test_df = pd.read_csv(f"{uni_path}/{data}/test_quelevel_pretrain.csv")
-        test_window_seqs = generate_window_sequences(test_df, list({"uid","questions","concepts","responses","fold"}), maxlen=seqlen)
-        test_window_seqs.to_csv(f"{dpath}/test_window_sequences_quelevel_pretrain_1024.csv")
-    
+    uni_path = "/".join(data_config['dpath'].split("/")[:-1])
     datasets = ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou"]
-    for dataset in datasets:
-        sub_df = new_df[new_df.dataset==dataset]
-        new_map_data = {"fold":[], "uid":[], "questions":[], "concepts":[], "responses":[], "timestamps":[]}
-        for i,row in sub_df.iterrows():
-            questions = [str(dkeyid2idx["questions"][dataset][x]) for x in row["questions"].split(",")]
-            concepts = row["concepts"].split(",")
-            new_concepts = []
-            for ccc in concepts:
-                ccc = ccc.split("_")
-                concept = [str(dkeyid2idx["concepts"][dataset][c]) for c in ccc]
-                # concept = [str(dkeyid2idx.get("concepts").get(dataset).get(c,len(dkeyid2idx['concepts'][dataset]))) for c in ccc]
-                concept = "_".join(concept)
-                new_concepts.append(concept)
-            new_map_data["fold"].append(row["fold"])
-            new_map_data["uid"].append(row["uid"])
-            new_map_data["questions"].append(",".join(questions))
-            new_map_data["concepts"].append(",".join(new_concepts))
-            new_map_data["responses"].append(row["responses"])
-            new_map_data["timestamps"].append(row["timestamps"])
-            new_map_df = pd.DataFrame(new_map_data)
-            new_map_df.to_csv(f"{uni_path}/{dataset}/test_quelevel_pretrain.csv")
-
-    datasets = ["ednet5w"]
-    for dataset in datasets:
-        sub_df = new_df[new_df.dataset==dataset]
-        new_map_data = {"fold":[], "uid":[], "questions":[], "concepts":[], "responses":[], "timestamps":[]}
-        for i,row in sub_df.iterrows():
-            questions = []
-            for x in row["questions"].split(","):
-                if x in dkeyid2idx["questions"]["ednet"]:
-                    questions.append(str(dkeyid2idx["questions"]["ednet"][x]))
-                else:
-                    questions.append(str(dkeyid2idx["questions"][dataset][x]))
-            
-            concept = []
-            concepts = row["concepts"].split(",")
-            new_concepts = []
-            for ccc in concepts:
-                ccc = ccc.split("_")
-                concept = []
-                for c in ccc:
-                    if c in dkeyid2idx['concepts']["ednet"]:
-                        concept.append(str(dkeyid2idx["concepts"]["ednet"][c]))
-                    else:
-                        concept.append(str(dkeyid2idx["concepts"][dataset][c]))
-                concept = "_".join(concept)
-                new_concepts.append(concept)
-            new_map_data["fold"].append(row["fold"])
-            new_map_data["uid"].append(row["uid"])
-            new_map_data["questions"].append(",".join(questions))
-            new_map_data["concepts"].append(",".join(new_concepts))
-            new_map_data["responses"].append(row["responses"])
-            new_map_data["timestamps"].append(row["timestamps"])
-            new_map_df = pd.DataFrame(new_map_data)
-            new_map_df.to_csv(f"{uni_path}/{dataset}/test_quelevel_pretrain.csv")
-
-
-    
+    if not os.path.exists(f"{dpath}/test_quelevel_pretrain.csv"):
+        test_df = get_pretrain_testset(uni_path, datasets, new_test_df)
+    else:
+        test_df = pd.read_csv(f"{uni_path}/{data}/test_quelevel_pretrain.csv")
+    test_window_seqs = generate_window_sequences(test_df, list({"uid","questions","concepts","responses","fold"}), maxlen=seqlen)
+    test_window_seqs.to_csv(f"{dpath}/test_window_sequences_quelevel_pretrain_{seqlen}.csv")
 
 def merge_data(uni_path, datasets):
     new_data = {"fold":[], "uid":[], "questions":[], "concepts":[], "responses":[], "dataset":[], "timestamps":[]}
@@ -107,40 +55,40 @@ def merge_data(uni_path, datasets):
         df_test = pd.read_csv(f"{uni_path}/{dataset}/test_quelevel.csv")
         df = pd.concat([df_train, df_test])
     
-    data_info_ = dict()
-    with open(f"{uni_path}/{dataset}/keyid2idx.json", "r") as f:
-        data_info = json.load(f)
-        for key in data_info:
-            data_info_.setdefault(key,dict())
-            try:
-                for item in data_info[key]:
-                    data_info_[key][data_info[key][item]] = item
-            except:
-                print(f"{key}")
-                continue
-    for i,row in df.iterrows():
-        uid = data_info_["uid"][row["uid"]]
-        questions = row["questions"].split(",")
-        # print(f"questions:{questions}")
-        concepts = row["concepts"].split(",")
-        # print(f"concepts:{concepts}")
-        questions = [data_info_["questions"][int(q)] for q in questions]
-        new_concepts = []
-        for ccc in concepts:
-            ccc = ccc.split("_")
-            concept = [data_info_["concepts"][int(c)] for c in ccc]
-            concept = "_".join(concept)
-            new_concepts.append(concept)
-        new_data["fold"].append(row["fold"])
-        new_data["uid"].append(uid)
-        new_data["questions"].append(",".join(questions))
-        new_data["concepts"].append(",".join(new_concepts))
-        new_data["responses"].append(row["responses"])
-        new_data["dataset"].append(dataset)
-        if "timestamps" in row:
-            new_data["timestamps"].append(row["timestamps"])
-        else:
-            new_data["timestamps"].append(",".join([str(i) for i in range(len(questions))]))
+        data_info_ = dict()
+        with open(f"{uni_path}/{dataset}/keyid2idx.json", "r") as f:
+            data_info = json.load(f)
+            for key in data_info:
+                data_info_.setdefault(key,dict())
+                try:
+                    for item in data_info[key]:
+                        data_info_[key][data_info[key][item]] = item
+                except:
+                    print(f"{key}")
+                    continue
+        for i,row in df.iterrows():
+            uid = data_info_["uid"][row["uid"]]
+            questions = row["questions"].split(",")
+            # print(f"questions:{questions}")
+            concepts = row["concepts"].split(",")
+            # print(f"concepts:{concepts}")
+            questions = [data_info_["questions"][int(q)] for q in questions]
+            new_concepts = []
+            for ccc in concepts:
+                ccc = ccc.split("_")
+                concept = [data_info_["concepts"][int(c)] for c in ccc]
+                concept = "_".join(concept)
+                new_concepts.append(concept)
+            new_data["fold"].append(row["fold"])
+            new_data["uid"].append(uid)
+            new_data["questions"].append(",".join(questions))
+            new_data["concepts"].append(",".join(new_concepts))
+            new_data["responses"].append(row["responses"])
+            new_data["dataset"].append(dataset)
+            if "timestamps" in row:
+                new_data["timestamps"].append(row["timestamps"])
+            else:
+                new_data["timestamps"].append(",".join([str(i) for i in range(len(questions))]))
 
     new_df = pd.DataFrame(new_data)
     
@@ -193,6 +141,7 @@ def id_mapping_que(df):
                     dres[key].append(",".join(curids))
             pre_data = dataset
         else:
+            print(f"{dkeyid2idx.keys()}")
             for j,key in enumerate(id_keys):
                 if key not in df.columns:
                     continue
@@ -387,3 +336,62 @@ def generate_window_sequences(df, effective_keys, maxlen=200, pad_val=-1):
             dfinal[key] = dres[key]
     finaldf = pd.DataFrame(dfinal)
     return finaldf
+
+
+    def get_pretrain_testset(uni_path, datasets, new_df):
+        for dataset in datasets:
+            if dataset not in ["ednet5w"]:
+                sub_df = new_df[new_df.dataset==dataset]
+                new_map_data = {"fold":[], "uid":[], "questions":[], "concepts":[], "responses":[], "timestamps":[]}
+                for i,row in sub_df.iterrows():
+                    questions = [str(dkeyid2idx["questions"][dataset][x]) for x in row["questions"].split(",")]
+                    concepts = row["concepts"].split(",")
+                    new_concepts = []
+                    for ccc in concepts:
+                        ccc = ccc.split("_")
+                        concept = [str(dkeyid2idx["concepts"][dataset][c]) for c in ccc]
+                        # concept = [str(dkeyid2idx.get("concepts").get(dataset).get(c,len(dkeyid2idx['concepts'][dataset]))) for c in ccc]
+                        concept = "_".join(concept)
+                        new_concepts.append(concept)
+                    new_map_data["fold"].append(row["fold"])
+                    new_map_data["uid"].append(row["uid"])
+                    new_map_data["questions"].append(",".join(questions))
+                    new_map_data["concepts"].append(",".join(new_concepts))
+                    new_map_data["responses"].append(row["responses"])
+                    new_map_data["timestamps"].append(row["timestamps"])
+                    new_map_df = pd.DataFrame(new_map_data)
+                    new_map_df.to_csv(f"{uni_path}/{dataset}/test_quelevel_pretrain.csv")
+            else:
+                datasets = ["ednet5w"]
+                for dataset in datasets:
+                    sub_df = new_df[new_df.dataset==dataset]
+                    new_map_data = {"fold":[], "uid":[], "questions":[], "concepts":[], "responses":[], "timestamps":[]}
+                    for i,row in sub_df.iterrows():
+                        questions = []
+                        for x in row["questions"].split(","):
+                            if x in dkeyid2idx["questions"]["ednet"]:
+                                questions.append(str(dkeyid2idx["questions"]["ednet"][x]))
+                            else:
+                                questions.append(str(dkeyid2idx["questions"][dataset][x]))
+                        
+                        concept = []
+                        concepts = row["concepts"].split(",")
+                        new_concepts = []
+                        for ccc in concepts:
+                            ccc = ccc.split("_")
+                            concept = []
+                            for c in ccc:
+                                if c in dkeyid2idx['concepts']["ednet"]:
+                                    concept.append(str(dkeyid2idx["concepts"]["ednet"][c]))
+                                else:
+                                    concept.append(str(dkeyid2idx["concepts"][dataset][c]))
+                            concept = "_".join(concept)
+                            new_concepts.append(concept)
+                        new_map_data["fold"].append(row["fold"])
+                        new_map_data["uid"].append(row["uid"])
+                        new_map_data["questions"].append(",".join(questions))
+                        new_map_data["concepts"].append(",".join(new_concepts))
+                        new_map_data["responses"].append(row["responses"])
+                        new_map_data["timestamps"].append(row["timestamps"])
+                        new_map_df = pd.DataFrame(new_map_data)
+                        new_map_df.to_csv(f"{uni_path}/{dataset}/test_quelevel_pretrain.csv")

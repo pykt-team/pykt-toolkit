@@ -50,7 +50,7 @@ def main(params, args=None):
                 if params["d_model"] <= 1024:
                     train_config["batch_size"] = 16 ## because of OOM
                 else:
-                    train_config["batch_size"] = 32 ## because of OOM
+                    train_config["batch_size"] = 16 ## because of OOM
             elif seqlen == 200:
                 train_config["batch_size"] = 64 ## because of OOM
             else: # seqlen = 512
