@@ -69,6 +69,9 @@ def main(params):
     if model_name in ["stosakt"]:
         model = load_model(model_name, model_config, data_config, emb_type, save_dir, train_args)
     else:
+        for remove_item in ['use_wandb','learning_rate','add_uuid','l2','global_bs','num_gpus']:
+            if remove_item in model_config:
+                del model_config[remove_item]
         model = load_model(model_name, model_config, data_config, emb_type, save_dir)
 
     testauc, testacc = -1, -1

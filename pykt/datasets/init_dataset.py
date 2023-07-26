@@ -1,6 +1,7 @@
 import os, sys
 import json
 
+import torch
 from torch.utils.data import DataLoader
 import numpy as np
 from .data_loader import KTDataset
@@ -217,7 +218,11 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
     else:
         print(f"curvalid:{len(curvalid)}")
         print(f"curtrain:{len(curtrain)}")
-        train_loader = DataLoader(curtrain, batch_size=batch_size)
+        torch.distributed.init_process_group(backend='nccl')
+        torch.cuda.set_device(args.local_rank)
+        sampler = torch.utils.data.distributed.DistributedSampler(curtrain)
+        train_loader = DataLoader(curtrain, batch_size=batch_size,sampler=sampler)
+        # train_loader = DataLoader(curtrain, batch_size=batch_size)
         valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
     # try:

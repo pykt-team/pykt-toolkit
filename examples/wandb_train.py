@@ -45,6 +45,7 @@ def main(params, args=None):
         train_config = config["train_config"]
         if model_name in ["gpt4kt"]:
             seqlen = params['seq_len']
+            train_config["seq_len"] = seqlen
             if seqlen == 1024:
                 if params["d_model"] <= 1024:
                     train_config["batch_size"] = 16 ## because of OOM
@@ -52,6 +53,8 @@ def main(params, args=None):
                     train_config["batch_size"] = 32 ## because of OOM
             elif seqlen == 200:
                 train_config["batch_size"] = 64 ## because of OOM
+            else: # seqlen = 512
+                train_config["batch_size"] = 32 ## because of OOM
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "gnn4kt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["bakt", "bakt_time", "bakt_qikt","simplekt_sr", "stosakt", "parkt", "mikt"]:
@@ -72,8 +75,8 @@ def main(params, args=None):
 
     with open("../configs/data_config.json") as fin:
         data_config = json.load(fin)
-    if 'maxlen' in data_config[dataset_name]:#prefer to use the maxlen in data config
-        train_config["seq_len"] = data_config[dataset_name]['maxlen']
+    # if 'maxlen' in data_config[dataset_name]:#prefer to use the maxlen in data config
+    #     train_config["seq_len"] = data_config[dataset_name]['maxlen']
     seq_len = train_config["seq_len"]
 
     print("Start init data")
@@ -160,7 +163,8 @@ def main(params, args=None):
     elif model_name in ["gpt4kt"]:
         global_bs = params['global_bs']
         num_gpus = params['num_gpus']
-        gradient_accumulation_steps = global_bs/num_gpus/train_config["batch_size"]
+        gradient_accumulation_steps = max(global_bs/num_gpus/train_config["batch_size"],1.0)
+        print(f"gradient_accumulation_steps:{gradient_accumulation_steps}")
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, gradient_accumulation_steps=gradient_accumulation_steps)
     else:
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)

@@ -118,9 +118,10 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
         model = BAKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "gpt4kt":
         # 2） 配置每个进程的gpu
-        if mode == "train" and train_start:
-            torch.distributed.init_process_group(backend='nccl')
-            torch.cuda.set_device(args.local_rank)
+        # if mode == "train" and train_start:
+        #     print(f"init torch.distributed.init_process_group")
+        #     # torch.distributed.init_process_group(backend='nccl')
+        #     # torch.cuda.set_device(args.local_rank)
         if emb_type.find("pt") == -1:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
         else:
