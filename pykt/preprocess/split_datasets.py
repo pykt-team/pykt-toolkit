@@ -24,7 +24,10 @@ def read_data(fname, min_seq_len=3, response_set=[0, 1]):
             if i % 6 == 0:  # stuid
                 effective_keys.add("uid")
                 tmps = line.split(",")
-                stuid, seq_len = tmps[0], int(tmps[1])
+                if "(" in tmps[0]:
+                    stuid, seq_len = tmps[0].replace('(', ''), int(tmps[2])
+                else:
+                    stuid, seq_len = tmps[0], int(tmps[1])
                 if seq_len < min_seq_len:  # delete use seq len less than min_seq_len
                     i += 6
                     dcur = dict()
