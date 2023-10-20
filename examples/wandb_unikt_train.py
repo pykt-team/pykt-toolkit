@@ -47,6 +47,9 @@ if __name__ == "__main__":
     parser.add_argument("--train_ratio", type=float, default=1.0)
     parser.add_argument("--pretrain_path", type=str, default="")
 
+    parser.add_argument("--q_window_size", type=str, default=2)
+    parser.add_argument("--c_window_size", type=str, default=3)
+
     args = parser.parse_args()
     print(f"local_rank:{args.local_rank}")
 

@@ -24,7 +24,7 @@ class UNIKT(nn.Module):
     def __init__(self, n_question, n_pid, 
             d_model, n_blocks, dropout, d_ff=256, 
             loss1=0.5, loss2=0.5, loss3=0.5, start=50, num_layers=2, nheads=4, seq_len=1024, 
-            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, cf_weight=0.3, t_weight=0.3, local_rank=1, num_sgap=None, c0=0, max_epoch=0, window_size=4):
+            kq_same=1, final_fc_dim=512, final_fc_dim2=256, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768, cf_weight=0.3, t_weight=0.3, local_rank=1, num_sgap=None, c0=0, max_epoch=0, q_window_size=20, c_window_size=4):
         super().__init__()
         """
         Input:
@@ -48,7 +48,11 @@ class UNIKT(nn.Module):
         self.cf_weight = cf_weight
         self.t_weight = t_weight
         self.num_sgap = num_sgap
-        self.window_size = window_size
+        self.q_window_size = q_window_size
+        self.c_window_size = c_window_size
+        # print(f"q_window_size:{self.q_window_size}")
+        # print(f"c_window_size:{self.c_window_size}")
+
         
         self.embed_l = d_model
 
@@ -143,19 +147,18 @@ class UNIKT(nn.Module):
 
         if self.emb_type.find("aug") != -1:
             # new qids
-            aug_pids= pid_data.unfold(1, self.window_size, 1)
+            aug_pids= pid_data.unfold(1, self.q_window_size, 1)
             aug_pids = aug_pids.sum(dim=2)
-            aug_pid_data = torch.where(aug_pids >= self.n_pid, -1, aug_pids)
+            aug_pid_data = torch.where(aug_pids >= 200000, -1, aug_pids)
 
             # new cids
-            # print(f"q_data:{q_data.shape}")
-            aug_cids = q_data.unfold(2, self.window_size, 1).sum(dim=-1)
-            aug_cid_data = torch.where(aug_cids >= self.n_question, -1, aug_cids)
+            aug_cids = q_data.unfold(2, self.c_window_size, 1).sum(dim=-1)
+            aug_cid_data = torch.where(aug_cids >= 1000, -1, aug_cids)
             # print(f"aug_cid_data:{aug_cid_data.shape}")
 
             # new rids
-            window_counts = target.unfold(1, self.window_size, 1).sum(dim=2)
-            aug_target_data = (window_counts > self.window_size / 2).float().long()
+            window_counts = target.unfold(1, self.q_window_size, 1).sum(dim=2)
+            aug_target_data = (window_counts > self.q_window_size / 2).float().long()
 
             # padding
             pad_dims = [0, pid_data.size(1) - aug_pid_data.size(1), 0, pid_data.size(0) - aug_pid_data.size(0)]
