@@ -7,14 +7,19 @@ torch.set_num_threads(4)
 from torch.optim import SGD, Adam
 import copy
 
-from pykt.models import train_model,evaluate,init_model
+from pykt.models import train_model,evaluate,init_model,load_model
 from pykt.utils import debug_print,set_seed
 from pykt.datasets import init_dataset4train
 import datetime
 
+# torch.cuda.set_device(local_rank)
+# dist.init_process_group(backend='nccl')f
+
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
+# local-rank = int(os.environ['LOCAL_RANK'])
+# torch.cuda.set_device(local-rank)
 
 def save_config(train_config, model_config, data_config, params, save_dir, args=None):
     # print(f"type_args:{type(args)}")
@@ -33,7 +38,10 @@ def main(params, args=None):
     if params['use_wandb']==1:
         import wandb
         wandb.init()
-
+    if args.local_rank != -1:
+        torch.distributed.init_process_group(backend='nccl')
+        torch.cuda.set_device(args.local_rank)
+        
     set_seed(params["seed"])
     model_name, dataset_name, fold, emb_type, save_dir = params["model_name"], params["dataset_name"], \
         params["fold"], params["emb_type"], params["save_dir"]
@@ -43,7 +51,7 @@ def main(params, args=None):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["gpt4kt"]:
+        if model_name in ["gpt4kt","unikt"]:
             seqlen = params['seq_len']
             train_config["seq_len"] = seqlen
             if seqlen == 1024:
@@ -64,8 +72,12 @@ def main(params, args=None):
         if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
         model_config = copy.deepcopy(params)
-        for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
-            del model_config[key]
+        if model_name in ["gpt4kt","unikt"]:
+            for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed", "train_ratio", "not_select_dataset"]:
+                del model_config[key]
+        else:
+            for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
+                del model_config[key]
         if 'batch_size' in params:
             train_config["batch_size"] = params['batch_size']
         if 'num_epochs' in params:
@@ -83,10 +95,16 @@ def main(params, args=None):
     print(dataset_name, model_name, data_config, fold, batch_size)
     
     debug_print(text="init_dataset",fuc_name="main")
-    if model_name not in ["simplekt_sr", "parkt", "gpt4kt"]:
+    if model_name not in ["simplekt_sr", "parkt", "gpt4kt", "simplekt","unikt"]:
         train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size)
         # print(f"curtrain:{len(curtrain)}")
-    elif model_name in ["simplekt_sr", "gpt4kt"]:
+    elif model_name in ["gpt4kt","unikt"]:
+        print(f"emb_type:{emb_type}")
+        not_select_dataset = params['not_select_dataset']
+        if not_select_dataset == "all":
+            not_select_dataset = None
+        train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args, not_select_dataset)
+    elif model_name in ["simplekt_sr", "simplekt"]:
         train_loader, valid_loader, curtrain = init_dataset4train(dataset_name, model_name, emb_type, data_config, fold, batch_size, args)
     elif model_name in ["parkt"]:
         if emb_type.find("cl") != -1 or emb_type.find("uid") != -1:
@@ -103,6 +121,7 @@ def main(params, args=None):
         params_str = params_str+f"_{ str(uuid.uuid4())}"
     ckpt_path = os.path.join(save_dir, params_str)
     if not os.path.isdir(ckpt_path):
+        # if args.local_rank == 0:
         os.makedirs(ckpt_path)
     print(f"Start training model: {model_name}, embtype: {emb_type}, save_dir: {ckpt_path}, dataset_name: {dataset_name}")
     print(f"model_config: {model_config}")
@@ -127,6 +146,21 @@ def main(params, args=None):
             map_json = json.load(f)
             num_stu = len(map_json["uid"])
         model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)
+        print(f"model_parameter:{sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())}")
+    elif model_name in ["gpt4kt","unikt"]:
+        pretrain_path = params["pretrain_path"]
+        if pretrain_path == "":
+            del model_config["pretrain_path"]
+            model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
+        else:
+            with open(os.path.join(pretrain_path, "config.json")) as fin:
+                config = json.load(fin)
+                model_config = copy.deepcopy(config["model_config"])
+                for remove_item in ['use_wandb','learning_rate','add_uuid','l2','num_gpus','global_bs',"pretrain_path"]:
+                    if remove_item in model_config:
+                        del model_config[remove_item]    
+                trained_params = config["params"]
+            model = load_model(model_name, model_config, data_config[dataset_name], emb_type,pretrain_path, args, mode="train", finetune=True)
         print(f"model_parameter:{sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())}")
     else:
         model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
@@ -160,7 +194,7 @@ def main(params, args=None):
     if emb_type.find("cl") != -1:
         # print(f"curtrain:{len(curtrain)}")
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size)
-    elif model_name in ["gpt4kt"]:
+    elif model_name in ["gpt4kt", "unikt"]:
         global_bs = params['global_bs']
         num_gpus = params['num_gpus']
         gradient_accumulation_steps = max(global_bs/num_gpus/train_config["batch_size"],1.0)
@@ -170,9 +204,9 @@ def main(params, args=None):
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
     
     if save_model:
-        if model_name not in ["parkt","gpt4kt"]:
+        if model_name not in ["parkt","gpt4kt","unikt"]:
             best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args)
-        elif model_name in ["gpt4kt"]:
+        elif model_name in ["gpt4kt", "unikt"]:
             best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, train_start=False)
         else:
             best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type, args, num_stu)

@@ -46,7 +46,7 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
             test_question_window_dataset = ParktDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)  
     elif model_name in que_type_models:
         print(f"model_name:{model_name}")
-        if model_name not in ["gpt4kt"]:
+        if model_name not in ["gpt4kt","unikt"]:
             test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
                             input_type=data_config["input_type"], folds=[-1], 
                             concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
@@ -59,9 +59,13 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
             #                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
             test_dataset = None
             dataset = data_config['dpath'].split("/")[-1]
+            print(f"dataset:{dataset}")
             if win200:
-                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]:
-                    test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"])
+                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w","ednet_all"]:
+                    if model_name=="gpt4kt":
+                        test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"])
+                    else:
+                        test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_finetune_w200"])
                     if not os.path.exists(test_path):
                         get_pretrain_test_data(seq_len, data_config)
                     test_window_dataset = KTQueDataset(test_path,
@@ -71,7 +75,7 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
                     test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
                     test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})                              
             else:
-                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w"]:
+                if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w", "ednet_all"]:
                     test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"]),
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
@@ -115,7 +119,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, max_it, cur):
     max_it = cur.max_it if cur.max_it > max_it else max_it
     return max_rgap, max_sgap, max_pcount, max_it
 
-def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch_size, args=None):
+def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch_size, args=None, not_select_dataset=None):
     print(f"dataset_name:{dataset_name}")
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
@@ -128,6 +132,7 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         # curtrain = KTDataset(cl_dpath, data_config["input_type"], all_folds - {i})  
         # print(f"curtrain:{len(curtrain)}")
         if model_name != "gpt4kt":
+            print("check route 1 ")
             train_valid_path = os.path.join(data_config["dpath"], data_config["train_valid_file"])
             sorted_df = sort_samples(train_valid_path)
             curvalid = CL4KTDataset(train_valid_path, sorted_df, data_config["input_type"], {i})
@@ -170,19 +175,45 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
             max_sgap = curtrain.max_sgap if curtrain.max_sgap > max_sgap else max_sgap
             max_sgap = curvalid.max_sgap if curvalid.max_sgap > max_sgap else max_sgap        
         else:
-            if model_name == "gpt4kt":
+            if model_name in ["gpt4kt"]:
                 seq_len = args.seq_len
-                dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}.csv")
+                train_ratio = args.train_ratio
+                if train_ratio < 1.0 and not_select_dataset is None:
+                    dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}_{train_ratio}.csv")
+                else:
+                    dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}_ablation.csv")
                 print(f"train_data_path:{dpath}")
                 if not os.path.exists(dpath):
                     print(f"loading pretrain data")
-                    get_pretrain_data(seq_len, data_config)
+                    get_pretrain_data(seq_len, data_config, train_ratio)
                 curvalid = KTQueDataset(dpath,
                                 input_type=data_config["input_type"], folds={i}, 
-                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
                 curtrain = KTQueDataset(dpath,
                                 input_type=data_config["input_type"], folds=all_folds - {i}, 
-                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
+            elif model_name in ["unikt"]:
+                seq_len = args.seq_len
+                train_ratio = args.train_ratio
+                print(f"train_ratio:{train_ratio}")
+                if train_ratio < 1.0 and not_select_dataset is None:
+                    dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}_{train_ratio}.csv")
+                else:
+                    if dataset_name == "ednet_all":
+                        dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}.csv")
+                    else:
+                        dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_finetune_{seq_len}.csv")
+                print(f"train_data_path:{dpath}") 
+                if not os.path.exists(dpath):
+                    print(f"loading pretrain data")
+                    get_pretrain_data(seq_len, data_config, train_ratio)
+                curvalid = KTQueDataset(dpath,
+                                input_type=data_config["input_type"], folds={i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
+                curtrain = KTQueDataset(dpath,
+                                input_type=data_config["input_type"], folds=all_folds - {i}, 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
+
             else:        
                 curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                                 input_type=data_config["input_type"], folds={i}, 
@@ -222,8 +253,8 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
     else:
         print(f"curvalid:{len(curvalid)}")
         print(f"curtrain:{len(curtrain)}")
-        torch.distributed.init_process_group(backend='nccl')
-        torch.cuda.set_device(args.local_rank)
+        # torch.distributed.init_process_group(backend='nccl')
+        # torch.cuda.set_device(args.local_rank)
         sampler = torch.utils.data.distributed.DistributedSampler(curtrain)
         train_loader = DataLoader(curtrain, batch_size=batch_size,sampler=sampler)
         # train_loader = DataLoader(curtrain, batch_size=batch_size)
@@ -260,7 +291,7 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
         print(f"num_it:{len(it2idx)}")
         data_config["num_at"] = len(at2idx) + 1
         data_config["num_it"] = len(it2idx) + 1
-    if model_name in ["gpt4kt"] and emb_type.find("pt") != -1:
+    if model_name in ["gpt4kt","unikt"] and emb_type.find("pt") != -1:
         data_config["num_sgap"] = max_sgap + 1
     # test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     # # test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)

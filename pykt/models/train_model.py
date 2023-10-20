@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.nn.functional import one_hot, binary_cross_entropy, cross_entropy
 from torch.nn.utils.clip_grad import clip_grad_norm_
 import numpy as np
+import torch.distributed as dist
 from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
@@ -18,7 +19,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.module.model_name
 
-    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt", "mikt", "gpt4kt"]:
+    if model_name in ["cdkt", "bakt", "bakt_time", "simplekt_sr", "parkt", "mikt", "gpt4kt","unikt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"y: {y.shape}")
@@ -41,9 +42,10 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         #     for cl_loss in preloss:
         #         # print(f"cl_loss:{cl_loss}")
         #         loss += cl_loss         
-        elif model.module.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"] or model.module.emb_type.find("predc") != -1 or model.module.emb_type.find("pt") != -1:
-            # print(f"preloss:{preloss}")
+        elif model.module.emb_type in ["qid_pvn", "qid_rnn_bi", "qid_rnn_time_augment", "qid_rnn_time_pt", "qid_birnn_time", "qid_birnn_time_pt"] or model.module.emb_type.find("predc") != -1 or model.module.emb_type.find("pt") != -1 or model.module.emb_type.find("aug") != -1:
+            # print(f"loss1:{loss1}")
             loss = loss1 + preloss
+            # print(f"loss:{loss}")
         else:
             loss = loss1
 
@@ -88,7 +90,7 @@ def model_forward(model, data, attn_grads=None):
     #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     if model_name in ["dkt_forget", "bakt_time"] or model.module.emb_type.find("time") != -1:
         dcur, dgaps = data
-    elif model_name in ["gpt4kt"] and model.module.emb_type.find("pt") != -1:
+    elif model_name in ["gpt4kt","unikt"] and model.module.emb_type.find("pt") != -1:
         dcur, dgaps = data
     else:
         dcur = data
@@ -116,7 +118,7 @@ def model_forward(model, data, attn_grads=None):
     elif model_name in ["bakt"]:
         y, y2, y3 = model(dcur, train=True, attn_grads=attn_grads)
         ys = [y[:,1:], y2, y3]
-    elif model_name in ["gpt4kt"]:
+    elif model_name in ["gpt4kt","unikt"]:
         if model.module.emb_type == "qid":
             y, y2, y3 = model(dcur, train=True)
         elif model.module.emb_type.find("pt") == -1:
@@ -265,6 +267,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
     simple_size = 0
     cl_bn = 10000
     for i in range(1, num_epochs + 1):
+        train_loader.sampler.set_epoch(i)
         loss_mean = []
         if model.module.emb_type.find("cl") != -1:
             # a = 1
@@ -272,6 +275,8 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 simple_size, cl_bn = sample4cl(curtrain, batch_size, i, model.module.c0, model.module.max_epoch)
         for j,data in enumerate(train_loader):
             # if j>=1: break
+            # data = data.to(local_rank)
+            # j = j.to(local_rank)
             if simple_size != 1 and j > cl_bn:continue
             if model.module.model_name in que_type_models and model.module.model_name not in ["gnn4kt"]:
                 model.module.train()

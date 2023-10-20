@@ -29,8 +29,10 @@ from .stosakt import StosaKT
 from .parKT import parKT
 from .mikt import MIKT
 from .gpt4kt import GPT4KT
+from .unikt import UNIKT
 from .gnn4kt import GNN4KT
 from .gnn4kt_util import build_graph, load_graph
+from collections import OrderedDict
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -127,7 +129,14 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
         else:
             model = GPT4KT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_sgap=data_config["num_sgap"]).to(device)
         if mode == "train" and train_start:
-            model = DDP(model)
+            model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank) 
+    elif model_name == "unikt":
+        if emb_type.find("pt") == -1:
+            model = UNIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        else:
+            model = UNIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], num_sgap=data_config["num_sgap"]).to(device)
+        if mode == "train" and train_start:
+            model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
     elif model_name == "bakt_qikt":
         model = BAKT_QIKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "simplekt_sr":
@@ -150,8 +159,20 @@ def init_model(model_name, model_config, data_config, emb_type, args=None, num_s
         return None
     return model
 
-def load_model(model_name, model_config, data_config, emb_type, ckpt_path, args=None):
-    model = init_model(model_name, model_config, data_config, emb_type, args, mode="test")
-    net = torch.load(os.path.join(ckpt_path, emb_type+"_model.module.ckpt"))
-    model.load_state_dict(net)
+def load_model(model_name, model_config, data_config, emb_type, ckpt_path, args=None, mode="test", finetune=False):
+    model = init_model(model_name, model_config, data_config, emb_type, args, mode=mode)
+    net = torch.load(os.path.join(ckpt_path, emb_type+"_model.module.ckpt"),map_location="cpu")
+    # print(f"net:{net}")
+    if not finetune:
+        model.load_state_dict(net)
+    else:
+        new_state_dict = OrderedDict()
+        for k,v in net.items():
+            if "module" not in k:
+                k = "module." + k
+                # k = k
+            else:
+                k = k.replace('features.module.', 'module.features.')
+            new_state_dict[k] = v
+        model.load_state_dict(new_state_dict)
     return model

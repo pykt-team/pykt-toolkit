@@ -21,7 +21,7 @@ class KTQueDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds,concept_num,max_concepts, qtest=False):
+    def __init__(self, file_path, input_type, folds,concept_num,max_concepts, qtest=False, not_select_dataset=None, train_ratio=1.0):
         super(KTQueDataset, self).__init__()
         sequence_path = file_path
         self.input_type = input_type
@@ -33,12 +33,16 @@ class KTQueDataset(Dataset):
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
 
-        processed_data = file_path + folds_str + "_qlevel.pkl"
+        if not_select_dataset is not None:
+            processed_data = file_path + folds_str + f"_non_{not_select_dataset}_{train_ratio}_qlevel.pkl"
+        else:
+            processed_data = file_path + folds_str + "_qlevel.pkl"
 
         if not os.path.exists(processed_data):
+            print(f"file path {file_path}")
             print(f"Start preprocessing {file_path} fold: {folds_str}...")
 
-            self.dori = self.__load_data__(sequence_path, folds)
+            self.dori = self.__load_data__(sequence_path, folds, not_select_dataset=not_select_dataset, train_ratio=train_ratio)
             save_data = self.dori
             pd.to_pickle(save_data, processed_data)
         else:
@@ -75,7 +79,7 @@ class KTQueDataset(Dataset):
         dcur = dict()
         mseqs = self.dori["masks"][index]
         for key in self.dori:
-            if key in ["masks", "smasks"]:
+            if key in ["masks", "smasks","dataset"]:
                 continue
             if len(self.dori[key]) == 0:
                 dcur[key] = self.dori[key]
@@ -86,12 +90,16 @@ class KTQueDataset(Dataset):
                 seqs = self.dori[key][index][:-1,:]
                 shft_seqs = self.dori[key][index][1:,:]
             else:
-                seqs = self.dori[key][index][:-1] * mseqs
-                shft_seqs = self.dori[key][index][1:] * mseqs
+                try:
+                    seqs = self.dori[key][index][:-1] * mseqs
+                    shft_seqs = self.dori[key][index][1:] * mseqs
+                except:
+                    print(self.dori[key][index])
             dcur[key] = seqs
             dcur["shft_"+key] = shft_seqs
         dcur["masks"] = mseqs
         dcur["smasks"] = self.dori["smasks"][index]
+        dcur["dataset_id"] = self.dori["dataset"][index]
         # print("tseqs", dcur["tseqs"])
         return dcur
 
@@ -101,7 +109,7 @@ class KTQueDataset(Dataset):
             skill_emb[s] = 1
         return skill_emb
 
-    def __load_data__(self, sequence_path, folds, pad_val=-1):
+    def __load_data__(self, sequence_path, folds, pad_val=-1, not_select_dataset=None, train_ratio=1.0):
         """
         Args:
             sequence_path (str): file path of the sequences
@@ -118,10 +126,20 @@ class KTQueDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [],"dataset":[]}
 
         df = pd.read_csv(sequence_path)
         df = df[df["fold"].isin(folds)].copy()#[0:1000]
+        if not_select_dataset is not None:
+            not_select_dataset = [int(dataset_id) for dataset_id in not_select_dataset.split(",")]
+            print(f"before_not_select_dataset:{df.shape}")
+            new_df = df[~(df.dataset.isin(not_select_dataset))]
+            print(f"before_not_select_dataset1:{new_df.shape}")
+            if train_ratio < 1.0:
+                sub_df = df[df.dataset.isin(not_select_dataset)].sample(frac=train_ratio, random_state=1024)
+                new_df = pd.concat([new_df,sub_df],ignore_index=True)
+            df = new_df
+            print(f"after_not_select_dataset2:{df.shape}")
         interaction_num = 0
         for i, row in df.iterrows():
             #use kc_id or question_id as input
@@ -149,6 +167,7 @@ class KTQueDataset(Dataset):
                 
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
+            dori["dataset"].append(int(row["dataset"]))
 
             interaction_num += dori["smasks"][-1].count(1)
 
