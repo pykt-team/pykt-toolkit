@@ -145,7 +145,7 @@ class UNIKT(nn.Module):
         q_data = torch.cat((c[:,0:1], cshft), dim=1) # shape[batch,200,7]
         target = torch.cat((r[:,0:1], rshft), dim=1)
 
-        if self.emb_type.find("aug") != -1:
+        if self.emb_type.find("aug") != -1 and train:
             # new qids
             aug_pids= pid_data.unfold(1, self.q_window_size, 1)
             aug_pids = aug_pids.sum(dim=2)
