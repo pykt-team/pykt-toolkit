@@ -13,6 +13,7 @@ from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from .que_data_loader_cl import KTQueDataset4CL
 from .que_data_loader_time import KTQueDataset4PT
+from .que_data_loader_unikt import KTQueDataset4UNIKT
 from pykt.config import que_type_models
 # from .simplekt_cl_dataloader import CL4KTDataset
 from .cl_utils import sort_samples
@@ -20,7 +21,9 @@ from .cl_dataloader import CL4KTDataset
 from .pretrain_utils import get_pretrain_data, get_pretrain_test_data
 
 def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
+    dataset_name = data_config["dataset_name"]
     print(f"model_name is {model_name}")
+    print(f"init_test_dataset:{dataset_name}")
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget", "bakt_time"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
@@ -65,12 +68,13 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
                     if model_name=="gpt4kt":
                         test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"])
                     else:
-                        test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_finetune_w200"])
+                        test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"])
                     if not os.path.exists(test_path):
-                        get_pretrain_test_data(seq_len, data_config)
+                        # get_pretrain_test_data(seq_len, data_config)
+                        print("not exist")
                     test_window_dataset = KTQueDataset(test_path,
                                 input_type=data_config["input_type"], folds=[-1], 
-                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'],dataset_name=dataset_name)
                 else:
                     test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
                     test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})                              
@@ -84,12 +88,12 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
                     test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})  
         test_question_dataset = None
         test_question_window_dataset= None
-    elif model_name in ["cdkt"]:
-        test_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
-        if "test_question_file" in data_config:
-            test_question_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
-            test_question_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
+    # elif model_name in ["cdkt"]:
+    #     test_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+    #     test_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+    #     if "test_question_file" in data_config:
+    #         test_question_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
+    #         test_question_window_dataset = CDKTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     else:
         test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         all_folds = set(data_config["folds"])
@@ -105,7 +109,7 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
     # if "test_question_file" in data_config:
     #     print(f"has test_question_file!")
     #     test_question_loader,test_question_window_loader = None,None
-    #     if not test_question_dataset is None:
+    #     if not test_question_dataset is Naone:
     #         test_question_loader = DataLoader(test_question_dataset, batch_size=batch_size, shuffle=False)
     #     if not test_question_window_dataset is None:
     #         test_question_window_loader = DataLoader(test_question_window_dataset, batch_size=batch_size, shuffle=False)
@@ -195,24 +199,24 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
             elif model_name in ["unikt"]:
                 seq_len = args.seq_len
                 train_ratio = args.train_ratio
+                dataset_name = args.dataset_name
                 print(f"train_ratio:{train_ratio}")
                 if train_ratio < 1.0 and not_select_dataset is None:
                     dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}_{train_ratio}.csv")
+                # 数据集路径加载，数据重新处理后需要稍微变动。
                 else:
-                    if dataset_name == "ednet_all":
-                        dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel_{seq_len}.csv")
-                    else:
-                        dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_finetune_{seq_len}.csv")
+                    dpath = os.path.join(data_config["dpath"], f"train_valid_sequences_quelevel.csv")
                 print(f"train_data_path:{dpath}") 
                 if not os.path.exists(dpath):
-                    print(f"loading pretrain data")
-                    get_pretrain_data(seq_len, data_config, train_ratio)
-                curvalid = KTQueDataset(dpath,
+                    # print(f"loading pretrain data")
+                    print(f"not exist")
+                    #get_pretrain_data(seq_len, data_config, train_ratio)
+                curvalid = KTQueDataset4UNIKT(dpath,
                                 input_type=data_config["input_type"], folds={i}, 
-                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
-                curtrain = KTQueDataset(dpath,
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio, dataset_name=dataset_name)
+                curtrain = KTQueDataset4UNIKT(dpath,
                                 input_type=data_config["input_type"], folds=all_folds - {i}, 
-                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio)
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'], not_select_dataset=not_select_dataset, train_ratio=train_ratio, dataset_name=dataset_name)
 
             else:        
                 curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
@@ -221,9 +225,9 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
                 curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
                                 input_type=data_config["input_type"], folds=all_folds - {i}, 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-    elif model_name in ["cdkt"]:
-        curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+    # elif model_name in ["cdkt"]:
+    #     curvalid = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
+    #     curtrain = CDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     elif model_name in ["simplekt_sr"]:
         curvalid = CL4KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], data_config["num_c"], data_config["num_q"], {i}, args = args)
         curtrain = CL4KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], data_config["num_c"], data_config["num_q"], all_folds - {i}, args = args) 

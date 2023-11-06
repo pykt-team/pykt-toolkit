@@ -1,9 +1,6 @@
 import argparse
 import os
 from wandb_train import main
-import torch.distributed as dist
-# if not dist.is_initialized():
-#     dist.init_process_group(backend='nccl', init_method='env://')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -47,12 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_ratio", type=float, default=1.0)
     parser.add_argument("--pretrain_path", type=str, default="")
 
-    parser.add_argument("--q_window_size", type=int, default=2)
-    parser.add_argument("--c_window_size", type=int, default=3)
-
     args = parser.parse_args()
-    print(f"local_rank:{args.local_rank}")
 
     params = vars(args)
-
     main(params,args)
