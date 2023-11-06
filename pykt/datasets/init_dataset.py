@@ -67,12 +67,15 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
                 if dataset in ["assist2009", "algebra2005", "bridge2algebra2006", "nips_task34", "ednet", "peiyou", "ednet5w","ednet_all"]:
                     if model_name=="gpt4kt":
                         test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel_pretrain_w200"])
+                        if not os.path.exists(test_path):
+                            print("not exist")
+                            sys.exit(1)
+                        test_window_dataset = KTQueDataset(test_path,
+                                input_type=data_config["input_type"], folds=[-1], 
+                                concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
                     else:
                         test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"])
-                    if not os.path.exists(test_path):
-                        # get_pretrain_test_data(seq_len, data_config)
-                        print("not exist")
-                    test_window_dataset = KTQueDataset(test_path,
+                    test_window_dataset = KTQueDataset4UNIKT(test_path,
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'],dataset_name=dataset_name)
                 else:
