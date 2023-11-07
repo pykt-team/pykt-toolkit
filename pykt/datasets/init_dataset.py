@@ -75,7 +75,10 @@ def init_test_datasets(data_config, model_name, batch_size,i,win200=""):
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
                     else:
                         test_path = os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"])
-                    test_window_dataset = KTQueDataset4UNIKT(test_path,
+                        if not os.path.exists(test_path):
+                            print("not exist")
+                            sys.exit(1)
+                        test_window_dataset = KTQueDataset4UNIKT(test_path,
                                 input_type=data_config["input_type"], folds=[-1], 
                                 concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'],dataset_name=dataset_name)
                 else:
@@ -213,6 +216,7 @@ def init_dataset4train(dataset_name, model_name, emb_type, data_config, i, batch
                 if not os.path.exists(dpath):
                     # print(f"loading pretrain data")
                     print(f"not exist")
+                    sys.exit(1)
                     #get_pretrain_data(seq_len, data_config, train_ratio)
                 curvalid = KTQueDataset4UNIKT(dpath,
                                 input_type=data_config["input_type"], folds={i}, 

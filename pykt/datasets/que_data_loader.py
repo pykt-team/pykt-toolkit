@@ -126,7 +126,7 @@ class KTQueDataset(Dataset):
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dqtest (dict)**: not null only self.qtest is True, for question level evaluation
         """
-        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": [],"dataset":[]}
+        dori = {"qseqs": [], "cseqs": [], "rseqs": [], "tseqs": [], "utseqs": [], "smasks": []}
 
         df = pd.read_csv(sequence_path)
         df = df[df["fold"].isin(folds)].copy()#[0:1000]
@@ -167,7 +167,6 @@ class KTQueDataset(Dataset):
                 
             dori["rseqs"].append([int(_) for _ in row["responses"].split(",")])
             dori["smasks"].append([int(_) for _ in row["selectmasks"].split(",")])
-            dori["dataset"].append(int(row["dataset"]))
 
             interaction_num += dori["smasks"][-1].count(1)
 
