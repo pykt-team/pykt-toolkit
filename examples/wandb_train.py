@@ -34,10 +34,15 @@ def save_config(train_config, model_config, data_config, params, save_dir, args=
 def main(params, args=None):
     if "use_wandb" not in params:
         params['use_wandb'] = 1
+        use_wandb = True
 
     if params['use_wandb']==1:
         import wandb
         wandb.init()
+        use_wandb = True
+    else:
+        use_wandb = False
+        
     if args.local_rank != -1:
         torch.distributed.init_process_group(backend='nccl')
         torch.cuda.set_device(args.local_rank)
@@ -193,15 +198,15 @@ def main(params, args=None):
     
     if emb_type.find("cl") != -1:
         # print(f"curtrain:{len(curtrain)}")
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size)
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, curtrain=curtrain, batch_size=batch_size, use_wandb=use_wandb)
     elif model_name in ["gpt4kt", "unikt"]:
         global_bs = params['global_bs']
         num_gpus = params['num_gpus']
         gradient_accumulation_steps = max(global_bs/num_gpus/train_config["batch_size"],1.0)
         print(f"gradient_accumulation_steps:{gradient_accumulation_steps}")
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, gradient_accumulation_steps=gradient_accumulation_steps)
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, gradient_accumulation_steps=gradient_accumulation_steps, use_wandb=use_wandb)
     else:
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold)
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, None, None, save_model, dataset_name, fold, use_wandb=use_wandb)
     
     if save_model:
         if model_name not in ["parkt","gpt4kt","unikt"]:

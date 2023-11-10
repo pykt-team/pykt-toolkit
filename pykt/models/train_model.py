@@ -245,7 +245,7 @@ def sample4cl(curtrain, batch_size, i, c0, max_epoch):
     # train_loader = DataLoader(curtrain, batch_size=batch_size)
     return simple_size, bn
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=4.0):    
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, dataset_name=None, fold=None, curtrain=None,batch_size=None, gradient_accumulation_steps=4.0, use_wandb=False):    
     max_auc, best_epoch = 0, -1
     train_step = 0
 
@@ -330,6 +330,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         print(f"Epoch: {i}, validauc: {validauc:.4}, validacc: {validacc:.4}, best epoch: {best_epoch}, best auc: {max_auc:.4}, train loss: {loss_mean}, emb_type: {model.module.emb_type}, model: {model.module.model_name}, save_dir: {ckpt_path}")
         print(f"            testauc: {round(testauc,4)}, testacc: {round(testacc,4)}, window_testauc: {round(window_testauc,4)}, window_testacc: {round(window_testacc,4)}")
 
+        if use_wandb:
+            import wandb
+            wandb.log({ 
+                    "train loss": loss_mean, "validauc": validauc, "validacc": validacc})
 
         if i - best_epoch >= 10:
             break
