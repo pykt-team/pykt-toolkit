@@ -20,7 +20,7 @@ def read_data_from_csv(read_file, write_file):
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
-    ui_df = df.groupby(['user_id'], sort=False)
+    ui_df = df.groupby('user_id', sort=False)
 
     user_inters = []
     for ui in ui_df:
