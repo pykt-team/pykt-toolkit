@@ -21,7 +21,7 @@ def read_data_from_csv(read_file, write_file):
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
     
     data = []
-    ui_df = df.groupby(['User'], sort=False)
+    ui_df = df.groupby('User', sort=False)
 
     for ui in ui_df:
         uid, curdf = ui[0], ui[1]
