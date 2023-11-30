@@ -39,7 +39,7 @@ def process_raw_data(dataset_name,dname2paths):
         fname = readf.split("/")[-1]
         dq2c = load_q2c(readf.replace(fname,"questions.json"))
         read_data_from_csv(readf, writef, dq2c)
-    elif dataset_name == "ednet5w":
+    elif dataset_name in ["ednet5w","ednet"]:
         dname, writef = read_data_from_csv(readf, writef, dataset_name=dataset_name)
     elif dataset_name != "nips_task34":#default case
         read_data_from_csv(readf, writef)

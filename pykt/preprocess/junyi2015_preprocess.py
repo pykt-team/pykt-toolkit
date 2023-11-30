@@ -44,7 +44,7 @@ def read_data_from_csv(read_file, write_file, dq2c):
     problems = usedf.exercise.unique()
     print(f"usedf: {usedf.shape}, uids: {len(uids)}, problems: {len(problems)}")
 
-    ui_df = usedf.groupby(['user_id'], sort=False)
+    ui_df = usedf.groupby('user_id', sort=False)
 
     for ui in ui_df:
         uid, curdf = ui[0], ui[1]

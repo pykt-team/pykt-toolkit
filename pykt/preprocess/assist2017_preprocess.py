@@ -23,7 +23,7 @@ def read_data_from_csv(read_file, write_file):
     print(f"after drop interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")
 
     df2 = df[["index", "studentId", "problemId", "skill", "correct", "timeTaken", "startTime"]]
-    ui_df = df2.groupby(['studentId'], sort=False)
+    ui_df = df2.groupby('studentId', sort=False)
 
     user_inter = []
     for ui in ui_df:

@@ -66,7 +66,7 @@ def read_data_from_csv(read_file, write_file,dataset_name=None):
     
     co.to_csv(os.path.join(read_file, 'ednet_sample_process.csv'), index=False)
     
-    ui_df = co.groupby(['user_id'], sort=False)
+    ui_df = co.groupby('user_id', sort=False)
 
     user_inters = []
     for ui in tqdm(ui_df):
