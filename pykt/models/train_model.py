@@ -51,7 +51,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+    elif model_name in ["akt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","dtransformer"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -99,6 +99,13 @@ def model_forward(model, data, rel=None):
     elif model_name in ["simplekt", "sparsekt"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["dtransformer"]:
+        if model.emb_type == "qid_cl":
+            y, loss = model.get_cl_loss(cc.long(), cr.long(), cq.long())  # with cl loss
+        else:
+            y, loss = model.get_loss(cc.long(), cr.long(), cq.long())
+        ys.append(y[:,1:])
+        preloss.append(loss)
     elif model_name in ["bakt_time"]:
         y, y2, y3 = model(dcur, dgaps, train=True)
         ys = [y[:,1:], y2, y3]
@@ -127,7 +134,7 @@ def model_forward(model, data, rel=None):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
+    elif model_name in ["akt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
@@ -204,6 +211,8 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             loss.backward()#compute gradients
             if model.model_name == "rkt":
                 clip_grad_norm_(model.parameters(), model.grad_clip)
+            if model.model_name == "dtransformer":
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())

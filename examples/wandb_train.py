@@ -39,7 +39,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "dimkt"]:
+        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt","folibikt", "atkt", "lpkt", "skvmn", "dimkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["simplekt", "bakt_time", "sparsekt"]:
             train_config["batch_size"] = 64 ## because of OOM
@@ -47,6 +47,8 @@ def main(params):
             train_config["batch_size"] = 16 
         if model_name in ["qdkt","qikt"] and dataset_name in ['algebra2005','bridge2algebra2006']:
             train_config["batch_size"] = 32 
+        if model_name in ["dtransformer"]:
+            train_config["batch_size"] = 32 ## because of OOM
         model_config = copy.deepcopy(params)
         for key in ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed"]:
             del model_config[key]
@@ -96,7 +98,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time"]:
+    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time","folibikt"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
@@ -114,6 +116,9 @@ def main(params):
         opt = torch.optim.Adam(optdict, lr=learning_rate, weight_decay=params['l2'])
     elif model_name == "iekt":
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
+    elif model_name == "dtransformer":
+        print(f"dtransformer weight_decay = 1e-5")
+        opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
     elif model_name == "dimkt":
         opt = torch.optim.Adam(model.parameters(),lr=learning_rate,weight_decay=params['weight_decay'])
     else:
