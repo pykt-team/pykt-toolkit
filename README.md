@@ -61,7 +61,7 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 12. IEKT: Tracing Knowledge State with Individual Cognition and Acquisition Estimation
 13. SKVMN: Knowledge Tracing with Sequential Key-Value Memory Networks
 14. LPKT: Learning Process-consistent Knowledge Tracing
-
+15. QIKT: Improving Interpretability of Deep Sequential Knowledge Tracing Models with Question-centric Cognitive Representations
 
 
 ## Citation
