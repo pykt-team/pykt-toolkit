@@ -54,6 +54,8 @@ graph based models and attention based models in our work, we mainly develop the
 +------------+----------------+
 | RKT        | Attention      |
 +------------+----------------+
+| FoLiBiKT   | Attention      |
++------------+----------------+
 
 DKT
 ---
@@ -349,7 +351,7 @@ sparseKT incorporate a k-selection module to only pick items with the highest at
 
 `Shuyan Huang, et al. "Towards Robust Knowledge Tracing Models via k-Sparse Attention." 
 Proceedings of the 46th International ACM SIGIR Conference on Research and Development in Information Retrieval. 
-2023.
+2023.`
 
 RKT
 ----
@@ -364,3 +366,18 @@ and the forget behavior information through modeling an exponentially decaying k
 `Pandey, Shalini, and Jaideep Srivastava. "RKT: relation-aware self-attention for knowledge tracing." 
 Proceedings of the 29th ACM International Conference on Information & Knowledge Management. 
 2020. <https://dl.acm.org/doi/pdf/10.1145/3340531.3411994>`__
+
+
+FoLiBiKT
+----
+
+FoLiBi (Forgetting-aware Linear Bias) is a simple yet effective solution that introduces a linear bias 
+term to explicitly model learners' forgetting behavior, compensating for the neglect of forgetting effects 
+in existing attention-based Knowledge Tracing models。We reproduced FoLiBi with AKT, namely FoLiBiKT. 
+
+.. figure:: ../pics/folibikt.png
+   :alt: 
+
+`Im, Yoonjin, et al. "Forgetting-aware Linear Bias for Attentive Knowledge Tracing." 
+Proceedings of the 32nd ACM International Conference on Information and Knowledge Management. 
+2023. <https://dl.acm.org/doi/abs/10.1145/3583780.3615191>`__
