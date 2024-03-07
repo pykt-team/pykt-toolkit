@@ -51,7 +51,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+    elif model_name in ["akt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -127,7 +127,7 @@ def model_forward(model, data, rel=None):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name in ["akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
+    elif model_name in ["akt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)

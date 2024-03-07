@@ -27,6 +27,7 @@ from .qikt import QIKT
 from .dimkt import DIMKT
 from .sparsekt import sparseKT
 from .rkt import RKT
+from .folibikt import folibiKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -47,6 +48,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTForget(data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
     elif model_name == "akt":
         model = AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "folibikt":
+        model = folibiKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "kqn":
         model = KQN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "atkt":

@@ -39,7 +39,7 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "atkt", "lpkt", "skvmn", "dimkt"]:
+        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt","folibikt", "atkt", "lpkt", "skvmn", "dimkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["simplekt", "bakt_time", "sparsekt"]:
             train_config["batch_size"] = 64 ## because of OOM
@@ -96,7 +96,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time"]:
+    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt", "bakt_time","folibikt"]:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
