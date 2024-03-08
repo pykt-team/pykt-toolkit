@@ -1,0 +1,30 @@
+program: wandb_folibikt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["folibikt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/folibikt_tiaocan"]
+    d_model:
+        values: [64, 128, 256]
+    d_ff:
+        values: [64, 128, 256]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    num_attn_heads:
+        values: [4, 8]
+    n_blocks:
+        values: [1, 2, 4]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
