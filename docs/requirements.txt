@@ -3,3 +3,4 @@ pandas>=1.1.5
 scikit-learn
 torch>=1.7.0
 wandb
+einops
