@@ -4,3 +4,4 @@ scikit-learn
 torch>=1.7.0
 wandb
 einops
+sphinx_rtd_theme
