@@ -117,8 +117,8 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, *_ = model.predict(cc.long(), cr.long(), cq.long())
-                m = nn.Sigmoid()
-                y = m(output)
+                sg = nn.Sigmoid()
+                y = sg(output)
                 y = y[:,1:]
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
@@ -429,8 +429,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, h, *_ = model.predict(cc.long(), cr.long(), cq.long())
-                m = nn.Sigmoid()
-                y = m(output)
+                sg = nn.Sigmoid()
+                y = sg(output)
                 y = y[:,1:]
             elif model_name == "saint":
                 y, h = model(cq.long(), cc.long(), r.long(), True)
