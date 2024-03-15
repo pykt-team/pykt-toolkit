@@ -62,6 +62,13 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 13. SKVMN: Knowledge Tracing with Sequential Key-Value Memory Networks
 14. LPKT: Learning Process-consistent Knowledge Tracing
 15. QIKT: Improving Interpretability of Deep Sequential Knowledge Tracing Models with Question-centric Cognitive Representations
+16. RKT: Relation-aware Self-attention for Knowledge Tracing
+17. DIMKT: Assessing Student's Dynamic Knowledge State by Exploring the Question Difficulty Effect
+18. ATDKT: Enhancing Deep Knowledge Tracing with Auxiliary Tasks
+19. simpleKT: A Simple but Tough-to-beat Baseline for Knowledge Tracing
+20. SparseKT: Towards Robust Knowledge Tracing Models via K-sparse Attention
+21. FoLiBiKT: Forgetting-aware Linear Bias for Attentive Knowledge Tracing
+22. DTransformer: Tracing Knowledge Instead of Patterns: Stable Knowledge Tracing with Diagnostic Transformer
 
 
 
