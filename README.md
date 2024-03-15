@@ -44,6 +44,10 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 11. https://github.com/ApexEDM/iekt
 12. https://github.com/Badstu/CAKT_othermodels/blob/0c28d870c0d5cf52cc2da79225e372be47b5ea83/SKVMN/model.py
 13. https://github.com/bigdata-ustc/EduKTM
+14. https://github.com/shalini1194/RKT
+15. https://github.com/shshen-closer/DIMKT
+16. https://github.com/skewondr/FoLiBi
+17. https://github.com/yxonic/DTransformer
 
 ### Papers
 
