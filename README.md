@@ -1,3 +1,18 @@
+## Development instructions
+
+1. `conda env create -f environment.yml`
+2. `conda activate pykt_pt_emb`
+3. `pip install -e .`
+
+#### Contributions:
+
+1. Create a new branch off the main branch: `git checkout main && git checkout -b <new branch name>`
+2. Implement your contributions and commit the changes in the new branch
+3. Once the changes are commited and ready, push the changes to the remote repository `git push origin <new branch name>`
+4. On github.com, open a pull request to merge your changes into the main branch
+
+----
+
 # pyKT
 
 [![Downloads](https://pepy.tech/badge/pykt-toolkit)](https://pepy.tech/project/pykt-toolkit)
@@ -5,7 +20,6 @@
 [![Documentation](https://img.shields.io/website/http/pykt-team.github.io/index.html?down_color=red&down_message=offline&up_message=online)](https://pykt.org/)
 
 pyKT is a python library build upon PyTorch to train deep learning based knowledge tracing models. The library consists of a standardized set of integrated data preprocessing procedures on more than 7 popular datasets across different domains, 5 detailed prediction scenarios, more than 10 frequently compared DLKT approaches for transparent and extensive experiments. More details about pyKT can see our [website](https://pykt.org/) and [docs](https://pykt-toolkit.readthedocs.io/en/latest/quick_start.html).
-
 
 
 
