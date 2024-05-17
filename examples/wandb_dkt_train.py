@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
+    parser.add_argument("--pretrained_emb_path", type=str, default="")
     
     args = parser.parse_args()
 

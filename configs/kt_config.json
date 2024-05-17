@@ -8,7 +8,8 @@
     "dkt": {
         "learning_rate": 1e-3,
         "emb_size": 200,
-        "dropout": 0.1
+        "dropout": 0.1,
+        "pretrain_emb_path": "" 
     },
     "dkt+": {
         "learning_rate": 1e-3,

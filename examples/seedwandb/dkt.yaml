@@ -1,5 +1,5 @@
 program: wandb_dkt_train.py
-method: grid
+method: bayes
 metric:
     goal: maximize
     name: validauc
@@ -11,9 +11,10 @@ parameters:
     emb_type:
         values: ["qid"]
     save_dir:
-        values: ["models/dkt_tiaocan"]
+        values: ["models/dkt_kaveh"]
     emb_size:
-        values: [64, 256]
+        # values: [64, 256]
+        values: [384]
     learning_rate:
         values: [1e-3, 1e-4, 1e-5]
     dropout:
@@ -22,3 +23,5 @@ parameters:
         values: [42, 3407]
     fold:
         values: [0, 1, 2, 3, 4]
+    pretrained_emb_path:
+        values: ["/Users/kavehk/local_projects/kt/pykt-toolkit-pt_emb/embeddings/assist2009/full_dataset/v1-skill_names/cohere_embed-english-light-v3.0384.pt"]
