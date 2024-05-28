@@ -131,7 +131,6 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="saved_model")
     parser.add_argument("--fusion_type", type=str, default="early_fusion,late_fusion")
     parser.add_argument("--use_wandb", type=int, default=1)
-    parser.add_argument("--fold", type=int, default=0)
 
     args = parser.parse_args()
     print(args)
