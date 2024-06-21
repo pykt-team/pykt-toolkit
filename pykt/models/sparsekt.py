@@ -603,7 +603,7 @@ def attention(
 
     if emb_type.find("sparseattn") != -1:
         # scorted_attention
-        if k_index >= seqlen:
+        if k_index + 1 >= seqlen:
             scores = scores
         else:
             scores_a = scores[:, :, : k_index + 1, :]
