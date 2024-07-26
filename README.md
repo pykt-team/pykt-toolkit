@@ -61,7 +61,7 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 8. SAKT: A self-attentive model for knowledge tracing 
 9. SAINT: Towards an appropriate query, key, and value computation for knowledge tracing 
 10. AKT: Context-aware attentive knowledge tracing 
-11. Temporal Cross-Effects in Knowledge Tracing
+11. HawkesKT: Temporal Cross-Effects in Knowledge Tracing
 12. IEKT: Tracing Knowledge State with Individual Cognition and Acquisition Estimation
 13. SKVMN: Knowledge Tracing with Sequential Key-Value Memory Networks
 14. LPKT: Learning Process-consistent Knowledge Tracing
