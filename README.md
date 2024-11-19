@@ -48,6 +48,7 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 15. https://github.com/shshen-closer/DIMKT
 16. https://github.com/skewondr/FoLiBi
 17. https://github.com/yxonic/DTransformer
+18. https://github.com/lilstrawberry/ReKT
 
 ### Papers
 
@@ -75,7 +76,7 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 22. DTransformer: Tracing Knowledge Instead of Patterns: Stable Knowledge Tracing with Diagnostic Transformer
 23. stableKT: Enhancing Length Generalization for Attention Based Knowledge Tracing Models with Linear Biases
 24. extraKT: Extending Context Window of Attention Based Knowledge Tracing Models via Length Extrapolation
-
+25. ReKT: Revisiting Knowledge Tracing: A Simple and Powerful Model
 
 
 ## Citation
