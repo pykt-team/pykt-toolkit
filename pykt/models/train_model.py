@@ -31,6 +31,12 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             loss = model.l1*loss1+model.l2*ys[1]
         else:
             loss = loss1
+    elif model_name in ["rekt"]:
+        # print("ys shape:", ys[0].shape)
+        # print("sm shape:", sm.shape)
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        loss = binary_cross_entropy(y.double(), t.double())
 
     elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
@@ -99,6 +105,9 @@ def model_forward(model, data, rel=None):
     elif model_name in ["simplekt", "stablekt", "sparsekt"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
+    elif model_name in ["rekt"]:
+        y = model(dcur, train=True)
+        ys = [y]
     elif model_name in ["dtransformer"]:
         if model.emb_type == "qid_cl":
             y, loss = model.get_cl_loss(cc.long(), cr.long(), cq.long())  # with cl loss

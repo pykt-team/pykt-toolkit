@@ -98,6 +98,8 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             elif model_name in ["simplekt","stablekt", "sparsekt"]:
                 y = model(dcur)
                 y = y[:,1:]
+            elif model_name in ["rekt"]:
+                y = model(dcur)
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -424,6 +426,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
             elif model_name in ["simplekt","stablekt", "sparsekt"]:
                 y, h = model(dcurori, qtest=True, train=False)
                 y = y[:,1:]
+            elif model_name in ["rekt"]:
+                y, h = model(dcurori, qtest=True, train=False)
             elif model_name in ["akt","extrakt", "folibikt","akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
                 y = y[:,1:]
@@ -961,7 +965,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
            
            y = model(dcurinfos, dgaps)
            pred = y[0][-1]
-        elif model_name in ["simplekt","stablekt", "sparsekt"]:
+        elif model_name in ["simplekt", "rekt", "stablekt", "sparsekt"]:
            if qout != None:
                curq = torch.tensor([[qout.item()]]).to(device)
                qinshft = torch.cat((qin[:,1:], curq), axis=1)
@@ -1354,6 +1358,10 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             # print(f"dgaps: {dgaps.keys()}")
             y = model(dcurinfos)
             y = y[:,1:]
+        elif model_name in ["rekt"]:
+            dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
+                       "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
+            y = model(dcurinfos)
         elif model_name == "gkt":
             y = model(ccc.long(), ccr.long())
             # print(f"y: {y}")
