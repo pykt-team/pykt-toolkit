@@ -62,6 +62,8 @@ graph based models and attention based models in our work, we mainly develop the
 +------------+----------------+
 | extraKT    | Attention      |
 +------------+----------------+
+| reKT    | Sequential      |
++------------+----------------+
 
 DKT
 ---
@@ -427,4 +429,16 @@ embedding method to facilitate better extrapolation.
 
 `Li X, Bai Y, Guo T, et al. "Extending Context Window of Attention Based Knowledge Tracing Models via Length Extrapolation." 
 Proceedings of the 26th European Conference on Artificial Intelligence.
-2024. <https://www.ecai2024.eu/programme/accepted-papers#main-track>`__
+2024. <https://ebooks.iospress.nl/pdf/doi/10.3233/FAIA240651>`__
+
+reKT
+----
+
+ReKT models student knowledge states from questions, concepts, and domains, leveraging a lightweight Forget-Response-Update (FRU)
+ framework inspired by human cognition to achieve superior KT performance with minimal computational resources.
+
+.. figure:: ../pics/rekt.png
+   :alt: 
+
+`Shen, Xiaoxuan, et al. "Revisiting Knowledge Tracing: A Simple and Powerful Model." Proceedings of the 32nd ACM International Conference on Multimedia. 2024.
+<https://dl.acm.org/doi/pdf/10.1145/3664647.3681205>`__
