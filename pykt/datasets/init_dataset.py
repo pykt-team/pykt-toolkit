@@ -11,7 +11,8 @@ from .lpkt_utils import generate_time2idx
 from .que_data_loader import KTQueDataset
 from pykt.config import que_type_models
 from .dimkt_dataloader import DIMKTDataset
-
+from .que_data_loader_promptkt import KTQueDataset_promptKT
+from .pretrain_utils import get_pretrain_data
 
 
 def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
@@ -39,12 +40,54 @@ def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
             test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
             test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
     elif model_name in que_type_models:
-        test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=[-1], 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-        test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=[-1], 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        if model_name not in ["promptkt", "unikt"]:
+            test_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=[-1], 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            test_window_dataset = KTQueDataset(os.path.join(data_config["dpath"], data_config["test_window_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=[-1], 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        else:
+            dataset = data_config["dpath"].split("/")[-1]
+            if dataset == "":
+                dataset = data_config["dpath"].split("/")[-2]
+            if win200:
+                if dataset in [
+                    "assist2009",
+                    "algebra2005",
+                    "bridge2algebra2006",
+                    "nips_task34",
+                    "ednet",
+                    "peiyou",
+                    "ednet5w",
+                    "ednet_all"
+                ]:
+                    test_dataset = KTQueDataset_promptKT(
+                        os.path.join(
+                            data_config["dpath"],
+                            data_config["test_file_quelevel"],
+                        ),
+                        input_type=data_config["input_type"],
+                        folds=[-1],
+                        concept_num=data_config["num_c"],
+                        max_concepts=data_config["max_concepts"],
+                        dataset_name=args.dataset_name,
+                    )
+                    test_path = os.path.join(
+                        data_config["dpath"],
+                        data_config["test_window_file_quelevel"],
+                    )
+                    if not os.path.exists(test_path):
+                        print("not exist")
+                        sys.exit(1)
+                    test_window_dataset = KTQueDataset_promptKT(
+                        test_path,
+                        input_type=data_config["input_type"],
+                        folds=[-1],
+                        concept_num=data_config["num_c"],
+                        max_concepts=data_config["max_concepts"],
+                        dataset_name=args.dataset_name,
+                    )        
         test_question_dataset = None
         test_question_window_dataset= None
     elif model_name in ["atdkt"]:
@@ -84,8 +127,9 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     max_pcount = cur.max_pcount if cur.max_pcount > max_pcount else max_pcount
     return max_rgap, max_sgap, max_pcount
 
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None):
+def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, diff_level=None, args=None, not_select_dataset=None, re_mapping=False):
     print(f"dataset_name:{dataset_name}")
+    print(f"data_config:{data_config}")
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name in ["dkt_forget", "bakt_time"]:
@@ -108,12 +152,51 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
         curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     elif model_name in que_type_models:
-        curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds={i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
-        curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
-                        input_type=data_config["input_type"], folds=all_folds - {i}, 
-                        concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+        if model_name in ["promptkt"]:
+            dataset_name = args.dataset_name
+            train_ratio = args.dataset_name
+            if args.train_mode == "pretrain":
+                dpath = os.path.join(
+                    data_config["dpath"],
+                    f"train_valid_sequences_quelevel_pretrain_nomapping.csv",
+                )
+            else:
+                dpath = os.path.join(
+                    data_config["dpath"],
+                    f"train_valid_sequences_quelevel.csv",
+                )
+            print(f"train_data_path:{dpath}")
+            if not os.path.exists(dpath) and args.train_mode == "pretrain":
+                print(f"loading pretrain data")
+
+                get_pretrain_data(data_config)
+            curvalid = KTQueDataset_promptKT(
+                dpath,
+                input_type=data_config["input_type"],
+                folds={i},
+                concept_num=data_config["num_c"],
+                max_concepts=data_config["max_concepts"],
+                not_select_dataset=not_select_dataset,
+                train_ratio=train_ratio,
+                dataset_name=dataset_name,
+            )
+            curtrain = KTQueDataset_promptKT(
+                dpath,
+                input_type=data_config["input_type"],
+                folds=all_folds - {i},
+                concept_num=data_config["num_c"],
+                max_concepts=data_config["max_concepts"],
+                not_select_dataset=not_select_dataset,
+                train_ratio=train_ratio,
+                dataset_name=dataset_name,
+            )
+        else:
+            curvalid = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds={i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
+            curtrain = KTQueDataset(os.path.join(data_config["dpath"], data_config["train_valid_file_quelevel"]),
+                            input_type=data_config["input_type"], folds=all_folds - {i}, 
+                            concept_num=data_config['num_c'], max_concepts=data_config['max_concepts'])
     elif model_name in ["atdkt"]:
         curvalid = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = ATDKTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
