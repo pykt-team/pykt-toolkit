@@ -68,8 +68,10 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 qshft, cshft, rshft= dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
+            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt", "promptkt", "unikt"]:
                 model.model.eval()
+            elif model.model_name in que_type_models and model_name in ["promptkt", "unikt"]:
+                model.module.eval()
             else:
                 model.eval()
 
@@ -138,9 +140,14 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-            elif model_name in que_type_models and model_name != "lpkt":
+            elif model_name in que_type_models and model_name not in ["lpkt", "promptkt"]:
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
+            elif model_name in ["promptkt"]:
+                y = model(dcur)
+                y = y[:, 1:]
+                if q.size(1) != 0:
+                    c, cshft = q, qshft  # question level
             elif model_name == "dimkt":
                 y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
             # print(f"after y: {y.shape}")
