@@ -70,8 +70,6 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
             if model.model_name in que_type_models and model_name not in ["lpkt", "rkt", "promptkt", "unikt"]:
                 model.model.eval()
-            elif model.model_name in que_type_models and model_name in ["promptkt", "unikt"]:
-                model.module.eval()
             else:
                 model.eval()
 

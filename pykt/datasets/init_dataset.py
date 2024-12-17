@@ -15,7 +15,7 @@ from .que_data_loader_promptkt import KTQueDataset_promptKT
 from .pretrain_utils import get_pretrain_data
 
 
-def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
+def init_test_datasets(data_config, model_name, batch_size, diff_level=None, args=None, re_mapping=False):
     dataset_name = data_config["dataset_name"]
     print(f"model_name is {model_name}, dataset_name is {dataset_name}")
     test_question_loader, test_question_window_loader = None, None
@@ -51,43 +51,42 @@ def init_test_datasets(data_config, model_name, batch_size, diff_level=None):
             dataset = data_config["dpath"].split("/")[-1]
             if dataset == "":
                 dataset = data_config["dpath"].split("/")[-2]
-            if win200:
-                if dataset in [
-                    "assist2009",
-                    "algebra2005",
-                    "bridge2algebra2006",
-                    "nips_task34",
-                    "ednet",
-                    "peiyou",
-                    "ednet5w",
-                    "ednet_all"
-                ]:
-                    test_dataset = KTQueDataset_promptKT(
-                        os.path.join(
-                            data_config["dpath"],
-                            data_config["test_file_quelevel"],
-                        ),
-                        input_type=data_config["input_type"],
-                        folds=[-1],
-                        concept_num=data_config["num_c"],
-                        max_concepts=data_config["max_concepts"],
-                        dataset_name=args.dataset_name,
-                    )
-                    test_path = os.path.join(
+            if dataset in [
+                "assist2009",
+                "algebra2005",
+                "bridge2algebra2006",
+                "nips_task34",
+                "ednet",
+                "peiyou",
+                "ednet5w",
+                "ednet_all"
+            ]:
+                test_dataset = KTQueDataset_promptKT(
+                    os.path.join(
                         data_config["dpath"],
-                        data_config["test_window_file_quelevel"],
-                    )
-                    if not os.path.exists(test_path):
-                        print("not exist")
-                        sys.exit(1)
-                    test_window_dataset = KTQueDataset_promptKT(
-                        test_path,
-                        input_type=data_config["input_type"],
-                        folds=[-1],
-                        concept_num=data_config["num_c"],
-                        max_concepts=data_config["max_concepts"],
-                        dataset_name=args.dataset_name,
-                    )        
+                        data_config["test_file_quelevel"],
+                    ),
+                    input_type=data_config["input_type"],
+                    folds=[-1],
+                    concept_num=data_config["num_c"],
+                    max_concepts=data_config["max_concepts"],
+                    dataset_name=args.dataset_name,
+                )
+                test_path = os.path.join(
+                    data_config["dpath"],
+                    data_config["test_window_file_quelevel"],
+                )
+                if not os.path.exists(test_path):
+                    print("not exist")
+                    sys.exit(1)
+                test_window_dataset = KTQueDataset_promptKT(
+                    test_path,
+                    input_type=data_config["input_type"],
+                    folds=[-1],
+                    concept_num=data_config["num_c"],
+                    max_concepts=data_config["max_concepts"],
+                    dataset_name=args.dataset_name,
+                )        
         test_question_dataset = None
         test_question_window_dataset= None
     elif model_name in ["atdkt"]:

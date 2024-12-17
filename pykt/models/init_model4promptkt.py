@@ -152,7 +152,7 @@ def load_model4promptkt(
     mode="test",
     finetune=False,
 ):
-    model = init_model(model_name, model_config, data_config, emb_type, args, mode=mode)
+    model = init_model4promptkt(model_name, model_config, data_config, emb_type, args, mode=mode)
 
     # load config to read emb_type
     with open(os.path.join(ckpt_path, "config.json")) as f:
