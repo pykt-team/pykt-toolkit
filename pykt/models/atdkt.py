@@ -132,7 +132,7 @@ class ATDKT(Module):
         emb_type = self.emb_type
         if emb_type.startswith("qid"):
             x = c + self.num_c * r
-            xemb = self.interaction_emb(x)
+            xemb = self.interaction_emb(x.to(device))
         rpreds, qh = None, None
         if emb_type == "qid":
             h, _ = self.lstm_layer(xemb)
