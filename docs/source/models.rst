@@ -66,7 +66,7 @@ graph based models and attention based models in our work, we mainly develop the
 +------------+----------------+
 | csKT    | Attention      |
 +------------+----------------+
-| flucKT    | Attention      |
+| FlucKT    | Attention      |
 +------------+----------------+
 +------------+----------------+
 | LefoKT    | Attention      |
@@ -460,7 +460,7 @@ csKT is specifically designed to address the cold-start problem in knowledge tra
 `Bai, Youheng, et al. "csKT: Addressing cold-start problem in knowledge tracing via kernel bias and cone attention." Expert Systems with Applications. 2025.
 <https://www.sciencedirect.com/science/article/pii/S0957417424028550>`__
 
-csKT
+FlucKT
 ----
 FlucKT enhances knowledge tracing by explicitly modeling both long-term cognitive trends and short-term cognitive fluctuations through a decomposition-based attention mechanism with causal convolution and a kernelized bias attention score penalty.
 
