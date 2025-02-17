@@ -434,11 +434,20 @@ Proceedings of the 26th European Conference on Artificial Intelligence.
 reKT
 ----
 
-ReKT models student knowledge states from questions, concepts, and domains, leveraging a lightweight Forget-Response-Update (FRU)
- framework inspired by human cognition to achieve superior KT performance with minimal computational resources.
+ReKT models student knowledge states from questions, concepts, and domains, leveraging a lightweight Forget-Response-Update (FRU) framework inspired by human cognition to achieve superior KT performance with minimal computational resources.
 
 .. figure:: ../pics/rekt.png
    :alt: 
 
 `Shen, Xiaoxuan, et al. "Revisiting Knowledge Tracing: A Simple and Powerful Model." Proceedings of the 32nd ACM International Conference on Multimedia. 2024.
 <https://dl.acm.org/doi/pdf/10.1145/3664647.3681205>`__
+
+csKT
+----
+csKT is specifically designed to address the cold-start problem in knowledge tracing by introducing kernel bias and cone attention mechanisms to handle short student interaction sequences while maintaining prediction stability for longer sequences.
+
+.. figure:: ../pics/cskt.png
+   :alt: 
+
+`Bai, Youheng, et al. "csKT: Addressing cold-start problem in knowledge tracing via kernel bias and cone attention." Expert Systems with Applications. 2025.
+<https://www.sciencedirect.com/science/article/pii/S0957417424028550>`__
