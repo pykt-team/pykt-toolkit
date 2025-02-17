@@ -68,6 +68,10 @@ graph based models and attention based models in our work, we mainly develop the
 +------------+----------------+
 | flucKT    | Attention      |
 +------------+----------------+
++------------+----------------+
+| LefoKT    | Attention      |
++------------+----------------+
+
 
 DKT
 ---
@@ -465,3 +469,15 @@ FlucKT enhances knowledge tracing by explicitly modeling both long-term cognitiv
 
 `Hou, Mingliang, et al. "Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
 <https://drive.google.com/file/d/1tRW2j5cmjj5asYMwNvd2z6BEB313QcSg/view>`__
+
+
+lefoKT
+----
+LefoKT decouples forgetting patterns from problem relevance via relative forgetting attention to better model diverse forgetting behaviors in ever-growing interaction sequences.
+
+.. figure:: ../pics/lefokt.png
+   :alt: 
+
+`Bai, Youheng, et al. "Rethinking and Improving Student Learning and Forgetting Processes for Attention Based Knowledge Tracing Models." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
+<https://aaai.org/conference/aaai/aaai-25/>`__
+
