@@ -1,0 +1,38 @@
+program: ./wandb_cskt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["cskt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid"]
+    save_dir:
+        values: ["models/cskt_tiaocan"]
+    d_model:
+        values: [32, 64, 128]
+    d_ff:
+        values: [32, 64, 128]
+    final_fc_dim:
+        values: [32, 64, 128]
+    final_fc_dim2:
+        values: [32, 64, 128]
+    dropout:
+        values: [0.05,0.1,0.3,0.5]
+    learning_rate:
+        values: [1e-3, 1e-4, 1e-5]
+    r:
+        values: [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
+    gamma:
+        values: [0.05, 0.1, 1, 5, 10]
+    n_blocks:
+        values: [1, 2, 4, 8]
+    num_attn_heads:
+        values: [2, 4, 8]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
