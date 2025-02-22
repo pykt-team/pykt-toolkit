@@ -6,8 +6,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", type=str, default="algebra2005")
     parser.add_argument("--model_name", type=str, default="fluckt")
 
-    # qid: 原始的AKT
-    # qid_conv_ker_noexp
+    # qid: akt
+    # qid_conv_ker_noexp: fluckt
 
     parser.add_argument("--emb_type", type=str, default="qid_conv_ker_noexp")
     parser.add_argument("--save_dir", type=str, default="saved_model")
