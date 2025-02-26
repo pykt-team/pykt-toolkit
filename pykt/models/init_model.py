@@ -34,6 +34,7 @@ from .extrakt import extraKT
 from .rekt import ReKT
 from .cskt import CSKT
 from .fluckt import FlucKT
+from .lefokt_akt import LEFOKT_AKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -54,6 +55,8 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = DKTForget(data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
     elif model_name == "akt":
         model = AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "lefokt_akt":
+        model = LEFOKT_AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "extrakt":
         model = extraKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "folibikt":
