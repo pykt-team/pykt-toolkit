@@ -37,6 +37,15 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
+    
+    elif model_name in ["ukt"]:
+        y = torch.masked_select(ys[0], sm)
+        t = torch.masked_select(rshft, sm)
+        loss1 = binary_cross_entropy(y.double(), t.double())
+        if model.use_CL:
+            loss2 = ys[1]
+            loss1 = loss1 + model.cl_weight * loss2
+        loss =loss1
 
     elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
 
@@ -108,6 +117,13 @@ def model_forward(model, data, rel=None):
     elif model_name in ["rekt"]:
         y = model(dcur, train=True)
         ys = [y]
+    elif model_name in ["ukt"]:
+        if model.use_CL != 0 :
+            y, sim, y2, y3, temp = model(dcur, train=True)
+            ys = [y[:,1:],sim,y2, y3]
+        else:
+            y, y2, y3 = model(dcur, train=True)
+            ys = [y[:,1:], y2, y3]
     elif model_name in ["dtransformer"]:
         if model.emb_type == "qid_cl":
             y, loss = model.get_cl_loss(cc.long(), cr.long(), cq.long())  # with cl loss
@@ -182,6 +198,8 @@ def model_forward(model, data, rel=None):
 
     if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
+    if model_name in ["ukt"] and model.use_CL != 0:
+        return loss,temp
     return loss
     
 
@@ -214,6 +232,8 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 model.train()
             if model.model_name=='rkt':
                 loss = model_forward(model, data, rel)
+            elif model.model_name in ["ukt"] and model.use_CL != 0:
+                loss,temp = model_forward(model, data)
             else:
                 loss = model_forward(model, data)
             opt.zero_grad()
