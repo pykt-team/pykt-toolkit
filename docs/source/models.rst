@@ -68,10 +68,10 @@ graph based models and attention based models in our work, we mainly develop the
 +------------+----------------+
 | FlucKT    | Attention      |
 +------------+----------------+
-+------------+----------------+
 | LefoKT    | Attention      |
 +------------+----------------+
-
+| UKT    | Attention      |
++------------+----------------+
 
 DKT
 ---
@@ -481,3 +481,13 @@ LefoKT decouples forgetting patterns from problem relevance via relative forgett
 `Bai, Youheng, et al. "Rethinking and Improving Student Learning and Forgetting Processes for Attention Based Knowledge Tracing Models." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
 <https://aaai.org/conference/aaai/aaai-25/>`__
 
+
+UKT
+----
+UKT represents student knowledge as probability distributions, tracks learning transitions with Wasserstein attention, and uses uncertainty-aware contrastive learning to improve prediction accuracy.
+
+.. figure:: ../pics/ukt.jpg
+   :alt: 
+
+`Cheng, Weihua, et al. "Uncertainty-aware Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
+<https://arxiv.org/abs/2501.05415>`__
