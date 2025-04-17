@@ -479,7 +479,7 @@ LefoKT decouples forgetting patterns from problem relevance via relative forgett
    :alt: 
 
 `Bai, Youheng, et al. "Rethinking and Improving Student Learning and Forgetting Processes for Attention Based Knowledge Tracing Models." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
-<https://aaai.org/conference/aaai/aaai-25/>`__
+<https://ojs.aaai.org/index.php/AAAI/article/view/34998>`__
 
 
 UKT
@@ -490,13 +490,14 @@ UKT represents student knowledge as probability distributions, tracks learning t
    :alt: 
 
 `Cheng, Weihua, et al. "Uncertainty-aware Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
-<https://arxiv.org/abs/2501.05415>`__
+<https://ojs.aaai.org/index.php/AAAI/article/view/35007>`__
 
 HCGKT
 ----
 HCGKT integrates hierarchical graph filtering attention with contrastive learning and graph convolutions to model educational data relationships and predict student performance more accurately.
+
 .. figure:: ../pics/hcgkt.png
    :alt: 
 
 `Huang, Z., Liu, Z. (2025, July). HCGKT: Hierarchical Contrastive Graph Knowledge Tracing with Multi-level Feature Learning. In International Conference on Artificial Intelligence in Education (pp. xxx). Cham: Springer Nature Switzerland.
-<>`__
+<https://pykt.org/>`__
