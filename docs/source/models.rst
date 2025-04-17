@@ -491,3 +491,12 @@ UKT represents student knowledge as probability distributions, tracks learning t
 
 `Cheng, Weihua, et al. "Uncertainty-aware Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
 <https://arxiv.org/abs/2501.05415>`__
+
+HCGKT
+----
+HCGKT integrates hierarchical graph filtering attention with contrastive learning and graph convolutions to model educational data relationships and predict student performance more accurately.
+.. figure:: ../pics/hcgkt.png
+   :alt: 
+
+`Huang, Z., Liu, Z. (2025, July). HCGKT: Hierarchical Contrastive Graph Knowledge Tracing with Multi-level Feature Learning. In International Conference on Artificial Intelligence in Education (pp. xxx). Cham: Springer Nature Switzerland.
+<>`__
