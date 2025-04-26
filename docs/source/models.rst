@@ -501,3 +501,13 @@ HCGKT integrates hierarchical graph filtering attention with contrastive learnin
 
 `Huang, Z., Liu, Z. (2025, July). HCGKT: Hierarchical Contrastive Graph Knowledge Tracing with Multi-level Feature Learning. In International Conference on Artificial Intelligence in Education (pp. xxx). Cham: Springer Nature Switzerland.
 <https://pykt.org/>`__
+
+RobustKT
+----
+RobustKT decouples cognitive patterns and random factors through smoothing and subtraction, reweights them via gating or fusion, and employs decay-based attention to enhance knowledge tracing under noisy conditions.
+
+.. figure:: ../pics/roubskt.png
+   :alt: 
+
+`Teng, Guo, et al. "Enhancing Knowledge Tracing through Decoupling Cognitive Pattern from Error-Prone Data." WWW '25: Proceedings of the ACM on Web Conference 2025.
+<https://dl.acm.org/doi/10.1145/3696410.3714486>`__
