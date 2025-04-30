@@ -76,8 +76,12 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 22. DTransformer: Tracing Knowledge Instead of Patterns: Stable Knowledge Tracing with Diagnostic Transformer
 23. stableKT: Enhancing Length Generalization for Attention Based Knowledge Tracing Models with Linear Biases
 24. extraKT: Extending Context Window of Attention Based Knowledge Tracing Models via Length Extrapolation
-25. ReKT: Revisiting Knowledge Tracing: A Simple and Powerful Model
-
+25. csKT: Addressing Cold-start Problem in Knowledge Tracing via Kernel Bias and Cone Attention
+26. LefoKT: Rethinking and Improving Student Learning and Forgetting Processes for Attention Based Knowledge Tracing Models
+27. FlucKT: Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing
+28. UKT: Uncertainty-aware Knowledge Tracing
+29. HCGKT: Hierarchical Contrastive Graph Knowledge Tracing with Multi-level Feature Learning
+30. RobustKT: Enhancing Knowledge Tracing through Decoupling Cognitive Pattern from Error-Prone Data
 
 ## Citation
 

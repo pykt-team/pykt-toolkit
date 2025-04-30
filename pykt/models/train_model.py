@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["atdkt", "simplekt", "stablekt", "bakt_time", "sparsekt", "cskt"]:
+    if model_name in ["atdkt", "simplekt", "stablekt", "bakt_time", "sparsekt", "cskt", "hcgkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -67,7 +67,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt", "routerkt"]:
+    elif model_name in ["akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt", "routerkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -125,6 +125,64 @@ def model_forward(model, data, rel=None):
         else:
             y, y2, y3 = model(dcur, train=True)
             ys = [y[:,1:], y2, y3]
+    elif model_name in ["hcgkt"]:
+        
+        step_size = step_size
+        step_m = step_m
+        grad_clip = grad_clip
+        mm = mm
+
+        # the xxx.pt file of pre_load_gcn can be found in :
+        # https://drive.google.com/drive/folders/1JWstsquI3TzbUlqB1EyCbjem4qPyRLCh?usp=drive_link
+        matrix = None
+        if dataset_name == 'assist2009':
+            pre_load_gcn = "../data/assist2009/ques_skill_gcn_adj.pt"
+            matrix = torch.load(pre_load_gcn)
+            if not matrix.is_sparse:
+                matrix = matrix.to_sparse()
+        elif dataset_name == 'algebra2005':
+            pre_load_gcn = "../data/algebra2005/ques_skill_gcn_adj.pt"
+            matrix = torch.load(pre_load_gcn)
+            if not matrix.is_sparse:
+                matrix = matrix.to_sparse()
+        elif dataset_name == 'bridge2algebra2006':
+            pre_load_gcn = "../data/bridge2algebra2006/ques_skill_gcn_adj.pt"
+            matrix = torch.load(pre_load_gcn)
+            if not matrix.is_sparse:
+                matrix = matrix.to_sparse()
+        elif dataset_name == 'peiyou':
+            pre_load_gcn = "../data/peiyou/ques_skill_gcn_adj.pt"
+            matrix = torch.load(pre_load_gcn)
+            if not matrix.is_sparse:
+                matrix = matrix.to_sparse()
+        elif dataset_name == 'nips_task34':
+            pre_load_gcn = "../data/nips_task34/ques_skill_gcn_adj.pt"
+            matrix = torch.load(pre_load_gcn)
+            if not matrix.is_sparse:
+                matrix = matrix.to_sparse()
+        perturb_shape = (matrix.shape[0], emb_size)
+        perturb = torch.FloatTensor(*perturb_shape).uniform_(-step_size, step_size).to(device)
+        perturb.requires_grad_()
+        y, y2, y3, contrast_loss = model(dcur, train=True, perb=perturb)
+        ys = [y[:,1:], y2, y3]
+        loss = cal_loss(model, ys, r, rshft, sm, preloss) + contrast_loss
+        loss /= step_m
+        opt.zero_grad()
+        for _ in range(step_m - 1):
+            loss.backward()
+            perturb_data = perturb.detach() + step_size * torch.sign(perturb.grad.detach())
+            perturb.data = perturb_data.data
+            perturb.grad[:] = 0
+            y, y2, y3, contrast_loss = model(dcur, train=True, perb=perturb)
+            ys = [y[:,1:], y2, y3]
+            loss = cal_loss(model, ys, r, rshft, sm, preloss) + contrast_loss
+            loss /= step_m
+        
+        loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        opt.step()
+        model.sfm_cl.gcl.update_target_network(mm)  
+        return loss
     elif model_name in ["dtransformer"]:
         if model.emb_type == "qid_cl":
             y, loss = model.get_cl_loss(cc.long(), cr.long(), cq.long())  # with cl loss
@@ -160,7 +218,7 @@ def model_forward(model, data, rel=None):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt"]:
+    elif model_name in ["akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt", "routerkt"]:               
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)

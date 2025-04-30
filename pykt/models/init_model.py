@@ -37,6 +37,8 @@ from .fluckt import FlucKT
 from .lefokt_akt import LEFOKT_AKT
 from .ukt import UKT
 from .routerkt import RouterKT
+from .hcgkt import HCGKT
+from .robustkt import Robustkt
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -135,6 +137,10 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = UKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "routerkt":
         model = RouterKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "hcgkt":
+        model = HCGKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "robustkt":
+        model = Robustkt(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dtransformer":
         model = DTransformer(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type,
                      emb_path=data_config["emb_path"]).to(device)
