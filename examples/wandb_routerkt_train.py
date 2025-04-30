@@ -24,7 +24,6 @@ if __name__ == "__main__":
     parser.add_argument("--routing_mode", type=str, default="dynamic")
     parser.add_argument("--separate_qa", type=int, default=0)
     parser.add_argument("--final_fc_dim", type=int, default=512)
-    parser.add_argument("--final_fc_dim2", type=int, default=256)
     parser.add_argument("--l2", type=float, default=1e-5)
 
     parser.add_argument("--use_wandb", type=int, default=1)

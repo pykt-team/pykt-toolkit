@@ -118,14 +118,6 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             elif model_name in ["akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt", "routerkt"]:                                
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
-            elif model_name in ["routerkt"]:
-                feed_dict = {
-                    "skills": cc.long(),
-                    "responses": cr.long(),
-                    "questions": cq.long() if model.num_questions > 0 else None
-                }
-                y, reg_loss = model(feed_dict)
-                y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, *_ = model.predict(cc.long(), cr.long(), cq.long())
                 sg = nn.Sigmoid()
@@ -446,16 +438,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y = y[:,1:]
             elif model_name in ["rekt"]:
                 y, h = model(dcurori, qtest=True, train=False)
-            elif model_name in ["akt","extrakt", "folibikt","fluckt","robustkt", "lefokt_akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+            elif model_name in ["akt","extrakt", "folibikt","fluckt","robustkt", "lefokt_akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "routerkt"]:
                 y, reg_loss, h = model(cc.long(), cr.long(), cq.long(), True)
-                y = y[:,1:]
-            elif model_name in ["routerkt"]:
-                feed_dict = {
-                    "skills": cc.long(),
-                    "responses": cr.long(),
-                    "questions": cq.long() if model.num_questions > 0 else None
-                }
-                y, reg_loss, h = model(feed_dict, return_hidden=True)
                 y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, h, *_ = model.predict(cc.long(), cr.long(), cq.long())
@@ -955,7 +939,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             # 应该用预测的r更新memory value，但是这里一个知识点一个知识点预测，所以curr不起作用！
             y = model(cin.long(), rin.long())
             pred = y[0][-1]
-        elif model_name in ["akt","extrakt","folibikt","fluckt", "robustkt","lefokt_akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:  
+        elif model_name in ["akt","extrakt","folibikt","fluckt", "robustkt","lefokt_akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "routerkt"]:  
             #### 输入有question！     
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
@@ -965,22 +949,6 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
 
             y, reg_loss = model(cin.long(), rin.long(), qin.long())
-            pred = y[0][-1]
-        elif model_name in ["routerkt"]:
-            #### 输入有question！
-            if qout != None:
-                curq = torch.tensor([[qout.item()]]).to(device)
-                qin = torch.cat((qin, curq), axis=1)
-            # curr不起作用！当前预测不用curr，实际用的历史的也不一定是true，用的是rin，可能是预测，可能是历史
-            curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[1]]).to(device)
-            cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
-
-            feed_dict = {
-                "skills": cin.long(),
-                "responses": rin.long(),
-                "questions": qin.long() if model.num_questions > 0 else None
-            }
-            y, reg_loss = model(feed_dict)
             pred = y[0][-1]
         elif model_name in ["dtransformer"]:
             #### 输入有question！
@@ -1357,14 +1325,6 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             y = y[:, 1:]
         elif model_name in ["akt","extrakt","folibikt", "robustkt", "cakt","fluckt","lefokt_akt",  "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "routerkt"]:                                
             y, reg_loss = model(ccc.long(), ccr.long(), ccq.long())
-            y = y[:,1:]
-        elif model_name in ["routerkt"]:
-            feed_dict = {
-                "skills": ccc.long(),
-                "responses": ccr.long(),
-                "questions": ccq.long() if model.num_questions > 0 else None
-            }
-            y, reg_loss = model(feed_dict)
             y = y[:,1:]
         elif model_name in ["dtransformer"]:
             y,  *_  = model.predict(ccc.long(), ccr.long(), ccq.long(),True,1)
