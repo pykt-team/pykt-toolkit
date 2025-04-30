@@ -29,7 +29,7 @@ parameters:
     n_blocks:
         values: [1, 2, 4]
     balance_loss_weight:
-        values: [0.001, 0.01, 0.1]
+        values: [0, 0.001, 0.01, 0.1]
     routing_mode:
         values: ["dynamic", "query_norm"]
     seed:
