@@ -10,6 +10,7 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from pykt.config import que_type_models
 import pandas as pd
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -233,7 +234,9 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         scheduler = torch.optim.lr_scheduler.StepLR(opt, 10, gamma=0.5)
     for i in range(1, num_epochs + 1):
         loss_mean = []
-        for data in train_loader:
+        # Use tqdm to show progress bar for the training loop
+        train_iter = tqdm(train_loader, desc=f"Epoch {i}/{num_epochs}")
+        for data in train_iter:
             train_step+=1
             if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"]:
                 model.model.train()
@@ -253,7 +256,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()#update model’s parameters
 
-            loss_mean.append(loss.detach().cpu().numpy())
+            # Update progress bar with current loss
+            current_loss = loss.detach().cpu().numpy()
+            loss_mean.append(current_loss)
+            train_iter.set_postfix(loss=f"{current_loss:.5f}")
             if model.model_name == "gkt" and train_step%10==0:
                 text = f"Total train step is {train_step}, the loss is {loss.item():.5}"
                 debug_print(text = text,fuc_name="train_model")

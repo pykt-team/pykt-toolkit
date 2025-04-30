@@ -7,6 +7,7 @@ from pykt.config import que_type_models
 from ..datasets.lpkt_utils import generate_time2idx
 import pandas as pd
 import csv
+from tqdm import tqdm
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -52,7 +53,7 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
         y_scores = []
         dres = dict()
         test_mini_index = 0
-        for data in test_loader:
+        for data in tqdm(test_loader, desc="Evaluating"):
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             if model_name in ["dkt_forget", "bakt_time"]:
@@ -123,8 +124,8 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                     "responses": cr.long(),
                     "questions": cq.long() if model.num_questions > 0 else None
                 }
-                out_dict, reg_loss = model(feed_dict)
-                y = out_dict["pred"]
+                y, reg_loss = model(feed_dict)
+                y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, *_ = model.predict(cc.long(), cr.long(), cq.long())
                 sg = nn.Sigmoid()
@@ -271,7 +272,13 @@ def effective_fusion(df, model, model_name, fusion_type):
         dres[key].append(np.array(dcur[key]))
     # early fusion
     if "early_fusion" in fusion_type and model_name in hasearly:
-        curhs = [torch.tensor(curh).float().to(device) for curh in curhs]
+        # Convert list of numpy arrays to tensors more efficiently
+        curhs_tensors = []
+        for curh in curhs:
+            # First convert the list to a single numpy array, then to tensor
+            curh_array = np.array(curh)
+            curhs_tensors.append(torch.tensor(curh_array).float().to(device))
+        curhs = curhs_tensors
         curr = torch.tensor(curr).long().to(device)
         p = early_fusion(curhs, model, model_name)
         dres.setdefault("early_trues", [])
@@ -378,11 +385,6 @@ def save_question_res(dres, fout, early=False):
         fout.write(curstr + "\n")
 
 def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion", "late_fusion"], save_path=""):
-    # dkt / dkt+ / dkt_forget / atkt: give past -> predict all. has no early fusion!!!
-    # dkvmn / akt / saint: give cur -> predict cur
-    # sakt: give past+cur -> predict cur
-    # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","extrakt","folibikt", "simplekt","cskt","fluckt", "stablekt", "ukt", "bakt_time", "sparsekt", "lefokt_akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt", "routerkt"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -393,11 +395,9 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         dinfos = dict()
         dhistory = dict()
         history_keys = ["hs", "sm", "cq", "cc", "cr", "y", "qidxs", "rests", "orirow"]
-        # for key in history_keys:
-        #     dhistory[key] = []
         y_trues, y_scores = [], []
         lenc = 0
-        for data in test_loader:
+        for data in tqdm(test_loader, desc="Evaluating"):
             if model_name in ["dkt_forget", "bakt_time"]:
                 dcurori, dgaps, dqtest = data
             else:
@@ -450,8 +450,8 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                     "responses": cr.long(),
                     "questions": cq.long() if model.num_questions > 0 else None
                 }
-                out_dict, reg_loss, h = model(feed_dict, return_hidden=True)
-                y = out_dict["pred"]
+                y, reg_loss, h = model(feed_dict, return_hidden=True)
+                y = y[:,1:]
             elif model_name in ["dtransformer"]:
                 output, h, *_ = model.predict(cc.long(), cr.long(), cq.long())
                 sg = nn.Sigmoid()
@@ -634,7 +634,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
         idx = 0
         df = pd.read_csv(testf)
         dcres, dqres = {"trues": [], "preds": []}, {"trues": [], "late_mean": [], "late_vote": [], "late_all": []}
-        for i, row in df.iterrows():
+        for i, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
             # print(f"idx: {idx}")
             # if idx == 2:
             #     import sys
@@ -975,8 +975,8 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
                 "responses": rin.long(),
                 "questions": qin.long() if model.num_questions > 0 else None
             }
-            out_dict, reg_loss = model(feed_dict)
-            pred = out_dict["pred"][0][-1]
+            y, reg_loss = model(feed_dict)
+            pred = y[0][-1]
         elif model_name in ["dtransformer"]:
             #### 输入有question！
             if qout != None:
@@ -1359,8 +1359,8 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
                 "responses": ccr.long(),
                 "questions": ccq.long() if model.num_questions > 0 else None
             }
-            out_dict, reg_loss = model(feed_dict)
-            y = out_dict["pred"]
+            y, reg_loss = model(feed_dict)
+            y = y[:,1:]
         elif model_name in ["dtransformer"]:
             y,  *_  = model.predict(ccc.long(), ccr.long(), ccq.long(),True,1)
             m = nn.Sigmoid()
