@@ -238,7 +238,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt","extrakt", "folibikt", "dtransformer", "simplekt","stablekt","cskt","fluckt", "ukt", "bakt_time", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","extrakt", "folibikt","simplekt","stablekt","cskt","fluckt", "ukt", "bakt_time", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt", "routerkt"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -385,6 +385,12 @@ def save_question_res(dres, fout, early=False):
         fout.write(curstr + "\n")
 
 def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion", "late_fusion"], save_path=""):
+    # dkt / dkt+ / dkt_forget / atkt: give past -> predict all. has no early fusion!!!
+    # dkvmn / akt / saint: give cur -> predict cur
+    # sakt: give past+cur -> predict cur
+    # kqn: give past+cur -> predict cur
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","extrakt","folibikt", "simplekt","cskt","fluckt", "stablekt", "ukt", "bakt_time", "sparsekt","lefokt_akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt", "routerkt"]
+    
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
