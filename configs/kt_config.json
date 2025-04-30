@@ -1,6 +1,6 @@
 {
     "train_config": {
-        "batch_size": 256,
+        "batch_size": 64,
         "num_epochs": 200,
         "optimizer": "adam",
         "seq_len": 200
@@ -102,5 +102,11 @@
     },
     "dimkt":{
         "dropout":0.2  
+    },
+    "routerkt":{
+        "learning_rate": 0.001,
+        "d_model": 256,
+        "n_blocks": 1,
+        "dropout": 0.1
     }
 }

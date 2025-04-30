@@ -37,7 +37,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double())
-    
+
     elif model_name in ["ukt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -66,16 +66,16 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt"]:
+    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt", "routerkt"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
     elif model_name == "lpkt":
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
-        criterion = nn.BCELoss(reduction='none')        
+        criterion = nn.BCELoss(reduction='none')
         loss = criterion(y, t).sum()
-    
+
     return loss
 
 
@@ -159,8 +159,17 @@ def model_forward(model, data, rel=None):
     elif model_name in ["saint"]:
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
-    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt"]:               
+    elif model_name in ["akt","extrakt","folibikt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt"]:
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
+        ys.append(y[:,1:])
+        preloss.append(reg_loss)
+    elif model_name in ["routerkt"]:
+        feed_dict = {
+            "skills": cc.long(),
+            "responses": cr.long(),
+            "questions": cq.long() if model.num_questions > 0 else None
+        }
+        y, reg_loss = model(feed_dict)
         ys.append(y[:,1:])
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
@@ -178,12 +187,12 @@ def model_forward(model, data, rel=None):
         loss = loss + model.beta * adv_loss
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
-        ys.append(y)  
+        ys.append(y)
     # cal loss
     elif model_name == "lpkt":
         # y = model(cq.long(), cr.long(), cat, cit.long())
         y = model(cq.long(), cr.long(), cit.long())
-        ys.append(y[:, 1:])  
+        ys.append(y[:, 1:])
     elif model_name == "hawkes":
         # ct = torch.cat((dcur["tseqs"][:,0:1], dcur["shft_tseqs"]), dim=1)
         # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
@@ -194,14 +203,14 @@ def model_forward(model, data, rel=None):
         y,loss = model.train_one_step(data)
     elif model_name == "dimkt":
         y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
-        ys.append(y) 
+        ys.append(y)
 
     if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     if model_name in ["ukt"] and model.use_CL != 0:
         return loss,temp
     return loss
-    
+
 
 def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False, data_config=None, fold=None):
     max_auc, best_epoch = 0, -1
@@ -217,7 +226,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             fname = "phi_dict" + folds_str + ".pkl"
             rel = pd.read_pickle(os.path.join(dpath, fname))
         else:
-            fname = "phi_array" + folds_str + ".pkl" 
+            fname = "phi_array" + folds_str + ".pkl"
             rel = pd.read_pickle(os.path.join(dpath, fname))
 
     if model.model_name=='lpkt':
@@ -243,7 +252,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             if model.model_name == "dtransformer":
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()#update model’s parameters
-                
+
             loss_mean.append(loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
                 text = f"Total train step is {train_step}, the loss is {loss.item():.5}"
@@ -251,7 +260,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         if model.model_name=='lpkt':
             scheduler.step()#update each epoch
         loss_mean = np.mean(loss_mean)
-        
+
         if model.model_name=='rkt':
             auc, acc = evaluate(model, valid_loader, model.model_name, rel)
         else:

@@ -36,6 +36,7 @@ from .cskt import CSKT
 from .fluckt import FlucKT
 from .lefokt_akt import LEFOKT_AKT
 from .ukt import UKT
+from .routerkt import RouterKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -75,7 +76,7 @@ def init_model(model_name, model_config, data_config, emb_type):
         if os.path.exists(graph_path):
             graph = torch.tensor(np.load(graph_path, allow_pickle=True)['matrix']).float()
         else:
-            graph = get_gkt_graph(data_config["num_c"], data_config["dpath"], 
+            graph = get_gkt_graph(data_config["num_c"], data_config["dpath"],
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
@@ -88,7 +89,7 @@ def init_model(model_name, model_config, data_config, emb_type):
         q_matrix = torch.tensor(q_matrix).float().to(device)
         model = LPKT(data_config["num_at"], data_config["num_it"], data_config["num_q"], data_config["num_c"], **model_config, q_matrix=q_matrix, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "skvmn":
-        model = SKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)   
+        model = SKVMN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "hawkes":
         if data_config["num_q"] == 0 or data_config["num_c"] == 0:
             print(f"model: {model_name} needs questions ans concepts! but the dataset has no both")
@@ -103,7 +104,7 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = model.to(device)
     elif model_name == "iekt":
         model = IEKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
-                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)   
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
     elif model_name == "qdkt":
         model = QDKT(num_q=data_config['num_q'], num_c=data_config['num_c'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"],device=device).to(device)
@@ -125,16 +126,18 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "sparsekt":
         model = sparseKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "rkt":
-        model = RKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device) 
+        model = RKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "cskt":
-        model = CSKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device) 
+        model = CSKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "fluckt":
         model = FlucKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "ukt":
         model = UKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "routerkt":
+        model = RouterKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dtransformer":
         model = DTransformer(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type,
-                     emb_path=data_config["emb_path"]).to(device)      
+                     emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None
