@@ -4,7 +4,7 @@ from wandb_train import main
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="algebra2005")
-    parser.add_argument("--model_name", type=str, default="bakt_time")
+    parser.add_argument("--model_name", type=str, default="datakt")
     parser.add_argument("--emb_type", type=str, default="qidtime")
     parser.add_argument("--save_dir", type=str, default="saved_model")
     # parser.add_argument("--learning_rate", type=float, default=1e-5)
