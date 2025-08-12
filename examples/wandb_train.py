@@ -41,7 +41,7 @@ def main(params):
         train_config = config["train_config"]
         if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "robustkt", "folibikt", "atkt", "lpkt", "skvmn", "dimkt"]:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["simplekt","stablekt", "bakt_time", "sparsekt"]:
+        if model_name in ["simplekt","stablekt", "datakt", "sparsekt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
