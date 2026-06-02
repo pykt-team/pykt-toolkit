@@ -493,6 +493,16 @@ HCGKT integrates hierarchical graph filtering attention with contrastive learnin
 `Huang, Z., Liu, Z. (2025, July). HCGKT: Hierarchical Contrastive Graph Knowledge Tracing with Multi-level Feature Learning. In International Conference on Artificial Intelligence in Education (pp. xxx). Cham: Springer Nature Switzerland.
 <https://pykt.org/>`__
 
+MTKT
+----
+MTKT models multi-granularity temporal characteristics in student interaction data via three components: a multi-aspect embedding layer that captures both temporal information and interaction behaviors, a dual attention module with linear decaying bias that applies negative bias to attention scores to model long-term forgetting across varying sequence lengths, and a causal interaction convolution module that captures fine-grained representations in both short-term and long-term interactions.
+
+.. figure:: ../pics/mtkt.jpg
+   :alt: 
+
+`Bai, Y., Li, X., Liu, Z., Huang, Y., Guo, T., Hou, M., & Luo, W. (2025). Learning multi-granularity temporal characteristics for attention based knowledge tracing. Neurocomputing, 131338.
+<https://doi.org/10.1016/j.neucom.2025.131338>`__
+
 RobustKT
 ----
 RobustKT decouples cognitive patterns and random factors through smoothing and subtraction, reweights them via gating or fusion, and employs decay-based attention to enhance knowledge tracing under noisy conditions.
