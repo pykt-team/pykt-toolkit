@@ -520,7 +520,8 @@ MoC-KT disentangles stable progression from short-term fluctuations via multi-sc
 .. figure:: ../pics/mockt.png
    :alt:
 
-`Mingliang, Hou, et al. "MoC-KT: Mixture of Convolutions for Knowledge Tracing." ACM Transactions on Information Systems. 2026.`
+`Mingliang, Hou, et al. "MoC-KT: Mixture of Convolutions for Knowledge Tracing." ACM Transactions on Information Systems. 2026.
+<https://pykt.org/>`__
 
 FA-KT
 -----
@@ -529,4 +530,5 @@ FA-KT decomposes student interaction sequences into diverse frequency components
 .. figure:: ../pics/fa-kt.png
    :alt:
 
-`Youheng, Bai, et al. "A Frequency-Aware Mixture of Heterogeneous Experts Framework for Knowledge Tracing." Proceedings of the ACM on Web Conference 2026.`
+`Youheng, Bai, et al. "A Frequency-Aware Mixture of Heterogeneous Experts Framework for Knowledge Tracing." Proceedings of the ACM on Web Conference 2026.
+<https://doi.org/10.1145/3774904.3792272>`__
