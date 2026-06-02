@@ -55,7 +55,7 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
         for data in test_loader:
             # if model_name in ["dkt_forget", "lpkt"]:
             #     q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+            if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
                 dcur, dgaps = data
             else:
                 dcur = data
@@ -95,7 +95,7 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 y = y[:,1:]
                 if q.numel() > 0:
                     c,cshft = q,qshft   #question level 
-            elif model_name in ["datakt"]:
+            elif model_name in ["datakt", "mtkt"]:
                 y = model(dcur, dgaps)
                 y = y[:,1:]
             elif model_name in ["fa_kt"]:
@@ -192,7 +192,7 @@ def early_fusion(curhs, model, model_name):
         que_diff = model.diff_layer(curhs[1])#equ 13
         p = torch.sigmoid(3.0*stu_ability-que_diff)#equ 14
         p = p.squeeze(-1)
-    elif model_name in ["akt","extrakt", "folibikt","robustkt", "dtransformer","simplekt","stablekt","cskt", "fluckt", "bakt_time", "fa_kt", "sparsekt", "lefokt_akt", "ukt", "hcgkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
+    elif model_name in ["akt","extrakt", "folibikt","robustkt", "dtransformer","simplekt","stablekt","cskt", "fluckt", "bakt_time", "fa_kt", "mtkt", "sparsekt", "lefokt_akt", "ukt", "hcgkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:
         output = model.out(curhs[0]).squeeze(-1)
         m = nn.Sigmoid()
         p = m(output)
@@ -238,7 +238,7 @@ def effective_fusion(df, model, model_name, fusion_type):
 
     curhs, curr = [[], []], []
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
-    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt","extrakt", "folibikt", "robustkt", "dtransformer", "simplekt","stablekt","cskt","fluckt", "ukt", "hcgkt", "bakt_time", "fa_kt", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt","extrakt", "folibikt", "robustkt", "dtransformer", "simplekt","stablekt","cskt","fluckt", "ukt", "hcgkt", "bakt_time", "fa_kt", "mtkt", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     for ui in df:
         # 一题一题处理
         curdf = ui[1]
@@ -286,7 +286,7 @@ def group_fusion(dmerge, model, model_name, fusion_type, fout):
     if cq.shape[1] == 0:
         cq = cc
 
-    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","robustkt", "extrakt", "folibikt","simplekt","stablekt","cskt", "fluckt", "ukt",  "hcgkt", "bakt_time", "fa_kt", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","robustkt", "extrakt", "folibikt","simplekt","stablekt","cskt", "fluckt", "ukt",  "hcgkt", "bakt_time", "fa_kt", "mtkt", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     
     alldfs, drest = [], dict() # not predict infos!
     # print(f"real bz in group fusion: {rs.shape[0]}")
@@ -383,7 +383,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
     # dkvmn / akt / saint: give cur -> predict cur
     # sakt: give past+cur -> predict cur
     # kqn: give past+cur -> predict cur
-    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","extrakt","folibikt", "robustkt", "simplekt","cskt","fluckt", "stablekt", "ukt", "hcgkt", "bakt_time", "fa_kt", "sparsekt", "lefokt_akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
+    hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "dtransformer", "akt","extrakt","folibikt", "robustkt", "simplekt","cskt","fluckt", "stablekt", "ukt", "hcgkt", "bakt_time", "fa_kt", "mtkt", "sparsekt", "lefokt_akt", "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
         if model_name in hasearly:
@@ -399,7 +399,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
         y_trues, y_scores = [], []
         lenc = 0
         for data in test_loader:
-            if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+            if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
                 dcurori, dgaps, dqtest = data
             else:
                 dcurori, dqtest = data
@@ -431,7 +431,7 @@ def evaluate_question(model, test_loader, model_name, fusion_type=["early_fusion
                 y, h, k = model(cc.long(), cr.long(), True)
                 y = y[:,1:]
                 
-            elif model_name in ["datakt"]:
+            elif model_name in ["datakt", "mtkt"]:
                 y, h = model(dcurori, dgaps, qtest=True, train=False)
                 y = y[:,1:]
                 # start_hemb = torch.tensor([-1] * (h.shape[0] * h.shape[2])).reshape(h.shape[0], 1, h.shape[2]).to(device)
@@ -637,7 +637,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             #     sys.exit()
             model.eval()
 
-            dforget = dict() if model_name not in ["dkt_forget", "bakt_time", "fa_kt"] else get_info_dkt_forget(row, data_config)
+            dforget = dict() if model_name not in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"] else get_info_dkt_forget(row, data_config)
 
             concepts, responses = row["concepts"].split(","), row["responses"].split(",")
             ###
@@ -881,7 +881,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             y = model(cin.long(), rin.long())
             # print(y)
             pred = y[0][-1][cout.item()]
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             din = dict()
             for key in curdforget:
                 din[key] = curdforget[key][:,start:]
@@ -969,7 +969,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             m = nn.Sigmoid()
             y = m(output)
             pred = y[0][-1]
-        elif model_name in ["datakt"]:
+        elif model_name in ["datakt", "mtkt"]:
            if qout != None:
                curq = torch.tensor([[qout.item()]]).to(device)
                qinshft = torch.cat((qin[:,1:], curq), axis=1)
@@ -1069,7 +1069,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             nextsdin = csd[0:k+1].unsqueeze(0) if csd.shape[0] > 0 else sdin
             nextqdin = cqd[0:k+1].unsqueeze(0) if cqd.shape[0] > 0 else qdin
         # update nextdforget
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             for key in nextdforget:
                 curd = torch.tensor([[dforget[key][k]]]).long().to(device)
                 nextdforget[key] = torch.cat((nextdforget[key], curd), axis=1)
@@ -1208,7 +1208,7 @@ def prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget,
             dqdshfts.append(curqd)     
 
         d, dshft = dict(), dict()
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             for key in curdforget:
                 d[key] = curdforget[key][:,start:]
                 dds.setdefault(key, [])
@@ -1292,7 +1292,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             curt = finalts[bidx: bidx+bz]
             curtshft = finaltshfts[bidx: bidx+bz]
         curd, curdshft = dict(), dict()
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             for key in finald:
                 curd[key] = finald[key][bidx: bidx+bz]
                 curdshft[key] = finaldshft[key][bidx: bidx+bz]
@@ -1315,7 +1315,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             ccc = torch.cat((curc[:,0:1], curcshft), dim=1)
             ccr = torch.cat((curr[:,0:1], currshft), dim=1)
             cct = torch.cat((curt[:,0:1], curtshft), dim=1)
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             dgaps = dict()
             for key in curd:
                 dgaps[key] = curd[key]
@@ -1374,7 +1374,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
             ccsd = cursd
             ccqd = curqd
             y = model(ccq.long(),ccc.long(),ccsd.long(),ccqd.long(),ccr.long(),curqshft.long(),curcshft.long(),cursdshft.long(),curqdshft.long())
-        elif model_name in ["datakt"]:
+        elif model_name in ["datakt", "mtkt"]:
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             # print(f"finald: {finald.keys()}")

@@ -20,7 +20,7 @@ def init_test_datasets(data_config, model_name, batch_size, diff_level=None, arg
     dataset_name = data_config["dataset_name"]
     print(f"model_name is {model_name}, dataset_name is {dataset_name}")
     test_question_loader, test_question_window_loader = None, None
-    if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+    if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
         test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
         test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
                                         data_config["input_type"], {-1})
@@ -138,7 +138,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
     print(f"data_config:{data_config}")
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
-    if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+    if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
         max_rgap, max_sgap, max_pcount = 0, 0, 0
         curvalid = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
         curtrain = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
@@ -219,7 +219,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
     try:
-        if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+        if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
             test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
             # test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
             #                                 data_config["input_type"], {-1})
@@ -237,7 +237,7 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size, dif
     except:
         pass
     
-    if model_name in ["dkt_forget", "bakt_time", "fa_kt"]:
+    if model_name in ["dkt_forget", "bakt_time", "fa_kt", "mtkt"]:
         data_config["num_rgap"] = max_rgap + 1
         data_config["num_sgap"] = max_sgap + 1
         data_config["num_pcount"] = max_pcount + 1
