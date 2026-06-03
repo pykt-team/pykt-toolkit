@@ -64,7 +64,17 @@ class DenoiseKTNet(nn.Module):
                 self.difficult_param = nn.Embedding(self.num_q+1, embed_l) 
             
 
+        # The sparse question-concept adjacency tensor `questions_concepts.pt`
+        # is required under <dpath> for DenoiseKT. The generation script can
+        # be downloaded from:
+        # https://drive.google.com/file/d/15R1RNvV4NmwsEoYUyJwTwGXCsK_ODbLd/view?usp=sharing
         qs_cs_path = dpath + '/questions_concepts.pt'
+        if not os.path.exists(qs_cs_path):
+            raise FileNotFoundError(
+                f"DenoiseKT requires `{qs_cs_path}` (sparse question-concept "
+                f"adjacency tensor). Generate it with the script at "
+                f"https://drive.google.com/file/d/15R1RNvV4NmwsEoYUyJwTwGXCsK_ODbLd/view?usp=sharing"
+            )
         self.matrix = torch.load(qs_cs_path).to(device)
         
 

@@ -1,6 +1,12 @@
 import argparse
 from wandb_train import main
 
+# NOTE:
+# DenoiseKT requires a sparse question-concept adjacency tensor file
+# `<dpath>/questions_concepts.pt` under the dataset directory.
+# Download the generation script from:
+# https://drive.google.com/file/d/15R1RNvV4NmwsEoYUyJwTwGXCsK_ODbLd/view?usp=sharing
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="assist2009")
