@@ -513,6 +513,16 @@ RobustKT decouples cognitive patterns and random factors through smoothing and s
 `Teng, Guo, et al. "Enhancing Knowledge Tracing through Decoupling Cognitive Pattern from Error-Prone Data." WWW '25: Proceedings of the ACM on Web Conference 2025.
 <https://dl.acm.org/doi/10.1145/3696410.3714486>`__
 
+DenoiseKT
+---------
+DenoiseKT mitigates the attention noise problem in attention-based knowledge tracing by augmenting question representations with question-difficulty and a graph neural network over question-concept relations, and by introducing a denoised attention mechanism that reweights attention scores via a question-similarity boost factor to suppress weights assigned to cognitively irrelevant past interactions.
+
+.. figure:: ../pics/denoisekt.png
+   :alt:
+
+`Deng, Jiwei, et al. "Denoised Attention and Question-Augmented Representations for Knowledge Tracing." Proceedings of the 34th International Joint Conference on Artificial Intelligence, pp. 9619-9627. 2025.
+<https://doi.org/10.24963/ijcai.2025/1069>`__
+
 MoC-KT
 ------
 MoC-KT disentangles stable progression from short-term fluctuations via multi-scale causal convolutions with adaptive segmentation, and applies kerple-based decay attention to balance local and global dependencies, mitigating cognitive mirage from learner heterogeneity.
@@ -532,13 +542,3 @@ FA-KT decomposes student interaction sequences into diverse frequency components
 
 `Youheng, Bai, et al. "A Frequency-Aware Mixture of Heterogeneous Experts Framework for Knowledge Tracing." Proceedings of the ACM on Web Conference 2026.
 <https://doi.org/10.1145/3774904.3792272>`__
-
-DenoiseKT
----------
-DenoiseKT mitigates the attention noise problem in attention-based knowledge tracing by augmenting question representations with question-difficulty and a graph neural network over question-concept relations, and by introducing a denoised attention mechanism that reweights attention scores via a question-similarity boost factor to suppress weights assigned to cognitively irrelevant past interactions.
-
-.. figure:: ../pics/denoisekt.png
-   :alt:
-
-`Deng, Jiwei, et al. "Denoised Attention and Question-Augmented Representations for Knowledge Tracing." Proceedings of the 34th International Joint Conference on Artificial Intelligence, pp. 9619-9627. 2025.
-<https://doi.org/10.24963/ijcai.2025/1069>`__
