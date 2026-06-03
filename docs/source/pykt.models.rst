@@ -188,6 +188,14 @@ pykt.models.lpkt\_utils module
    :undoc-members:
    :show-inheritance:
 
+pykt.models.denoisekt module
+----------------------------
+
+.. automodule:: pykt.models.denoisekt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pykt.models.mtkt module
 -----------------------
 
