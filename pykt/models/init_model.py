@@ -40,6 +40,7 @@ from .robustkt import Robustkt
 from .mockt import MocKT
 from .fa_kt import FA_KT
 from .mtkt import MTKT
+from .denoisekt import DenoiseKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -147,6 +148,9 @@ def init_model(model_name, model_config, data_config, emb_type):
         model = FA_KT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "mtkt":
         model = MTKT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "denoisekt":
+        model = DenoiseKT(num_c=data_config['num_c'], num_q=data_config['num_q'],
+                max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, dpath=data_config["dpath"], emb_path=data_config["emb_path"], device=device).to(device)
     else:
         print("The wrong model name was used...")
         return None

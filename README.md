@@ -84,6 +84,7 @@ The hyper parameter tunning results of our experiments about all the DLKT models
 29. MTKT: Learning multi-granularity temporal characteristics for attention based knowledge tracing
 30. RobustKT: Enhancing Knowledge Tracing through Decoupling Cognitive Pattern from Error-Prone Data
 31. MoCKT: : Mixture of Convolutions for Knowledge Tracing
+32. DenoiseKT: Denoised Attention and Question-Augmented Representations for Knowledge Tracing
 
 ## Citation
 
