@@ -469,7 +469,8 @@ FlucKT enhances knowledge tracing by explicitly modeling both long-term cognitiv
 .. figure:: ../pics/fluckt.png   
    :alt: 
    
-`Hou, Mingliang, et al. "Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.<https://ojs.aaai.org/index.php/AAAI/article/view/33562>`__
+`Hou, Mingliang, et al. "Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.
+<https://ojs.aaai.org/index.php/AAAI/article/view/33562>`__
 
 lefoKT
 ----
