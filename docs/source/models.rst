@@ -464,7 +464,12 @@ csKT is specifically designed to address the cold-start problem in knowledge tra
 
 FlucKT
 ----
-FlucKT enhances knowledge tracing by explicitly modeling both long-term cognitive trends and short-term cognitive fluctuations through a decomposition-based attention mechanism with causal convolution and a kernelized bias attention score penalty... figure:: ../pics/fluckt.png   :alt: `Hou, Mingliang, et al. "Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.<https://ojs.aaai.org/index.php/AAAI/article/view/33562>`__
+FlucKT enhances knowledge tracing by explicitly modeling both long-term cognitive trends and short-term cognitive fluctuations through a decomposition-based attention mechanism with causal convolution and a kernelized bias attention score penalty.
+
+.. figure:: ../pics/fluckt.png   
+   :alt: 
+   
+`Hou, Mingliang, et al. "Cognitive Fluctuations Enhanced Attention Network for Knowledge Tracing." Proceedings of the 39th Annual AAAI Conference on Artificial Intelligence. 2025.<https://ojs.aaai.org/index.php/AAAI/article/view/33562>`__
 
 lefoKT
 ----
