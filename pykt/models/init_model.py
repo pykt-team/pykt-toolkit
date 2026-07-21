@@ -41,6 +41,7 @@ from .mockt import MocKT
 from .fa_kt import FA_KT
 from .mtkt import MTKT
 from .denoisekt import DenoiseKT
+from .fluckt import FlucKT
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -151,6 +152,8 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "denoisekt":
         model = DenoiseKT(num_c=data_config['num_c'], num_q=data_config['num_q'],
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, dpath=data_config["dpath"], emb_path=data_config["emb_path"], device=device).to(device)
+    elif model_name == "fluckt":
+        model = FlucKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None
