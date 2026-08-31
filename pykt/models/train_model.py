@@ -13,10 +13,15 @@ import pandas as pd
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+direct_train_que_type_models = [
+    "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro",
+    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid",
+]
+
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
-    if model_name in ["atdkt", "simplekt", "stablekt", "bakt_time", "sparsekt", "cskt", "hcgkt", "fa_kt", "mtkt"]:
+    if model_name in ["atdkt", "simplekt", "stablekt", "bakt_time", "sparsekt", "cskt", "hcgkt", "fa_kt", "mtkt", "simplekt_enhance_pro_qid"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         # print(f"loss1: {y.shape}")
@@ -47,7 +52,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             loss1 = loss1 + model.cl_weight * loss2
         loss =loss1
 
-    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes"]:
+    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "dkt_enhance_pro", "sakt_enhance_pro", "dkvmn_enhance_pro"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -66,7 +71,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
         loss_w2 = loss_w2.mean() / model.num_c
 
         loss = loss + model.lambda_r * loss_r + model.lambda_w1 * loss_w1 + model.lambda_w2 * loss_w2
-    elif model_name in ["mockt", "akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt"]:
+    elif model_name in ["mockt", "akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx","lefokt_akt", "dtransformer", "fluckt", "akt_enhance_pro_qid"]:
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
         loss = binary_cross_entropy(y.double(), t.double()) + preloss[0]
@@ -114,7 +119,7 @@ def model_forward(model, data, rel=None):
             y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         # y2 = (y2 * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys = [y, y2, y3] # first: yshft
-    elif model_name in ["simplekt", "stablekt", "sparsekt", "cskt"]:
+    elif model_name in ["simplekt", "stablekt", "sparsekt", "cskt", "simplekt_enhance_pro_qid"]:
         y, y2, y3 = model(dcur, train=True)
         ys = [y[:,1:], y2, y3]
     elif model_name in ["rekt"]:
@@ -205,6 +210,9 @@ def model_forward(model, data, rel=None):
         y = model(c.long(), r.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
+    elif model_name in ["dkt_enhance_pro", "sakt_enhance_pro"]:
+        y = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
+        ys.append(y)
     elif model_name == "dkt+":
         y = model(c.long(), r.long())
         y_next = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -217,6 +225,9 @@ def model_forward(model, data, rel=None):
     elif model_name in ["dkvmn","deep_irt", "skvmn"]:
         y = model(cc.long(), cr.long())
         ys.append(y[:,1:])
+    elif model_name in ["dkvmn_enhance_pro"]:
+        y = model(cq.long(), cr.long())
+        ys.append(y[:,1:])
     elif model_name in ["kqn", "sakt"]:
         y = model(c.long(), r.long(), cshft.long())
         ys.append(y)
@@ -224,6 +235,10 @@ def model_forward(model, data, rel=None):
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
     elif model_name in ["akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt"]:
+        y, reg_loss = model(cc.long(), cr.long(), cq.long())
+        ys.append(y[:,1:])
+        preloss.append(reg_loss)
+    elif model_name in ["akt_enhance_pro_qid"]:
         y, reg_loss = model(cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
@@ -258,13 +273,15 @@ def model_forward(model, data, rel=None):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
+    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"] + direct_train_que_type_models:
         y,loss = model.train_one_step(data)
     elif model_name == "dimkt":
         y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
         ys.append(y) 
 
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
+    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt", "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro"]:
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
+    if model_name in ["akt_enhance_pro_qid", "simplekt_enhance_pro_qid"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     if model_name in ["ukt"] and model.use_CL != 0:
         return loss,temp
@@ -294,7 +311,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"]:
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"] + direct_train_que_type_models:
                 model.model.train()
             else:
                 model.train()

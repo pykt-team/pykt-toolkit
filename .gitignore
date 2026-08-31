@@ -24,6 +24,11 @@ data/poj
 data/slepemapy
 data/junyi2015
 data/ednet
+data/jiuzhang_grade3_en/
+data/jiuzhang_grade45_cn/
+data/jiuzhang_grade7_cn/
+data/pro_emb/
+data/pykt-auto-ot-kt-qid-tx.zip
 .ipynb_checkpoints
 dev_tools
 tmp*
