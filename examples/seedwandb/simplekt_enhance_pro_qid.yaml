@@ -29,7 +29,7 @@ parameters:
   learning_rate:
     values: [1e-3]
   num_epochs:
-    values: [1]
+    values: [200]
   batch_size:
     values: [64]
   seed:
