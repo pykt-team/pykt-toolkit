@@ -16,6 +16,26 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
+OPERA_ENHANCE_PRO_MODELS = [
+    "dkt_enhance_pro",
+    "dkvmn_enhance_pro",
+    "sakt_enhance_pro",
+    "akt_enhance_pro_qid",
+    "simplekt_enhance_pro_qid",
+]
+
+OPERA_BATCH64_MODELS = [
+    "dkvmn_enhance_pro",
+    "sakt_enhance_pro",
+    "akt_enhance_pro_qid",
+    "simplekt_enhance_pro_qid",
+]
+
+OPERA_SEQ_LEN_MODELS = [
+    "sakt_enhance_pro",
+    "simplekt_enhance_pro_qid",
+]
+
 def save_config(train_config, model_config, data_config, params, save_dir):
     d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
     save_path = os.path.join(save_dir, "config.json")
@@ -39,9 +59,9 @@ def main(params):
     with open("../configs/kt_config.json") as f:
         config = json.load(f)
         train_config = config["train_config"]
-        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "robustkt", "folibikt", "atkt", "lpkt", "skvmn", "dimkt", "sakt_enhance_pro", "dkvmn_enhance_pro", "akt_enhance_pro_qid"]:
+        if model_name in ["dkvmn","deep_irt", "sakt", "saint","saint++", "akt", "robustkt", "folibikt", "atkt", "lpkt", "skvmn", "dimkt"] + OPERA_BATCH64_MODELS:
             train_config["batch_size"] = 64 ## because of OOM
-        if model_name in ["simplekt","stablekt", "datakt", "sparsekt", "mtkt", "simplekt_enhance_pro_qid"]:
+        if model_name in ["simplekt","stablekt", "datakt", "sparsekt", "mtkt"]:
             train_config["batch_size"] = 64 ## because of OOM
         if model_name in ["gkt"]:
             train_config["batch_size"] = 16 
@@ -98,7 +118,7 @@ def main(params):
     for remove_item in ['use_wandb','learning_rate','add_uuid','l2','batch_size','num_epochs']:
         if remove_item in model_config:
             del model_config[remove_item]
-    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt","stablekt", "datakt","folibikt", "mtkt", "sakt_enhance_pro", "simplekt_enhance_pro_qid"]:
+    if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt","stablekt", "datakt","folibikt", "mtkt"] + OPERA_SEQ_LEN_MODELS:
         model_config["seq_len"] = seq_len
         
     debug_print(text = "init_model",fuc_name="main")
@@ -125,7 +145,7 @@ def main(params):
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
         elif optimizer == "adam":
-            if model_name in ["dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro", "akt_enhance_pro_qid", "simplekt_enhance_pro_qid"]:
+            if model_name in OPERA_ENHANCE_PRO_MODELS:
                 opt = Adam(model.parameters(), learning_rate, weight_decay=1e-5)
             else:
                 opt = Adam(model.parameters(), learning_rate)
