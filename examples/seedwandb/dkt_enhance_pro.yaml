@@ -1,0 +1,32 @@
+program: wandb_dkt_enhance_pro_train.py
+method: grid
+metric:
+  goal: maximize
+  name: validauc
+parameters:
+  model_name:
+    values: ["dkt_enhance_pro"]
+  dataset_name:
+    values: ["jiuzhang_grade3_en", "jiuzhang_grade45_cn", "jiuzhang_grade7_cn"]
+  emb_type:
+    values: ["qid"]
+  save_dir:
+    values: ["models/dkt_enhance_pro"]
+  emb_size:
+    values: [64]
+  dropout:
+    values: [0.2]
+  learning_rate:
+    values: [1e-3]
+  num_epochs:
+    values: [1]
+  batch_size:
+    values: [64]
+  seed:
+    values: [42]
+  fold:
+    values: [0]
+  use_wandb:
+    values: [0]
+  add_uuid:
+    values: [0]

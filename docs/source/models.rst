@@ -75,6 +75,27 @@ graph based models and attention based models in our work, we mainly develop the
 | FA-KT  | Attention      |
 +------------+----------------+
 
+OPERA Enhance Pro Models
+------------------------
+
+OPERA (Option-level Pedagogical Explanation via Reasoning for Augmented
+Knowledge Tracing) is a decoupled KT enhancement framework. It uses an LLM in
+offline preprocessing to generate option-level pedagogical explanations for
+multiple-choice questions, validates the generated explanations, encodes them as
+semantic vectors, and injects those vectors into KT backbones instead of relying
+only on randomly initialized ID embeddings. The integrated models do not call an
+LLM during training or inference.
+
+The OPERA Enhance Pro models in pyKT use precomputed question semantic
+embeddings and are available only for datasets that provide question stems and
+the matching embedding files. The supported datasets are
+``jiuzhang_grade3_en``, ``jiuzhang_grade45_cn``, and ``jiuzhang_grade7_cn``.
+
+The supported model names are ``dkt_enhance_pro``, ``dkvmn_enhance_pro``,
+``sakt_enhance_pro``, ``akt_enhance_pro_qid``, and
+``simplekt_enhance_pro_qid``. Running these models on other datasets raises a
+``ValueError`` instead of falling back to random embeddings.
+
 DKT
 ---
 

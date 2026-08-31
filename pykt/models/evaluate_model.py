@@ -104,17 +104,28 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             elif model_name in ["simplekt","stablekt", "sparsekt", "cskt", "ukt", "hcgkt"]:
                 y = model(dcur)
                 y = y[:,1:]
+            elif model_name in ["simplekt_enhance_pro_qid"]:
+                y = model(dcur)
+                y = y[:,1:]
+                c, cshft = q, qshft
             elif model_name in ["rekt"]:
                 y = model(dcur)
             elif model_name in ["dkt", "dkt+"]:
                 y = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+            elif model_name in ["dkt_enhance_pro", "sakt_enhance_pro"]:
+                y = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
+                c, cshft = q, qshft
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), dgaps)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkvmn","deep_irt", "skvmn","deep_irt"]:
                 y = model(cc.long(), cr.long())
                 y = y[:,1:]
+            elif model_name in ["dkvmn_enhance_pro"]:
+                y = model(cq.long(), cr.long())
+                y = y[:,1:]
+                c, cshft = q, qshft
             elif model_name in ["kqn", "sakt"]:
                 y = model(c.long(), r.long(), cshft.long())
             elif model_name == "saint":
@@ -123,6 +134,10 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             elif model_name in ["akt","extrakt","folibikt", "robustkt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lefokt_akt", "fluckt"]:
                 y, reg_loss = model(cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
+            elif model_name in ["akt_enhance_pro_qid"]:
+                y, reg_loss = model(cc.long(), cr.long(), cq.long())
+                y = y[:,1:]
+                c, cshft = q, qshft
             elif model_name in ["mockt"]:
                 y, reg_loss = model(s.long(), cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
@@ -1450,4 +1465,3 @@ def save_currow_question_res(idx, dcres, dqres, qidxs, ctrues, cpreds, uid, fout
         late_mean, late_vote, late_all = save_each_question_res(dcres, dqres, ctrues, cpreds)
         # print("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]))
         fout.write("\t".join([str(idx), str(uid), str(qidx), str(late_mean), str(late_vote), str(late_all)]) + "\n")
-
