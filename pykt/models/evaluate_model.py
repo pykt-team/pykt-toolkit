@@ -10,6 +10,11 @@ import csv
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
+direct_eval_que_type_models = [
+    "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro",
+    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid",
+]
+
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     # dres, q, r, qshft, rshft, m, sm, y
     results = []
@@ -71,7 +76,7 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 qshft, cshft, rshft= dcur["shft_qseqs"], dcur["shft_cseqs"], dcur["shft_rseqs"]
             m, sm = dcur["masks"], dcur["smasks"]
             q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
-            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt", "promptkt", "unikt"]:
+            if model.model_name in que_type_models and model_name not in ["lpkt", "rkt", "promptkt", "unikt"] + direct_eval_que_type_models:
                 model.model.eval()
             else:
                 model.eval()

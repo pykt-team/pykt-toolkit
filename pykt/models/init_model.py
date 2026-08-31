@@ -50,7 +50,11 @@ from .simplekt_enhance_pro_qid import simpleKT_enhance_pro_qid
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-def init_model(model_name, model_config, data_config, emb_type):
+def init_model(model_name, model_config, data_config, emb_type, dataset_name=None):
+    if dataset_name is None:
+        dataset_name = data_config.get("dataset_name")
+    if dataset_name is None and data_config.get("dpath"):
+        dataset_name = os.path.basename(os.path.normpath(data_config["dpath"]))
     if model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -160,22 +164,22 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "fluckt":
         model = FlucKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt_enhance_pro":
-        model = DKT_Enhance_Pro(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+        model = DKT_Enhance_Pro(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "dkvmn_enhance_pro":
-        model = DKVMN_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+        model = DKVMN_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "sakt_enhance_pro":
-        model = SAKT_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+        model = SAKT_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "akt_enhance_pro_qid":
-        model = AKT_Enhance_Pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+        model = AKT_Enhance_Pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "simplekt_enhance_pro_qid":
-        model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+        model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     else:
         print("The wrong model name was used...")
         return None
     return model
 
-def load_model(model_name, model_config, data_config, emb_type, ckpt_path):
-    model = init_model(model_name, model_config, data_config, emb_type)
+def load_model(model_name, model_config, data_config, emb_type, ckpt_path, dataset_name=None):
+    model = init_model(model_name, model_config, data_config, emb_type, dataset_name)
     net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
     model.load_state_dict(net)
     return model

@@ -13,6 +13,11 @@ import pandas as pd
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+direct_train_que_type_models = [
+    "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro",
+    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid",
+]
+
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
@@ -268,13 +273,15 @@ def model_forward(model, data, rel=None):
         # y = model(cc[0:1,0:5].long(), cq[0:1,0:5].long(), ct[0:1,0:5].long(), cr[0:1,0:5].long(), csm[0:1,0:5].long())
         y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
         ys.append(y[:, 1:])
-    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"]:
+    elif model_name in que_type_models and model_name not in ["lpkt", "rkt"] + direct_train_que_type_models:
         y,loss = model.train_one_step(data)
     elif model_name == "dimkt":
         y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
         ys.append(y) 
 
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt"]:
+    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt", "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro"]:
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
+    if model_name in ["akt_enhance_pro_qid", "simplekt_enhance_pro_qid"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     if model_name in ["ukt"] and model.use_CL != 0:
         return loss,temp
@@ -304,7 +311,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
         loss_mean = []
         for data in train_loader:
             train_step+=1
-            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"]:
+            if model.model_name in que_type_models and model.model_name not in ["lpkt", "rkt"] + direct_train_que_type_models:
                 model.model.train()
             else:
                 model.train()
