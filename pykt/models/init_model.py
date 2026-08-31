@@ -42,6 +42,11 @@ from .fa_kt import FA_KT
 from .mtkt import MTKT
 from .denoisekt import DenoiseKT
 from .fluckt import FlucKT
+from .dkt_enhance_pro import DKT_Enhance_Pro
+from .dkvmn_enhance_pro import DKVMN_Enhance_PRO
+from .sakt_enhance_pro import SAKT_Enhance_PRO
+from .akt_enhance_pro_qid import AKT_Enhance_Pro_qid
+from .simplekt_enhance_pro_qid import simpleKT_enhance_pro_qid
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -154,6 +159,16 @@ def init_model(model_name, model_config, data_config, emb_type):
                 max_concepts=data_config['max_concepts'], **model_config, emb_type=emb_type, dpath=data_config["dpath"], emb_path=data_config["emb_path"], device=device).to(device)
     elif model_name == "fluckt":
         model = FlucKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "dkt_enhance_pro":
+        model = DKT_Enhance_Pro(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+    elif model_name == "dkvmn_enhance_pro":
+        model = DKVMN_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+    elif model_name == "sakt_enhance_pro":
+        model = SAKT_Enhance_PRO(data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+    elif model_name == "akt_enhance_pro_qid":
+        model = AKT_Enhance_Pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
+    elif model_name == "simplekt_enhance_pro_qid":
+        model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], data_config=data_config).to(device)
     else:
         print("The wrong model name was used...")
         return None
