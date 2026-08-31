@@ -553,8 +553,8 @@ FA-KT decomposes student interaction sequences into diverse frequency components
 `Youheng, Bai, et al. "A Frequency-Aware Mixture of Heterogeneous Experts Framework for Knowledge Tracing." Proceedings of the ACM on Web Conference 2026.
 <https://doi.org/10.1145/3774904.3792272>`__
 
-OPERA Enhance Pro Models
-------------------------
+OPERA
+-----
 
 OPERA (Option-level Pedagogical Explanation via Reasoning for Augmented
 Knowledge Tracing) augments KT models with semantic representations derived from
@@ -568,8 +568,4 @@ model training or inference.
 
 The current pyKT integration provides five OPERA Enhance Pro variants:
 ``dkt_enhance_pro``, ``dkvmn_enhance_pro``, ``sakt_enhance_pro``,
-``akt_enhance_pro_qid``, and ``simplekt_enhance_pro_qid``. These models require
-precomputed question semantic embeddings and currently support
-``jiuzhang_grade3_en``, ``jiuzhang_grade45_cn``, and ``jiuzhang_grade7_cn``.
-Other datasets are not supported because they do not provide the required
-question stems and embedding files.
+``akt_enhance_pro_qid``, and ``simplekt_enhance_pro_qid``.
