@@ -1,0 +1,46 @@
+program: wandb_cgmkt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["cgmkt"]
+    dataset_name:
+        values: ["xes"]
+    emb_type:
+        values: ["qid_py_randkcg"]
+    save_dir:
+        values: ["models/cgmkt_tiaocan"]
+    emb_size:
+        values: [64, 128, 256]
+    learning_rate:
+        values: [1e-3, 5e-4, 2e-3, 1e-4]
+    dropout:
+        values: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    dropout_qk:
+        values: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    dropout_kk:
+        values: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    num_gcn_layers:
+        values: [1]
+    num_clusters:
+        values: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+    mastery_update_hidden:
+        values: [32, 64, 128, 256]
+    mastery_step:
+        values: [0.03, 0.05, 0.1, 0.2]
+    modulation_type:
+        values: ["gate"]
+    spread_type:
+        values: ["sbm"]
+    spread_rate_init:
+        values: [0.05, 0.1, 0.2]
+    spread_rate_max:
+        values: [1.0]
+    mastery_bound:
+        values: [5.0]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]

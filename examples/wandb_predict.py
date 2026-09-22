@@ -47,6 +47,11 @@ def main(params):
         elif model_name == "lpkt":
             data_config["num_at"] = config["data_config"]["num_at"]
             data_config["num_it"] = config["data_config"]["num_it"]    
+
+    # keep cgmkt predict batch size aligned with the original tuning logs
+    if model_name == "cgmkt":
+        batch_size = 64
+
     if model_name not in ["dimkt"]:        
         test_loader, test_window_loader, test_question_loader, test_question_window_loader = init_test_datasets(data_config, model_name, batch_size)
     else:

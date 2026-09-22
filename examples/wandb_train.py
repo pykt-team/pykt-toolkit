@@ -22,6 +22,7 @@ OPERA_ENHANCE_PRO_MODELS = [
     "sakt_enhance_pro",
     "akt_enhance_pro_qid",
     "simplekt_enhance_pro_qid",
+    "cgmkt",
 ]
 
 OPERA_BATCH64_MODELS = [
