@@ -15,7 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 direct_train_que_type_models = [
     "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro",
-    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid",
+    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid", "cgmkt",
 ]
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
@@ -52,7 +52,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
             loss1 = loss1 + model.cl_weight * loss2
         loss =loss1
 
-    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "dkt_enhance_pro", "sakt_enhance_pro", "dkvmn_enhance_pro"]:
+    elif model_name in ["rkt","dimkt","dkt", "dkt_forget", "dkvmn","deep_irt", "kqn", "sakt", "saint", "atkt", "atktfix", "gkt", "skvmn", "hawkes", "dkt_enhance_pro", "sakt_enhance_pro", "dkvmn_enhance_pro", "cgmkt"]:
 
         y = torch.masked_select(ys[0], sm)
         t = torch.masked_select(rshft, sm)
@@ -213,6 +213,9 @@ def model_forward(model, data, rel=None):
     elif model_name in ["dkt_enhance_pro", "sakt_enhance_pro"]:
         y = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
         ys.append(y)
+    elif model_name == "cgmkt":
+        y, _ = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
+        ys.append(y)
     elif model_name == "dkt+":
         y = model(c.long(), r.long())
         y_next = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
@@ -279,7 +282,7 @@ def model_forward(model, data, rel=None):
         y = model(q.long(),c.long(),sd.long(),qd.long(),r.long(),qshft.long(),cshft.long(),sdshft.long(),qdshft.long())
         ys.append(y) 
 
-    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt", "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro"]:
+    if model_name not in ["atkt", "atktfix"]+que_type_models or model_name in ["lpkt", "rkt", "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro", "cgmkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     if model_name in ["akt_enhance_pro_qid", "simplekt_enhance_pro_qid"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
@@ -327,6 +330,8 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
                 clip_grad_norm_(model.parameters(), model.grad_clip)
             if model.model_name == "dtransformer":
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            if model.model_name == "cgmkt":
+                clip_grad_norm_(model.parameters(), 15.0)
             opt.step()#update model’s parameters
                 
             loss_mean.append(loss.detach().cpu().numpy())

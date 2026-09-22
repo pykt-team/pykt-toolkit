@@ -12,7 +12,7 @@ device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 direct_eval_que_type_models = [
     "dkt_enhance_pro", "dkvmn_enhance_pro", "sakt_enhance_pro",
-    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid",
+    "akt_enhance_pro_qid", "simplekt_enhance_pro_qid", "cgmkt",
 ]
 
 def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
@@ -120,6 +120,9 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_enhance_pro", "sakt_enhance_pro"]:
                 y = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
+                c, cshft = q, qshft
+            elif model_name == "cgmkt":
+                y, _ = model(q.long(), r.long(), c.long(), qshft.long(), cshft.long())
                 c, cshft = q, qshft
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), dgaps)

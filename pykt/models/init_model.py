@@ -42,6 +42,7 @@ from .fa_kt import FA_KT
 from .mtkt import MTKT
 from .denoisekt import DenoiseKT
 from .fluckt import FlucKT
+from .cgmkt import CGMKT
 from .dkt_enhance_pro import DKT_Enhance_Pro
 from .dkvmn_enhance_pro import DKVMN_Enhance_PRO
 from .sakt_enhance_pro import SAKT_Enhance_PRO
@@ -173,6 +174,8 @@ def init_model(model_name, model_config, data_config, emb_type, dataset_name=Non
         model = AKT_Enhance_Pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "simplekt_enhance_pro_qid":
         model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
+    elif model_name == "cgmkt":
+        model = CGMKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None
