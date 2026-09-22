@@ -569,3 +569,11 @@ model training or inference.
 The current pyKT integration provides five OPERA Enhance Pro variants:
 ``dkt_enhance_pro``, ``dkvmn_enhance_pro``, ``sakt_enhance_pro``,
 ``akt_enhance_pro_qid``, and ``simplekt_enhance_pro_qid``.
+
+
+CGMKT
+-----
+CGMKT instantiates the two fundamental cognitive learning mechanisms (assimilation and differentiation) for knowledge tracing via dual graph fusion and group-level personalized mastery modeling. It fuses stochastic block model-learned KC dependency graphs with question co-occurrence graphs to simulate knowledge assimilation, and maintains student-specific group-level mastery states to gate interaction encoding and model individualized learning differentiation, resolving homogeneous knowledge representation and missing explicit mastery states in existing KT models.
+.. figure:: ../pics/cgmkt.png
+:alt:
+`Author et al. "CGMKT: Cognition-driven Dual-Graph Fusion with Group-level Mastery for Knowledge Tracing." Information Fusion. <https://doi.org/xxx>`__
