@@ -22,7 +22,7 @@ OPERA_ENHANCE_PRO_MODELS = [
     "sakt_enhance_pro",
     "akt_enhance_pro_qid",
     "simplekt_enhance_pro_qid",
-    "cgmkt",  # 上游 pykt-moekt 的 cadkt 优化器为 Adam(lr, weight_decay=1e-5),保持一致
+    "cgmkt",
 ]
 
 OPERA_BATCH64_MODELS = [

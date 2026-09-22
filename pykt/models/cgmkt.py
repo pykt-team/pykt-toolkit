@@ -237,9 +237,9 @@ class CGMKT(Module):
     CGMKT: Cognition-driven Dual-Graph Fusion with Group-level Mastery
     for Knowledge Tracing.
 
-    The model keeps MoEKT's SBM-based dual graph embeddings, replaces the
-    expert/router pool with one GRU, and adds a student-level group mastery
-    state that is used before encoding and updated after observing r_t.
+    SBM-based dual graph embeddings, a single GRU sequence encoder, and a
+    student-level group mastery state that is used before encoding and
+    updated after observing r_t.
     """
 
     def __init__(

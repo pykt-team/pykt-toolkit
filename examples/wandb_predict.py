@@ -48,7 +48,7 @@ def main(params):
             data_config["num_at"] = config["data_config"]["num_at"]
             data_config["num_it"] = config["data_config"]["num_it"]    
 
-    # keep cgmkt aligned with the original pykt-moekt cadkt predict batch size
+    # keep cgmkt predict batch size aligned with the original tuning logs
     if model_name == "cgmkt":
         batch_size = 64
 
