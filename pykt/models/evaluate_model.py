@@ -106,8 +106,11 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
             elif model_name in ["fa_kt"]:
                 y, _ = model(dcur, dgaps)
                 y = y[:,1:]
-            elif model_name in ["simplekt","stablekt", "sparsekt", "cskt", "ukt", "hcgkt"]:
+            elif model_name in ["simplekt", "stablekt", "cskt", "ukt", "hcgkt"]:
                 y = model(dcur)
+                y = y[:,1:]
+            elif model_name == "sparsekt":
+                y, _ = model(dcur)
                 y = y[:,1:]
             elif model_name in ["simplekt_enhance_pro_qid"]:
                 y = model(dcur)
@@ -1412,12 +1415,17 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             y, _ = model(dcurinfos, dgaps)
             y = y[:,1:]
-        elif model_name in ["simplekt","stablekt", "sparsekt", "cskt", "ukt", "hcgkt"]:
+        elif model_name in ["simplekt", "stablekt", "cskt", "ukt", "hcgkt"]:
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
                        "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
             # print(f"finald: {finald.keys()}")
             # print(f"dgaps: {dgaps.keys()}")
             y = model(dcurinfos)
+            y = y[:,1:]
+        elif model_name == "sparsekt":
+            dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
+                       "shft_qseqs":curqshft,"shft_cseqs":curcshft,"shft_rseqs":currshft}
+            y, _ = model(dcurinfos)
             y = y[:,1:]
         elif model_name in ["rekt"]:
             dcurinfos = {"qseqs": curq, "cseqs": curc, "rseqs": curr,
