@@ -156,7 +156,10 @@ def init_model(model_name, model_config, data_config, emb_type, dataset_name=Non
     elif model_name == "mockt":
         model = MocKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "fa_kt":
-        model = FA_KT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        import inspect
+        fa_kt_params = inspect.signature(FA_KT.__init__).parameters
+        fa_kt_config = {k: v for k, v in model_config.items() if k in fa_kt_params}
+        model = FA_KT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **fa_kt_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "mtkt":
         model = MTKT(data_config["num_c"], data_config["num_q"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "denoisekt":
@@ -176,6 +179,9 @@ def init_model(model_name, model_config, data_config, emb_type, dataset_name=Non
         model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "cgmkt":
         model = CGMKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "cdfkt":
+        from .cdfkt import CDFKT
+        model = CDFKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None

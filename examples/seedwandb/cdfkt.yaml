@@ -1,0 +1,72 @@
+program: wandb_cdfkt_train.py
+method: bayes
+metric:
+    goal: maximize
+    name: validauc
+parameters:
+    model_name:
+        values: ["cdfkt"]
+    dataset_name:
+        values: ["ednet5w"]
+    emb_type:
+        values: ["EdNet_large"]
+    save_dir:
+        values: ["models/cdfkt_tiaocan"]
+    emb_size:
+        values: [64, 128, 192, 256, 384, 512]
+    dropout:
+        distribution: uniform
+        min: 0.0
+        max: 0.8
+    learning_rate:
+        distribution: log_uniform_values
+        min: 5.0e-5
+        max: 3.0e-3
+    weight_decay:
+        distribution: log_uniform_values
+        min: 1.0e-8
+        max: 3.0e-4
+    batch_size:
+        values: [128]
+    base_intensity:
+        distribution: uniform
+        min: 0.0
+        max: 0.5
+    alpha_init_scale:
+        distribution: log_uniform_values
+        min: 1.0e-3
+        max: 0.2
+    min_half_life:
+        values: [1.0, 1.5, 2.0, 3.0, 4.0, 8.0]
+    max_half_life:
+        values: [8.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0, 128.0, 160.0, 200.0]
+    sa_layerscale_init:
+        distribution: log_uniform_values
+        min: 0.01
+        max: 2.0
+    sa_dropout:
+        distribution: uniform
+        min: 0.0
+        max: 0.3
+    sa_gate_bias:
+        distribution: uniform
+        min: 0.0
+        max: 4.0
+    fusion_dropout:
+        distribution: uniform
+        min: 0.0
+        max: 0.3
+    d_state:
+        values: [8, 12, 16, 24, 32, 48, 64]
+    d_conv:
+        values: [2, 3, 4]
+    expand:
+        values: [1, 2, 4]
+    seed:
+        values: [42, 3407]
+    fold:
+        values: [0, 1, 2, 3, 4]
+    use_wandb:
+        values: [1]
+    add_uuid:
+        values: [0]

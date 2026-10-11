@@ -574,6 +574,20 @@ The current pyKT integration provides five OPERA Enhance Pro variants:
 CGMKT
 -----
 CGMKT instantiates the two fundamental cognitive learning mechanisms (assimilation and differentiation) for knowledge tracing via dual graph fusion and group-level personalized mastery modeling. It fuses stochastic block model-learned KC dependency graphs with question co-occurrence graphs to simulate knowledge assimilation, and maintains student-specific group-level mastery states to gate interaction encoding and model individualized learning differentiation, resolving homogeneous knowledge representation and missing explicit mastery states in existing KT models.
+
 .. figure:: ../pics/cgmkt.png
-:alt:
-`Author et al. "CGMKT: Cognition-driven Dual-Graph Fusion with Group-level Mastery for Knowledge Tracing." Information Fusion. <https://doi.org/xxx>`__
+   :alt: CGMKT framework
+
+`YH Bai et al. "CGMKT: Cognition-driven Dual-Graph Fusion with Group-level Mastery for Knowledge Tracing." Information Fusion. <https://www.sciencedirect.com/science/article/pii/S1566253526006767>`__
+
+
+CDFKT
+-----
+CDFKT decouples the student knowledge state into two cognitive components: knowledge accumulation, captured by a Mamba-based sequence encoder, and situational adaptability, modeled by a sequence-step decay temporal encoder under discrete interaction steps. A feature-wise adaptive fusion mechanism integrates the two heterogeneous signals throughout the learning process, resolving the ambiguity in causal attribution caused by encoding knowledge mastery and performance fluctuations in a unified feature space.
+
+.. figure:: ../pics/cdfkt.png
+   :alt: CDFKT framework
+
+CDFKT requires the extra dependencies ``mamba-ssm`` and ``causal-conv1d``.
+
+`YQ Wu., et al. "Reducing causal attribution ambiguity in knowledge tracing via cognitive decoupling and adaptive fusion." Information Fusion. <https://www.sciencedirect.com/science/article/pii/S1566253526005245>`__
