@@ -116,7 +116,7 @@ def main(params):
 
     save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
     learning_rate = params["learning_rate"]
-    for remove_item in ['use_wandb','learning_rate','add_uuid','l2','batch_size','num_epochs']:
+    for remove_item in ['use_wandb','learning_rate','add_uuid','l2','batch_size','num_epochs','weight_decay']:
         if remove_item in model_config:
             del model_config[remove_item]
     if model_name in ["saint","saint++", "sakt", "atdkt", "simplekt","stablekt", "datakt","folibikt", "mtkt"] + OPERA_SEQ_LEN_MODELS:
@@ -142,6 +142,8 @@ def main(params):
         opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
     elif model_name == "dimkt":
         opt = torch.optim.Adam(model.parameters(),lr=learning_rate,weight_decay=params['weight_decay'])
+    elif model_name == "cdfkt":
+        opt = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=params.get("weight_decay", 1e-5))
     else:
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
