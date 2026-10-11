@@ -246,7 +246,7 @@ class sparseKT(nn.Module):
             c_reg_loss = 0
 
         if train:
-            return preds, y2, y3, c_reg_loss
+            return preds, y2, y3
         else:
             if qtest:
                 return preds, concat_q
