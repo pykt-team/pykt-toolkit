@@ -262,6 +262,7 @@ class CGMKT(Module):
         spread_rate_init=0.1,
         spread_rate_max=1.0,
         mastery_bound=5.0,
+        dataset_name=None,
         **kwargs,
     ):
         super().__init__()
@@ -279,9 +280,13 @@ class CGMKT(Module):
         self.spread_type = spread_type
         self.spread_rate_max = spread_rate_max
 
-        dataset_name = _dataset_from_emb_type(emb_type)
+        dataset_name = dataset_name or _dataset_from_emb_type(emb_type)
         data_dir = os.path.join("..", "data", dataset_name)
         sbm_dir = os.path.join(data_dir, "sbm")
+        # Older preprocessing exports SBM artifacts directly under the dataset
+        # directory instead of a dedicated ``sbm`` subdirectory.
+        if not os.path.exists(sbm_dir):
+            sbm_dir = data_dir
 
         self.matrix = _load_sparse_tensor(os.path.join(data_dir, "ques_skill_gcn_adj.pt"))
         self.matrix_kc = _load_sparse_tensor(

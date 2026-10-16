@@ -178,7 +178,7 @@ def init_model(model_name, model_config, data_config, emb_type, dataset_name=Non
     elif model_name == "simplekt_enhance_pro_qid":
         model = simpleKT_enhance_pro_qid(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "cgmkt":
-        model = CGMKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = CGMKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], dataset_name=dataset_name).to(device)
     elif model_name == "cdfkt":
         from .cdfkt import CDFKT
         model = CDFKT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)

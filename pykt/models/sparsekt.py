@@ -220,30 +220,29 @@ class sparseKT(nn.Module):
         # output shape BS,seqlen,d_model or d_model//2
         y2, y3 = 0, 0
 
-        if emb_type.find("attn") != -1:
-            d_output, attn_weights = self.model(
-                q_embed_data,
-                qa_embed_data,
-                emb_type,
-                sparse_ratio,
-                k_index,
-                attn_grads,
-                stride,
-                save_path,
-                save_attn_path,
-                save_grad_path,
-                attn_cnt_path,
-                q_data,
-                n_question,
-            )
-            self.attn_weights = attn_weights
+        d_output, attn_weights = self.model(
+            q_embed_data,
+            qa_embed_data,
+            emb_type,
+            sparse_ratio,
+            k_index,
+            attn_grads,
+            stride,
+            save_path,
+            save_attn_path,
+            save_grad_path,
+            attn_cnt_path,
+            q_data,
+            n_question,
+        )
+        self.attn_weights = attn_weights
 
-            concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-            output = self.out(concat_q).squeeze(-1)
-            m = nn.Sigmoid()
-            preds = m(output)
+        concat_q = torch.cat([d_output, q_embed_data], dim=-1)
+        output = self.out(concat_q).squeeze(-1)
+        m = nn.Sigmoid()
+        preds = m(output)
 
-            c_reg_loss = 0
+        c_reg_loss = 0
 
         if train:
             return preds, y2, y3
