@@ -93,6 +93,7 @@ class CDFKT(nn.Module):
                  d_conv=4,
                  expand=2,
                  device=None,
+                 dataset_name=None,
                  **kwargs):
         super().__init__()
         self.model_name = "cdfkt"
@@ -103,7 +104,12 @@ class CDFKT(nn.Module):
         self.dropout = dropout
         self.device = self._resolve_device(device)
 
-        dataset_name = self._resolve_dataset_name()
+        dataset_name = dataset_name or self._resolve_dataset_name()
+        if dataset_name is None:
+            raise ValueError(
+                "CDFKT requires dataset_name or a legacy emb_type mapping"
+            )
+        self.dataset_name = dataset_name
         self.embedding_layer = Enbedding_layer(
             self.num_c,
             self.num_q,
