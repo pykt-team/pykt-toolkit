@@ -7,9 +7,9 @@ parameters:
     model_name:
         values: ["cdfkt"]
     dataset_name:
-        values: ["ednet5w"]
+        values: ["xes"]
     emb_type:
-        values: ["EdNet_large"]
+        values: ["qid"]
     save_dir:
         values: ["models/cdfkt_tiaocan"]
     emb_size:
