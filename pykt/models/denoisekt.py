@@ -75,7 +75,7 @@ class DenoiseKTNet(nn.Module):
                 f"adjacency tensor). Generate it with the script at "
                 f"https://drive.google.com/file/d/15R1RNvV4NmwsEoYUyJwTwGXCsK_ODbLd/view?usp=sharing"
             )
-        self.matrix = torch.load(qs_cs_path).to(device)
+        self.matrix = torch.load(qs_cs_path, map_location="cpu").to(device)
         
 
         if emb_type.startswith("qid"):
@@ -226,6 +226,11 @@ class DenoiseKT(QueBaseModel):
 
     def predict_one_step(self,data,perb=None,return_details=False,process=True,return_raw=False):
         data_new = self.batch_to_device(data,process=process)
+        # batch_to_device only reshapes the dict; tensors stay on CPU.
+        # Move the inputs the model actually consumes onto the model device.
+        for k in ('cq', 'cc', 'cr', 'rshft', 'sm'):
+            if k in data_new and torch.is_tensor(data_new[k]):
+                data_new[k] = data_new[k].to(self.device)
         outputs, contrast_loss = self.model(data_new['cq'].long(),data_new['cc'].long(),data_new['cr'].long(),perb)
         if return_details:
             return outputs,data_new,contrast_loss
@@ -249,16 +254,17 @@ class GCN(nn.Module):
         self.dropout = nn.Dropout(p=p).to(device)
 
     def forward(self, x, adj):
-        x = self.dropout(x.to(device))
-        x = torch.matmul(x, self.w.to(device))
+        target_device = x.device if x.is_cuda else device
+        x = self.dropout(x.to(target_device))
+        x = torch.matmul(x, self.w.to(target_device))
 
-        # print(adj.shape)
-        # print(x.shape)
-        # os._exit(1)
-
-        x = torch.sparse.mm(adj.float().to(device), x)
-        x = x + self.b.to(device)
-        return x.to(device)
+        adj = adj.to(target_device)
+        if adj.is_sparse:
+            x = torch.sparse.mm(adj.float(), x)
+        else:
+            x = adj.float() @ x
+        x = x + self.b.to(target_device)
+        return x
 
 
 
